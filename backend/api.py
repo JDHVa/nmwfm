@@ -309,6 +309,20 @@ def create_app(
         row = state.storage.get_generacion(tarea_id)
         return state.generacion_public(row) if row else None
 
+    @router.get("/tareas/{tarea_id}/generaciones")
+    async def generaciones(tarea_id: str):
+        need_tarea(tarea_id)
+        return services.listar_generaciones(state, tarea_id)
+
+    @router.post("/generaciones/{hist_id}/restaurar")
+    async def restaurar(hist_id: int):
+        return services.restaurar_generacion(state, hist_id)
+
+    @router.get("/tareas/{tarea_id}/portada-preview")
+    async def portada_preview(tarea_id: str):
+        need_tarea(tarea_id)
+        return await services.portada_preview(state, tarea_id)
+
     @router.post("/tareas/{tarea_id}/abrir-docx", status_code=204)
     async def abrir_docx(tarea_id: str):
         need_tarea(tarea_id)

@@ -1,3 +1,4 @@
+import unicodedata
 from datetime import date
 from pathlib import Path
 
@@ -6,6 +7,7 @@ from docx import Document
 from docx.document import Document as DocumentType
 from docx.enum.section import WD_SECTION
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 from docx.text.paragraph import Paragraph
@@ -32,6 +34,47 @@ BODY_PT = 12
 LINE_SPACING = 1.5
 MARGIN_CM = 2.54
 HEADING_PT = {1: 16, 2: 14, 3: 13}
+SECCIONES_PARA_INDICE = 4
+HUECO_APA_CM = 1.27
+TITULOS_REFERENCIAS = (
+    "referencias",
+    "referencias bibliograficas",
+    "referencias apa",
+    "bibliografia",
+    "fuentes consultadas",
+)
+
+
+def _plano(texto: str) -> str:
+    nfd = unicodedata.normalize("NFD", texto)
+    return "".join(c for c in nfd if unicodedata.category(c) != "Mn").lower().strip(" :.")
+
+
+def es_titulo_referencias(texto: str) -> bool:
+    return _plano(texto) in TITULOS_REFERENCIAS
+
+
+def _texto_tokens(tokens) -> str:
+    partes = []
+    for tok in tokens:
+        if tok.get("children"):
+            partes.append(_texto_tokens(tok["children"]))
+        else:
+            partes.append(tok.get("raw", ""))
+    return "".join(partes)
+
+
+def _campo(run, tipo: str) -> None:
+    el = OxmlElement("w:fldChar")
+    el.set(qn("w:fldCharType"), tipo)
+    run._r.append(el)
+
+
+def _instruccion(run, texto: str) -> None:
+    el = OxmlElement("w:instrText")
+    el.set(qn("xml:space"), "preserve")
+    el.text = texto
+    run._r.append(el)
 
 
 def fecha_es(d: date) -> str:
@@ -122,6 +165,7 @@ def _style_font(style, size: int, bold: bool | None = None, name: str = FONT) ->
 class _Builder:
     def __init__(self, imagenes: dict[str, Path] | None = None) -> None:
         self.imagenes = imagenes or {}
+        self.en_referencias = False
         self.doc = Document()
         section = self.doc.sections[0]
         for side in ("left_margin", "right_margin", "top_margin", "bottom_margin"):
@@ -185,6 +229,7 @@ class _Builder:
             kind = tok["type"]
             if kind == "heading":
                 level = tok["attrs"]["level"]
+                self.en_referencias = es_titulo_referencias(_texto_tokens(tok["children"]))
                 p = self.doc.add_paragraph(style=f"Heading {min(level, 3)}")
                 p.paragraph_format.line_spacing = LINE_SPACING
                 p.paragraph_format.space_before = Pt(12)
@@ -192,6 +237,8 @@ class _Builder:
                 self.inline(p, tok["children"], bold=True, size=HEADING_PT.get(level, BODY_PT))
             elif kind in ("paragraph", "block_text") and self._es_diagrama(tok):
                 self.diagrama(tok)
+            elif kind in ("paragraph", "block_text") and self.en_referencias:
+                self.referencia(tok["children"])
             elif kind in ("paragraph", "block_text"):
                 p = self.paragraph(tok["children"])
                 p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -226,7 +273,39 @@ class _Builder:
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         p.add_run().add_picture(str(self.imagenes[texto]), width=Cm(15))
 
+    def referencia(self, hijos) -> None:
+        p = self.paragraph(hijos)
+        p.alignment = WD_ALIGN_PARAGRAPH.LEFT
+        p.paragraph_format.left_indent = Cm(HUECO_APA_CM)
+        p.paragraph_format.first_line_indent = Cm(-HUECO_APA_CM)
+
+    def encabezado(self, texto: str) -> None:
+        p = self.doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        self.run(p, texto, bold=True, size=14)
+
+    def indice(self, titulos: list[tuple[int, str]]) -> None:
+        p = self.doc.add_paragraph()
+        self.run(p, "Índice", bold=True, size=14)
+        for k, (nivel, texto) in enumerate(titulos):
+            p = self.doc.add_paragraph()
+            p.paragraph_format.line_spacing = 1.15
+            p.paragraph_format.left_indent = Cm(0.6 * (nivel - 1))
+            if k == 0:
+                _campo(p.add_run(), "begin")
+                _instruccion(p.add_run(), ' TOC \\o "1-3" \\h \\z \\u ')
+                _campo(p.add_run(), "separate")
+            self.run(p, texto)
+            if k == len(titulos) - 1:
+                _campo(p.add_run(), "end")
+
     def list(self, tok, depth):
+        if self.en_referencias:
+            for item in tok["children"]:
+                for child in item["children"]:
+                    if child["type"] in ("block_text", "paragraph"):
+                        self.referencia(child["children"])
+            return
         ordered = tok["attrs"].get("ordered", False)
         start = tok["attrs"].get("start") or 1
         for n, item in enumerate(tok["children"], start=start):
@@ -272,7 +351,11 @@ class _Builder:
 
 
 def markdown_to_docx(
-    markdown: str, out: Path, work_dir: Path | None = None, avisos: list[str] | None = None
+    markdown: str,
+    out: Path,
+    work_dir: Path | None = None,
+    avisos: list[str] | None = None,
+    encabezado: str | None = None,
 ) -> Path:
     imagenes: dict[str, Path] = {}
     if diagramas.extraer_bloques(markdown):
@@ -282,10 +365,42 @@ def markdown_to_docx(
     parser = mistune.create_markdown(renderer=None, plugins=["table", "strikethrough"])
     tokens = parser(markdown)
     builder = _Builder(imagenes)
+    if encabezado:
+        builder.encabezado(encabezado)
+    titulos = [
+        (min(t["attrs"]["level"], 3), _texto_tokens(t["children"]))
+        for t in tokens
+        if t["type"] == "heading"
+    ]
+    if sum(1 for nivel, _ in titulos if nivel == 2) > SECCIONES_PARA_INDICE:
+        builder.indice(titulos)
     builder.blocks(tokens)
     out.parent.mkdir(parents=True, exist_ok=True)
     builder.doc.save(str(out))
     return out
+
+
+def _numerar_paginas(section) -> None:
+    section.footer.is_linked_to_previous = False
+    parrafo = section.footer.paragraphs[0]
+    for r in list(parrafo.runs):
+        r._r.getparent().remove(r._r)
+    parrafo.alignment = WD_ALIGN_PARAGRAPH.CENTER
+    run = parrafo.add_run()
+    _campo(run, "begin")
+    _instruccion(parrafo.add_run(), " PAGE ")
+    _campo(parrafo.add_run(), "separate")
+    parrafo.add_run("1")
+    _campo(parrafo.add_run(), "end")
+    sect = section._sectPr
+    if sect.find(qn("w:pgNumType")) is None:
+        pg = OxmlElement("w:pgNumType")
+        pg.set(qn("w:start"), "1")
+        cols = sect.find(qn("w:cols"))
+        if cols is not None:
+            cols.addprevious(pg)
+        else:
+            sect.append(pg)
 
 
 def combine(cover: Path, body: Path, out: Path) -> Path:
@@ -295,6 +410,7 @@ def combine(cover: Path, body: Path, out: Path) -> Path:
         setattr(section, side, Cm(MARGIN_CM))
     composer = Composer(cover_doc)
     composer.append(Document(str(body)))
+    _numerar_paginas(composer.doc.sections[-1])
     out.parent.mkdir(parents=True, exist_ok=True)
     composer.save(str(out))
     return out
@@ -307,10 +423,11 @@ def build_final_docx(
     mapping: dict[str, str],
     work_dir: Path,
     avisos: list[str] | None = None,
+    encabezado: str | None = None,
 ) -> Path:
     work_dir.mkdir(parents=True, exist_ok=True)
     cover = fill_cover(template, work_dir / "portada.docx", mapping)
-    body = markdown_to_docx(markdown, work_dir / "cuerpo.docx", work_dir, avisos)
+    body = markdown_to_docx(markdown, work_dir / "cuerpo.docx", work_dir, avisos, encabezado)
     return combine(cover, body, out)
 
 

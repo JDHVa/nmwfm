@@ -95,6 +95,7 @@ class AppState:
             "pdf_url": self.file_url(row["pdf_path"]),
             "creada_en": row["creada_en"],
             "avisos": json.loads(row.get("avisos") or "[]"),
+            "id": row.get("hist_id") if "hist_id" in row else row.get("id"),
         }
 
     def tarea_detalle_public(self, tarea: dict, detalle: dict) -> dict:
@@ -608,18 +609,61 @@ async def run_generar(
 def _construir_documentos(
     state: AppState, tarea: dict, materia: dict, settings: dict, markdown: str
 ) -> dict:
-    out_dir = _generacion_dir(state, tarea["id"])
+    out_dir = _generacion_dir(state, tarea["id"]) / datetime.now().strftime("%Y%m%d-%H%M%S")
     mapping = documents.marcadores(
         settings["nombre"], settings["matricula"], materia["profesor"], date.today()
     )
     avisos: list[str] = []
     docx_path = documents.build_final_docx(
-        config.PORTADA_TEMPLATE, markdown, out_dir / "tarea.docx", mapping, out_dir / "tmp", avisos
+        config.PORTADA_TEMPLATE,
+        markdown,
+        out_dir / "tarea.docx",
+        mapping,
+        out_dir / "tmp",
+        avisos,
+        f"{materia['nombre']} - {tarea['titulo']}",
     )
     pdf_path = documents.export_pdf(docx_path, out_dir / "tarea.pdf")
     return state.storage.set_generacion(
         tarea["id"], markdown, str(docx_path), str(pdf_path), avisos
     )
+
+
+def listar_generaciones(state: AppState, tarea_id: str) -> list[dict]:
+    return [
+        {**state.generacion_public({**fila, "hist_id": fila["id"]}), "actual": fila["actual"]}
+        for fila in state.storage.listar_generaciones(tarea_id)
+    ]
+
+
+def restaurar_generacion(state: AppState, hist_id: int) -> dict:
+    fila = state.storage.restaurar_generacion(hist_id)
+    if fila is None:
+        raise ApiError(404, "generacion_no_encontrada", "La generación no existe.")
+    return state.generacion_public(fila)
+
+
+def _portada_preview(state: AppState, tarea: dict) -> Path:
+    materia = state.storage.get_materia(tarea["materia_id"])
+    settings = state.storage.get_settings()
+    mapping = documents.marcadores(
+        settings["nombre"] or "NOMBRE DEL ALUMNO",
+        settings["matricula"] or "MATRÍCULA",
+        (materia or {}).get("profesor") or "PROFESOR",
+        date.today(),
+    )
+    carpeta = _generacion_dir(state, tarea["id"]) / "preview"
+    docx_path = documents.fill_cover(config.PORTADA_TEMPLATE, carpeta / "portada.docx", mapping)
+    return documents.export_pdf(docx_path, carpeta / "portada.pdf")
+
+
+async def portada_preview(state: AppState, tarea_id: str) -> dict:
+    tarea = state.storage.get_tarea(tarea_id)
+    try:
+        pdf = await asyncio.to_thread(_portada_preview, state, tarea)
+    except Exception as exc:
+        raise ApiError(502, "sin_word", f"No se pudo generar la vista previa: {exc}") from exc
+    return {"pdf_url": state.file_url(pdf)}
 
 
 async def reconstruir_pdf(state: AppState, tarea_id: str) -> dict:
@@ -635,6 +679,7 @@ async def reconstruir_pdf(state: AppState, tarea_id: str) -> dict:
             str(docx_path),
             str(pdf_path),
             json.loads(gen.get("avisos") or "[]"),
+            historial=False,
         )
     )
 

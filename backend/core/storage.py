@@ -67,6 +67,16 @@ CREATE TABLE IF NOT EXISTS generaciones (
     docx_path TEXT NOT NULL,
     pdf_path TEXT NOT NULL,
     creada_en TEXT NOT NULL,
+    avisos TEXT,
+    hist_id INTEGER
+);
+CREATE TABLE IF NOT EXISTS historial_generaciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
+    markdown TEXT NOT NULL,
+    docx_path TEXT NOT NULL,
+    pdf_path TEXT NOT NULL,
+    creada_en TEXT NOT NULL,
     avisos TEXT
 );
 CREATE TABLE IF NOT EXISTS entregas (
@@ -133,6 +143,8 @@ class Storage:
         }
         if "avisos" not in gen_columnas:
             self._db.execute("ALTER TABLE generaciones ADD COLUMN avisos TEXT")
+        if "hist_id" not in gen_columnas:
+            self._db.execute("ALTER TABLE generaciones ADD COLUMN hist_id INTEGER")
         self._db.commit()
 
     def close(self) -> None:
@@ -369,16 +381,76 @@ class Storage:
         docx_path: str,
         pdf_path: str,
         avisos: list[str] | None = None,
+        historial: bool = True,
     ) -> dict:
-        self._run(
-            "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en, avisos) "
-            "VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT(tarea_id) DO UPDATE SET "
-            "markdown = excluded.markdown, docx_path = excluded.docx_path, "
-            "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en, "
-            "avisos = excluded.avisos",
-            (tarea_id, markdown, docx_path, pdf_path, now_iso(), json.dumps(avisos or [])),
-        )
+        creada = now_iso()
+        avisos_json = json.dumps(avisos or [])
+        with self._lock:
+            hist_id = None
+            if historial:
+                cursor = self._db.execute(
+                    "INSERT INTO historial_generaciones(tarea_id, markdown, docx_path, pdf_path, "
+                    "creada_en, avisos) VALUES(?, ?, ?, ?, ?, ?)",
+                    (tarea_id, markdown, docx_path, pdf_path, creada, avisos_json),
+                )
+                hist_id = cursor.lastrowid
+            actual = self._db.execute(
+                "SELECT hist_id FROM generaciones WHERE tarea_id = ?", (tarea_id,)
+            ).fetchone()
+            if hist_id is None and actual is not None:
+                hist_id = actual["hist_id"]
+            self._db.execute(
+                "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en, "
+                "avisos, hist_id) VALUES(?, ?, ?, ?, ?, ?, ?) ON CONFLICT(tarea_id) DO UPDATE SET "
+                "markdown = excluded.markdown, docx_path = excluded.docx_path, "
+                "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en, "
+                "avisos = excluded.avisos, hist_id = excluded.hist_id",
+                (tarea_id, markdown, docx_path, pdf_path, creada, avisos_json, hist_id),
+            )
+            self._db.commit()
         return self.get_generacion(tarea_id)
+
+    def listar_generaciones(self, tarea_id: str) -> list[dict]:
+        actual = self.get_generacion(tarea_id)
+        actual_id = actual["hist_id"] if actual else None
+        filas = self._all(
+            "SELECT * FROM historial_generaciones WHERE tarea_id = ? ORDER BY id DESC",
+            (tarea_id,),
+        )
+        for fila in filas:
+            fila["actual"] = fila["id"] == actual_id
+        return filas
+
+    def get_historial(self, hist_id: int) -> dict | None:
+        return self._one("SELECT * FROM historial_generaciones WHERE id = ?", (hist_id,))
+
+    def restaurar_generacion(self, hist_id: int) -> dict | None:
+        fila = self.get_historial(hist_id)
+        if fila is None:
+            return None
+        with self._lock:
+            self._db.execute(
+                "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en, "
+                "avisos, hist_id) VALUES(?, ?, ?, ?, ?, ?, ?) ON CONFLICT(tarea_id) DO UPDATE SET "
+                "markdown = excluded.markdown, docx_path = excluded.docx_path, "
+                "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en, "
+                "avisos = excluded.avisos, hist_id = excluded.hist_id",
+                (
+                    fila["tarea_id"],
+                    fila["markdown"],
+                    fila["docx_path"],
+                    fila["pdf_path"],
+                    fila["creada_en"],
+                    fila["avisos"],
+                    hist_id,
+                ),
+            )
+            self._db.execute(
+                "UPDATE tareas SET estado = 'generada' WHERE id = ? AND estado = 'pendiente'",
+                (fila["tarea_id"],),
+            )
+            self._db.commit()
+        return self.get_generacion(fila["tarea_id"])
 
     def add_entrega(self, tarea_id: str, pdf_path: str) -> None:
         self._run(
