@@ -67,6 +67,12 @@ CREATE TABLE IF NOT EXISTS generaciones (
     pdf_path TEXT NOT NULL,
     creada_en TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS entregas (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
+    pdf_path TEXT NOT NULL,
+    entregada_en TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS settings (
     key TEXT PRIMARY KEY,
     value TEXT
@@ -353,3 +359,15 @@ class Storage:
             (tarea_id, markdown, docx_path, pdf_path, now_iso()),
         )
         return self.get_generacion(tarea_id)
+
+    def add_entrega(self, tarea_id: str, pdf_path: str) -> None:
+        self._run(
+            "INSERT INTO entregas(tarea_id, pdf_path, entregada_en) VALUES(?, ?, ?)",
+            (tarea_id, pdf_path, now_iso()),
+        )
+
+    def list_entregas(self, tarea_id: str) -> list[dict]:
+        return self._all(
+            "SELECT pdf_path, entregada_en FROM entregas WHERE tarea_id = ? ORDER BY id",
+            (tarea_id,),
+        )

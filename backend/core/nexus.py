@@ -1,18 +1,22 @@
+import asyncio
 import contextlib
 import re
 import unicodedata
 from typing import TYPE_CHECKING
 
 from . import selectors as S
-from .htmlq import html_to_markdown, parse, select, select_one, text_of
+from .htmlq import has_class, html_to_markdown, parse, select, select_one, text_of
 from .types import (
     DetalleTarea,
+    DialogoEntrega,
     EtapaItem,
+    Hooks,
     MateriaCard,
     Portada,
     Rubrica,
     RubricaCriterio,
     RubricaNivel,
+    Snackbar,
     TareaItem,
 )
 
@@ -316,12 +320,111 @@ async def volver_a_lista(page: "Page") -> None:
     await esperar_lista(page)
 
 
-async def entregar(page: "Page", pdf_path) -> None:
-    raise NotImplementedError(
-        "La entrega en NEXUS aun no esta implementada: se desconoce el dialogo de subida "
-        "que aparece al pulsar 'Entregar' (selector del input de archivo y boton de confirmar). "
-        "Hay que capturar ese HTML y completarlo aqui y en selectors.py."
+class EntregaError(RuntimeError):
+    pass
+
+
+def parse_dialogo_entrega(markup: str) -> DialogoEntrega:
+    root = parse(markup)
+    tabs = select(root, S.NX_ENTREGA_TAB)
+    activa = select_one(root, S.NX_ENTREGA_TAB_ACTIVA)
+    return DialogoEntrega(
+        pestanas=[text_of(t) for t in tabs],
+        activa=text_of(activa) if activa is not None else None,
+        tiene_input_file=select_one(root, S.NX_ENTREGA_INPUT) is not None,
+        tiene_dropzone=select_one(root, S.NX_ENTREGA_DROPZONE) is not None,
     )
+
+
+def parse_snackbar(markup: str) -> Snackbar | None:
+    root = parse(markup)
+    bar = select_one(root, S.NX_SNACKBAR)
+    if bar is None:
+        return None
+    texto = text_of(select_one(bar, S.NX_SNACKBAR_TEXT)) or text_of(bar)
+    exito = has_class(bar, S.NX_SNACKBAR_EXITO_CLASS) and S.NX_SNACKBAR_EXITO_TEXT in _norm(texto)
+    return Snackbar(texto=texto, exito=exito)
+
+
+async def _esperar_snackbar(page: "Page", timeout: float = 60.0) -> Snackbar:
+    loop = asyncio.get_running_loop()
+    limite = loop.time() + timeout
+    while loop.time() < limite:
+        bars = page.locator(S.NX_SNACKBAR)
+        if await bars.count():
+            snack = parse_snackbar(await bars.last.evaluate("el => el.outerHTML"))
+            if snack is not None and snack.texto:
+                return snack
+        await asyncio.sleep(0.5)
+    raise EntregaError("NEXUS no confirmo la entrega en 60 segundos.")
+
+
+async def _subir_archivo(page: "Page", pdf_path) -> None:
+    try:
+        await page.wait_for_selector(S.NX_ENTREGA_INPUT, state="attached", timeout=5000)
+        await page.locator(S.NX_ENTREGA_INPUT).first.set_input_files(str(pdf_path))
+        return
+    except Exception:
+        pass
+    async with page.expect_file_chooser() as info:
+        await page.locator(S.NX_ENTREGA_DROPZONE).click()
+    chooser = await info.value
+    await chooser.set_files(str(pdf_path))
+
+
+async def _cerrar_dialogo(page: "Page") -> None:
+    with contextlib.suppress(Exception):
+        dialogo = page.locator(S.NX_ENTREGA_DIALOG).filter(has=page.locator(S.NX_ENTREGA_UPLOAD))
+        if not await dialogo.count():
+            return
+        cerrar = dialogo.last.locator(S.NX_ENTREGA_CERRAR)
+        if await cerrar.count():
+            await cerrar.first.click(timeout=3000)
+        else:
+            await page.keyboard.press("Escape")
+        await page.wait_for_selector(S.NX_OVERLAY_BACKDROP, state="detached", timeout=10000)
+
+
+async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
+    from .browser import pausa
+
+    hooks = hooks or Hooks()
+    await pausa()
+    boton = page.locator(S.NX_ENTREGAR_BUTTON).filter(has_text=S.NX_ENTREGAR_TEXT).first
+    await boton.click()
+    await page.wait_for_selector(S.NX_ENTREGA_UPLOAD, timeout=30000)
+    await pausa()
+
+    if not await page.locator(S.NX_ENTREGA_TAB_ACTIVA).filter(has_text=S.NX_ENTREGA_TAB_PC).count():
+        tab_pc = page.locator(S.NX_ENTREGA_TAB).filter(has_text=re.compile(r"^\s*PC\s*$")).first
+        await tab_pc.click()
+        await pausa()
+
+    await hooks.log("Subiendo el PDF a NEXUS")
+    await _subir_archivo(page, pdf_path)
+    await pausa()
+
+    dialogo = page.locator(S.NX_ENTREGA_DIALOG).filter(has=page.locator(S.NX_ENTREGA_UPLOAD))
+    if await dialogo.count():
+        confirmar = dialogo.last.locator(S.NX_ENTREGA_CONFIRMAR)
+    else:
+        confirmar = page.locator(S.NX_ENTREGA_CONFIRMAR_FALLBACK)
+    confirmar = confirmar.filter(has_text=S.NX_ENTREGAR_TEXT).last
+    try:
+        await confirmar.wait_for(state="visible", timeout=60000)
+    except Exception as exc:
+        raise EntregaError("El boton de confirmar no se habilito tras cargar el PDF.") from exc
+    await pausa()
+    await confirmar.click()
+
+    snack = await _esperar_snackbar(page)
+    await pausa(0.6, 1.2)
+    with contextlib.suppress(Exception):
+        await page.locator(S.NX_SNACKBAR_CLOSE).last.click(timeout=3000)
+    await _cerrar_dialogo(page)
+    if not snack.exito:
+        raise EntregaError(f"NEXUS rechazo la entrega: {snack.texto}")
+    await hooks.log(snack.texto)
 
 
 __all__ = [
@@ -329,6 +432,9 @@ __all__ = [
     "abrir_materia",
     "abrir_tarea",
     "entregar",
+    "EntregaError",
+    "parse_dialogo_entrega",
+    "parse_snackbar",
     "esperar_lista",
     "leer_materias",
     "parse_detalle",
