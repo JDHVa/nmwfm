@@ -617,7 +617,7 @@ async def run_entregar(state: AppState, ctx: JobContext, tarea_id: str) -> dict:
                 await nexus.volver_a_lista(page)
 
     async with state.browser.lock:
-        await _con_nexus(state, hooks, None, subir)
+        await _con_nexus(state, hooks, True, subir)
     state.storage.add_entrega(tarea_id, str(pdf_path))
     state.storage.marcar_entregada(tarea_id, now_iso())
     return {"entregada": True}
