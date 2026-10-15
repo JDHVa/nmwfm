@@ -96,6 +96,8 @@ NX_ENTREGAS_FECHA = "td.cdk-column-fecha"
 NX_ENTREGAS_VACIO = "text=/No se encontraron Entregas/i"
 # VALIDAR en vivo: aviso de NEXUS cuando la sesion se cierra en otra ventana
 NX_SESION_CERRADA = "text=/sesi[oó]n.{0,20}(cerrada|expir)/i"
+NX_PALABRAS_EXAMEN = ("examen", "diagnostic", "cuestionario en linea")
+NX_ETAPA_PIA = "producto integrador"
 NX_PALABRA_OCULTA = "autoevaluacion"
 
 NX_TABS = "nav.mat-tab-nav-bar .mat-tab-links a.mat-tab-link"

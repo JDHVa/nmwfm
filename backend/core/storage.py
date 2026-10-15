@@ -385,7 +385,7 @@ class Storage:
 
     def tareas_con_posicion(self, materia_id: str) -> list[dict]:
         return self._all(
-            "SELECT t.id, t.numero, t.titulo, t.estado, e.orden AS etapa_idx, "
+            "SELECT t.id, t.numero, t.titulo, t.tipo, t.estado, e.orden AS etapa_idx, "
             "t.orden AS tarea_idx, "
             "(d.tarea_id IS NOT NULL) AS tiene_detalle FROM tareas t "
             "JOIN etapas e ON e.id = t.etapa_id "

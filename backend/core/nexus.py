@@ -59,6 +59,19 @@ def es_autoevaluacion(titulo: str) -> bool:
     return S.NX_PALABRA_OCULTA in _norm(titulo)
 
 
+def es_examen(titulo: str) -> bool:
+    texto = _norm(titulo)
+    return any(palabra in texto for palabra in S.NX_PALABRAS_EXAMEN)
+
+
+def clasificar(titulo: str, en_pia: bool = False) -> str:
+    if en_pia:
+        return "pia"
+    if es_examen(titulo):
+        return "examen"
+    return "dimension" if _norm(titulo).startswith("dimension") else "evidencia"
+
+
 def _float(text: str) -> float | None:
     m = _PUNTOS_RE.search(text)
     if m:
@@ -108,15 +121,16 @@ def parse_estructura(markup: str) -> list[EtapaItem]:
         nombre = text_of(select_one(panel, S.NX_PANEL_TITLE))
         descripcion = text_of(select_one(panel, S.NX_PANEL_DESC))
         etapa = EtapaItem(nombre=nombre, descripcion=descripcion, orden=idx)
+        en_pia = S.NX_ETAPA_PIA in _norm(nombre)
         for j, item in enumerate(select(panel, S.NX_PANEL_ITEM)):
-            tarea = _parse_item(item, j)
+            tarea = _parse_item(item, j, en_pia)
             if tarea and not es_autoevaluacion(tarea.titulo):
                 etapa.tareas.append(tarea)
         etapas.append(etapa)
     return etapas
 
 
-def _parse_item(item, orden: int) -> TareaItem | None:
+def _parse_item(item, orden: int, en_pia: bool = False) -> TareaItem | None:
     anchor = select_one(item, "a")
     if anchor is None:
         return None
@@ -132,7 +146,7 @@ def _parse_item(item, orden: int) -> TareaItem | None:
             numero, titulo = m.group(1), m.group(2).strip()
         else:
             numero, titulo = ("PIA" if full.upper().startswith("PIA") else str(orden + 1)), full
-    tipo = "dimension" if _norm(titulo).startswith("dimension") else "evidencia"
+    tipo = clasificar(titulo, en_pia or numero == "PIA")
     right = " ".join(text_of(e) for e in item.iter("span") if _PUNTOS_RE.fullmatch(text_of(e)))
     puntos = _float(right) if right else None
     icon = select_one(item, S.NX_ITEM_MODALITY_ICON)
@@ -631,6 +645,8 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
 
 
 __all__ = [
+    "es_examen",
+    "clasificar",
     "parse_entregas",
     "parse_fecha_entrega",
     "ultima_entrega",

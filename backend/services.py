@@ -229,6 +229,16 @@ def _registrar_entregas(state: AppState, tarea_id: str, entregas, acum: dict) ->
         acum["pendientes"] += 1
 
 
+TIPOS_SIN_DETALLE = ("examen", "pia")
+
+
+async def _omitir_sin_soporte(ctx: JobContext, filas: list[dict]) -> list[dict]:
+    for fila in filas:
+        if fila["tipo"] == "pia":
+            await ctx.log(f"PIA pendiente de soporte: {fila['titulo']}")
+    return [f for f in filas if f["tipo"] not in TIPOS_SIN_DETALLE]
+
+
 async def _recorrer_tareas(
     state: AppState,
     ctx: JobContext,
@@ -273,6 +283,7 @@ async def _sync_materia(
     filas, antes = await _abrir_materia_y_estructura(state, page, i, materia, acum)
     leidas = acum["leidas"]
     forzada = modo == "completo" and not reanudar
+    filas = await _omitir_sin_soporte(ctx, filas)
     pendientes = [
         f
         for f in filas
@@ -310,6 +321,7 @@ async def _revisar_materia(
     acum: dict,
 ) -> None:
     filas, _ = await _abrir_materia_y_estructura(state, page, i, materia, acum)
+    filas = await _omitir_sin_soporte(ctx, filas)
     pendientes = [f for f in filas if f["estado"] != "entregada"]
 
     async def leer(pagina: Page, fila: dict) -> None:
