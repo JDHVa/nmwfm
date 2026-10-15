@@ -108,26 +108,28 @@ function construirEtapas(materiaId: string, seeds: EtapaSeed[]): EtapaConTareas[
   return seeds.map((seed, ei) => {
     const etapaId = `${materiaId}-e${ei + 1}`;
     const esPia = seed.nombre.startsWith("Producto");
-    const tareas: Tarea[] = seed.tareas.map((t, ti) => {
-      const numero = esPia ? "PIA" : `${ei + 1}.${ti + 1}`;
-      const fechas = FECHAS[numero] ?? [
-        `2026-0${8 + Math.min(ei, 3)}-10T00:00:00`,
-        `2026-0${9 + Math.min(ei, 3)}-21T23:59:00`,
-      ];
-      return {
-        id: `${materiaId}-t${ei + 1}${ti + 1}`,
-        etapa_id: etapaId,
-        materia_id: materiaId,
-        numero,
-        titulo: t.titulo,
-        tipo: t.tipo,
-        desde: fechas[0],
-        hasta: fechas[1],
-        puntos: t.puntos,
-        modalidad: "Individual",
-        estado: "pendiente",
-      };
-    });
+    const tareas: Tarea[] = seed.tareas
+      .map((t, ti): Tarea => {
+        const numero = esPia ? "PIA" : `${ei + 1}.${ti + 1}`;
+        const fechas = FECHAS[numero] ?? [
+          `2026-0${8 + Math.min(ei, 3)}-10T00:00:00`,
+          `2026-0${9 + Math.min(ei, 3)}-21T23:59:00`,
+        ];
+        return {
+          id: `${materiaId}-t${ei + 1}${ti + 1}`,
+          etapa_id: etapaId,
+          materia_id: materiaId,
+          numero,
+          titulo: t.titulo,
+          tipo: t.tipo,
+          desde: fechas[0],
+          hasta: fechas[1],
+          puntos: t.puntos,
+          modalidad: "Individual",
+          estado: "pendiente",
+        };
+      })
+      .filter((t) => !t.titulo.includes("Autoevaluación"));
     return {
       id: etapaId,
       materia_id: materiaId,

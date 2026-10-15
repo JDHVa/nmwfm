@@ -14,7 +14,7 @@ describe("reentrega", () => {
     const mock = createMockBackend({ stepMs: 5 });
     configureApi({ base: "http://127.0.0.1:8765", token: "dev", transport: mock.transport });
     configureSocket(mock.createSocket);
-    const tarea = mock.etapas["m1"][0].tareas[1];
+    const tarea = mock.etapas["m1"][0].tareas[0];
     await api.subirImagenes(tarea.id, [new File(["x"], "p.png", { type: "image/png" })]);
     const job = await api.generar(tarea.id);
     await waitFor(async () => expect((await api.job(job.id)).estado).toBe("ok"));
