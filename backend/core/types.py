@@ -107,3 +107,17 @@ class DetalleTarea:
     contenido: str
     criterios_desempeno: str
     rubrica: Rubrica | None
+
+
+@dataclass
+class DialogoEntrega:
+    pestanas: list[str]
+    activa: str | None
+    tiene_input_file: bool
+    tiene_dropzone: bool
+
+
+@dataclass
+class Snackbar:
+    texto: str
+    exito: bool

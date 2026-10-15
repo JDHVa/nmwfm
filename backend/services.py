@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 from datetime import date
 from pathlib import Path
 
@@ -130,23 +131,29 @@ async def run_sync(state: AppState, ctx: JobContext) -> dict:
     return {"materias": len(materias)}
 
 
-async def traer_detalle(state: AppState, tarea_id: str) -> dict:
+async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):
     pos = state.storage.tarea_posicion(tarea_id)
     if pos is None:
         raise ApiError(404, "tarea_no_encontrada", "La tarea no existe.")
     _, etapa_idx, tarea_idx = pos
     tarea = state.storage.get_tarea(tarea_id)
+    if not await page.locator(selectors.NX_CARD).count():
+        await nexus.volver_a_lista(page)
+    materias = await nexus.leer_materias(page)
+    indice = next((m.orden for m in materias if m.id == tarea["materia_id"]), None)
+    if indice is None:
+        raise ApiError(404, "materia_no_encontrada", "La materia ya no aparece en NEXUS.")
+    await nexus.abrir_materia(page, indice)
+    await nexus.abrir_estructura(page)
+    return await nexus.abrir_tarea(page, etapa_idx, tarea_idx)
+
+
+async def traer_detalle(state: AppState, tarea_id: str) -> dict:
+    if state.storage.tarea_posicion(tarea_id) is None:
+        raise ApiError(404, "tarea_no_encontrada", "La tarea no existe.")
     async with state.browser.lock:
         page = await ensure_nexus(state, Hooks())
-        if not await page.locator(selectors.NX_CARD).count():
-            await nexus.volver_a_lista(page)
-        materias = await nexus.leer_materias(page)
-        indice = next((m.orden for m in materias if m.id == tarea["materia_id"]), None)
-        if indice is None:
-            raise ApiError(404, "materia_no_encontrada", "La materia ya no aparece en NEXUS.")
-        await nexus.abrir_materia(page, indice)
-        await nexus.abrir_estructura(page)
-        detalle = await nexus.abrir_tarea(page, etapa_idx, tarea_idx)
+        detalle = await _abrir_tarea_nexus(state, page, tarea_id)
         state.storage.set_detalle(tarea_id, detalle)
         await nexus.volver_a_lista(page)
     return state.storage.get_detalle(tarea_id)
@@ -257,10 +264,25 @@ async def reconstruir_pdf(state: AppState, tarea_id: str) -> dict:
 
 
 async def run_entregar(state: AppState, ctx: JobContext, tarea_id: str) -> dict:
+    tarea = state.storage.get_tarea(tarea_id)
+    if tarea is None:
+        raise ApiError(404, "tarea_no_encontrada", "La tarea no existe.")
     gen = state.storage.get_generacion(tarea_id)
     if gen is None:
         raise ApiError(400, "sin_generacion", "Genera el documento antes de entregar.")
     await ctx.update("entregando", 0.95)
-    await nexus.entregar(None, Path(gen["pdf_path"]))
+    if tarea["estado"] == "entregada":
+        await ctx.log("Reemplazando entrega previa")
+    pdf_path = Path(gen["pdf_path"])
+    hooks = ctx.hooks()
+    async with state.browser.lock:
+        page = await ensure_nexus(state, hooks)
+        await _abrir_tarea_nexus(state, page, tarea_id)
+        try:
+            await nexus.entregar(page, pdf_path, hooks)
+        finally:
+            with contextlib.suppress(Exception):
+                await nexus.volver_a_lista(page)
+    state.storage.add_entrega(tarea_id, str(pdf_path))
     state.storage.set_estado(tarea_id, "entregada")
     return {"entregada": True}

@@ -34,3 +34,21 @@ def detalle_html() -> str:
 
 def rubrica_html() -> str:
     return _between("SECCION QUE ES RUBRICA", "SE DEBE DE CUMPLIR")
+
+
+ENTREGAR_TXT = Path(__file__).resolve().parent.parent / "htmls" / "nexus" / "entregar.txt"
+
+
+def entregar_html() -> str:
+    text = ENTREGAR_TXT.read_text(encoding="utf-8")
+    return re.search(r"<mat-tab-group\b.*?</mat-tab-group>", text, re.S).group(0)
+
+
+SNACKBAR_EXITO = (
+    '<snack-bar-container class="mat-snack-bar-container snackbar-success">'
+    '<simple-snack-bar class="mat-simple-snackbar">'
+    "<span>La Tarea ha sido cargada y entregada con éxito</span>"
+    '<div class="mat-simple-snackbar-action"><button class="mat-button">'
+    '<span class="mat-button-wrapper">X</span></button></div>'
+    "</simple-snack-bar></snack-bar-container>"
+)

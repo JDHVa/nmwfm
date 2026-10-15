@@ -1,0 +1,32 @@
+AQUI SE VE TODO LO QUE ES LO QUE SALE AL DARLE CLICK A ENTREGAR
+
+<div _ngcontent-c40=""><!--bindings={
+  "ng-reflect-ng-if": "true",
+  "ng-reflect-ng-if-else": "[object Object]"
+}--><!----><mat-tab-group _ngcontent-c40="" class="mat-tab-group mat-primary ng-star-inserted" style=""><mat-tab-header class="mat-tab-header" ng-reflect-disable-ripple="false" ng-reflect-selected-index="0"><div aria-hidden="true" class="mat-tab-header-pagination mat-tab-header-pagination-before mat-elevation-z4 mat-ripple mat-tab-header-pagination-disabled" mat-ripple="" ng-reflect-disabled="true"><div class="mat-tab-header-pagination-chevron"></div></div><div class="mat-tab-label-container"><div class="mat-tab-list" role="tablist" style="transform: translateX(0px);"><div class="mat-tab-labels"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><div cdkmonitorelementfocus="" class="mat-tab-label mat-ripple mat-tab-label-active ng-star-inserted" mat-ripple="" mattablabelwrapper="" role="tab" ng-reflect-disabled="false" id="mat-tab-label-1-0" tabindex="0" aria-posinset="1" aria-setsize="3" aria-controls="mat-tab-content-1-0" aria-selected="true" aria-disabled="false"><div class="mat-tab-label-content"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}-->PC</div></div><div cdkmonitorelementfocus="" class="mat-tab-label mat-ripple ng-star-inserted" mat-ripple="" mattablabelwrapper="" role="tab" ng-reflect-disabled="false" id="mat-tab-label-1-1" tabindex="-1" aria-posinset="2" aria-setsize="3" aria-controls="mat-tab-content-1-1" aria-selected="false" aria-disabled="false"><div class="mat-tab-label-content"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}-->OneDrive</div></div><div cdkmonitorelementfocus="" class="mat-tab-label mat-ripple ng-star-inserted" mat-ripple="" mattablabelwrapper="" role="tab" ng-reflect-disabled="false" id="mat-tab-label-1-2" tabindex="-1" aria-posinset="3" aria-setsize="3" aria-controls="mat-tab-content-1-2" aria-selected="false" aria-disabled="false"><div class="mat-tab-label-content"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}-->Recurso Externo</div></div></div><mat-ink-bar class="mat-ink-bar" style="visibility: visible; left: 0px; width: 160px;"></mat-ink-bar></div></div><div aria-hidden="true" class="mat-tab-header-pagination mat-tab-header-pagination-after mat-elevation-z4 mat-ripple mat-tab-header-pagination-disabled" mat-ripple="" ng-reflect-disabled="true"><div class="mat-tab-header-pagination-chevron"></div></div></mat-tab-header><div class="mat-tab-body-wrapper"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><mat-tab-body class="mat-tab-body ng-tns-c16-27 mat-tab-body-active ng-star-inserted" role="tabpanel" ng-reflect-_content="[object Object]" ng-reflect-position="0" id="mat-tab-content-1-0" aria-labelledby="mat-tab-label-1-0" ng-reflect-origin="0"><div class="mat-tab-body-content ng-trigger ng-trigger-translateTab" style="transform: none;"><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><app-file-upload _ngcontent-c40="" _nghost-c41="" ng-reflect--loading-file="true" class="ng-star-inserted"><div _ngcontent-c41=""><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c41="" class="relative py-3 ng-star-inserted"><!--bindings={
+  "ng-reflect-ng-if": null
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><div _ngcontent-c41="" class="text-center ng-star-inserted"><input _ngcontent-c41="" class="d-none" type="file"><file-drop _ngcontent-c41="" customstyle="nx-drop-zone-full relative nx-drop-programa" _nghost-c46="" ng-reflect-customstyle="nx-drop-zone-full relative nx-"><div _ngcontent-c46="" id="dropZone" class="nx-drop-zone-full relative nx-drop-programa"><div _ngcontent-c46="" class="content"><div _ngcontent-c41="" class="font-size-15 bold-500 p-3"><i _ngcontent-c41="" class="fa fa-upload font-size-20"></i><div _ngcontent-c41=""><p>Arrastra tu archivo en esta área</p><p>ó</p><p>Da clic para seleccionar desde tu PC</p></div></div>  </div></div></file-drop><div _ngcontent-c41="" class="w-100 text-center"><!--bindings={
+  "ng-reflect-ng-if": null
+}--></div></div></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><!----></app-file-upload><!----></div></mat-tab-body><mat-tab-body class="mat-tab-body ng-tns-c16-28 ng-star-inserted" role="tabpanel" ng-reflect-_content="[object Object]" ng-reflect-position="1" id="mat-tab-content-1-1" aria-labelledby="mat-tab-label-1-1"><div class="mat-tab-body-content ng-trigger ng-trigger-translateTab" style="transform: translate3d(100%, 0px, 0px); min-height: 1px;"><!----></div></mat-tab-body><mat-tab-body class="mat-tab-body ng-tns-c16-29 ng-star-inserted" role="tabpanel" ng-reflect-_content="[object Object]" ng-reflect-position="2" id="mat-tab-content-1-2" aria-labelledby="mat-tab-label-1-2"><div class="mat-tab-body-content ng-trigger ng-trigger-translateTab" style="transform: translate3d(100%, 0px, 0px); min-height: 1px;"><!----></div></mat-tab-body></div></mat-tab-group><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----></div>
+
+desconzoco como hacer para rentregar el archivo porque este pide que lo arrastres o que lo selecciones desde laPC
