@@ -15,8 +15,9 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import config, services
+from . import check, config, respaldo, services
 from .core import images
+from .scheduler import Programador
 from .services import ApiError, AppState
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
@@ -40,6 +41,14 @@ class GenerarBody(BaseModel):
 
 class SyncBody(BaseModel):
     modo: Literal["auto", "completo", "incremental"] = "auto"
+
+
+class RestaurarBody(BaseModel):
+    nombre: str
+
+
+class LeidasBody(BaseModel):
+    ids: list[int] | None = None
 
 
 class EntregarBody(BaseModel):
@@ -73,7 +82,10 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        programador = Programador(state)
+        programador.iniciar()
         yield
+        await programador.detener()
         await state.close()
 
     app = FastAPI(title="nmwfm", version=config.VERSION, lifespan=lifespan)
@@ -147,6 +159,11 @@ def create_app(
                 if not isinstance(body[key], bool):
                     raise ApiError(422, "validacion", f"{key} debe ser booleano.")
                 values[key] = body[key]
+        if "sync_cada_horas" in body:
+            horas = body["sync_cada_horas"]
+            if isinstance(horas, bool) or not isinstance(horas, int) or horas < 0:
+                raise ApiError(422, "validacion", "sync_cada_horas debe ser un entero >= 0.")
+            values["sync_cada_horas"] = horas
         state.storage.set_settings(values)
         if password:
             cuenta = state.storage.get_settings()["cuenta"]
@@ -163,6 +180,41 @@ def create_app(
             "validar_siase", lambda ctx: services.run_validar_siase(state, ctx)
         ).to_dict()
 
+    @router.post("/diagnostico")
+    async def diagnostico():
+        activo = state.jobs.activo("diagnostico")
+        if activo is not None:
+            return activo.to_dict()
+        services.require_credentials(state)
+        return state.jobs.start(
+            "diagnostico", lambda ctx: check.run_diagnostico(state, ctx)
+        ).to_dict()
+
+    @router.get("/respaldo")
+    async def listar_respaldos():
+        return respaldo.listar(state)
+
+    @router.post("/respaldo")
+    async def crear_respaldo():
+        return await respaldo.crear(state)
+
+    @router.post("/respaldo/restaurar")
+    async def restaurar_respaldo(request: Request):
+        content_type = request.headers.get("content-type", "")
+        if "multipart/form-data" in content_type:
+            partes = parse_multipart(content_type, await request.body())
+            if not partes:
+                raise ApiError(400, "sin_archivos", "No se recibió ningún zip.")
+            _, nombre, datos = partes[0]
+            origen = respaldo.carpeta(state) / f"subido-{uuid.uuid4().hex[:8]}-{Path(nombre).name}"
+            origen.write_bytes(datos)
+        else:
+            cuerpo = RestaurarBody(**(await request.json()))
+            origen = respaldo.carpeta(state) / Path(cuerpo.nombre).name
+            if not origen.is_file():
+                raise ApiError(404, "respaldo_no_encontrado", "Ese respaldo no existe.")
+        return await respaldo.restaurar(state, origen)
+
     @router.post("/gemini/login")
     async def gemini_login():
         return state.jobs.start(
@@ -178,9 +230,29 @@ def create_app(
         modo = body.modo if body else "auto"
         return state.jobs.start("sync", lambda ctx: services.run_sync(state, ctx, modo)).to_dict()
 
+    @router.get("/novedades")
+    async def novedades(no_leidas: int = 0):
+        filas = state.storage.list_novedades(bool(no_leidas))
+        return [{**f, "leida": bool(f["leida"])} for f in filas]
+
+    @router.post("/novedades/leidas")
+    async def novedades_leidas(body: LeidasBody | None = None):
+        ids = body.ids if body else None
+        return {"marcadas": state.storage.marcar_novedades_leidas(ids)}
+
+    @router.get("/alertas")
+    async def alertas():
+        return services.tareas_alertas(state)
+
     @router.get("/materias")
     async def materias():
         return state.storage.list_materias()
+
+    @router.get("/materias/{materia_id}/calificaciones")
+    async def calificaciones(materia_id: str):
+        if state.storage.get_materia(materia_id) is None:
+            raise ApiError(404, "materia_no_encontrada", "La materia no existe.")
+        return state.storage.get_calificaciones(materia_id)
 
     @router.get("/materias/{materia_id}/etapas")
     async def etapas(materia_id: str):
@@ -265,6 +337,16 @@ def create_app(
         row = state.storage.add_insumo(tarea_id, "texto", texto=body.texto)
         return state.insumo_public(row)
 
+    @router.get("/tareas/{tarea_id}/recursos")
+    async def recursos(tarea_id: str):
+        need_tarea(tarea_id)
+        return [services.recurso_public(r) for r in state.storage.list_recursos(tarea_id)]
+
+    @router.post("/tareas/{tarea_id}/recursos/{recurso_id}/usar")
+    async def usar_recurso(tarea_id: str, recurso_id: str):
+        need_tarea(tarea_id)
+        return await asyncio.to_thread(services.usar_recurso, state, tarea_id, recurso_id)
+
     @router.patch("/insumos/{insumo_id}")
     async def patch_insumo(insumo_id: str, body: PatchInsumoBody):
         row = need_insumo(insumo_id)
@@ -308,6 +390,20 @@ def create_app(
         need_tarea(tarea_id)
         row = state.storage.get_generacion(tarea_id)
         return state.generacion_public(row) if row else None
+
+    @router.get("/tareas/{tarea_id}/generaciones")
+    async def generaciones(tarea_id: str):
+        need_tarea(tarea_id)
+        return services.listar_generaciones(state, tarea_id)
+
+    @router.post("/generaciones/{hist_id}/restaurar")
+    async def restaurar(hist_id: int):
+        return services.restaurar_generacion(state, hist_id)
+
+    @router.get("/tareas/{tarea_id}/portada-preview")
+    async def portada_preview(tarea_id: str):
+        need_tarea(tarea_id)
+        return await services.portada_preview(state, tarea_id)
 
     @router.post("/tareas/{tarea_id}/abrir-docx", status_code=204)
     async def abrir_docx(tarea_id: str):

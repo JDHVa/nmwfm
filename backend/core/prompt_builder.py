@@ -1,9 +1,16 @@
 import unicodedata
 from dataclasses import dataclass
 
+from .producto import TIPOS_CON_DIAGRAMA, detectar_producto, plantilla_producto
 from .types import Rubrica
 
 EXCLUIDOS = ("responsabilidad", "compromiso")
+SINTAXIS_MERMAID = {
+    "mapa_mental": "sintaxis mindmap con el concepto central y la jerarquía por indentación",
+    "cuadro_sinoptico": "sintaxis graph LR, de la idea general a las categorías y detalles",
+    "diagrama": "sintaxis flowchart TD con nodos y flechas -->",
+    "linea_tiempo": "sintaxis timeline con líneas 'año : hecho'",
+}
 
 
 @dataclass
@@ -19,6 +26,8 @@ class PromptData:
     rubrica: Rubrica | None = None
     instrucciones_extra: str | None = None
     tiene_insumos: bool = True
+    producto: str | None = None
+    texto_ocr: str = ""
 
 
 def _plano(text: str) -> str:
@@ -68,8 +77,17 @@ def build_prompt(data: PromptData) -> str:
         if rubrica:
             partes.append(f"## Rúbrica de evaluación\n{rubrica}")
 
+    if data.texto_ocr.strip():
+        partes.append(
+            "## Texto extraído de las imágenes adjuntas (OCR, puede tener errores)\n"
+            + data.texto_ocr.strip()
+        )
+    producto = data.producto or detectar_producto(data.titulo, data.actividades)
+    partes.append(f"## Formato del producto\n{plantilla_producto(producto)}")
+
     instrucciones = [
-        "Cumple cada criterio de la rúbrica en su nivel máximo de dominio.",
+        "Cumple cada criterio de la rúbrica en su nivel máximo de dominio: no dejes ningún "
+        "criterio en un nivel intermedio.",
         "Cubre todos los puntos del contenido y de los criterios de desempeño.",
     ]
     if data.tiene_insumos:
@@ -82,8 +100,16 @@ def build_prompt(data: PromptData) -> str:
         "sin portada, sin título general ni texto introductorio o de despedida.",
         "Usa un tono de estudiante de preparatoria: claro, sencillo y bien organizado.",
         "No menciones la rúbrica, los criterios ni estas instrucciones dentro del texto.",
+        "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y "
+        "verificables (autor, año, título, editorial o URL); no inventes referencias.",
     ]
     if data.instrucciones_extra and data.instrucciones_extra.strip():
         instrucciones.append(data.instrucciones_extra.strip())
+    if producto in TIPOS_CON_DIAGRAMA:
+        instrucciones.append(
+            "Además del texto, incluye UN bloque de código ```mermaid con el diagrama del "
+            f"producto ({SINTAXIS_MERMAID[producto]}), con etiquetas cortas en español; el "
+            "texto explicativo va fuera del bloque."
+        )
     partes.append("## Instrucciones\n" + "\n".join(f"- {i}" for i in instrucciones))
     return "\n\n".join(partes)

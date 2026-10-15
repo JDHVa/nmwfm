@@ -143,5 +143,6 @@ def test_entrega_corre_oculta(listo, monkeypatch):
     monkeypatch.setattr(services, "ensure_nexus", fake_ensure)
     monkeypatch.setattr(nexus, "entregar", fake_entregar)
     listo.storage.set_settings({"entregar_sin_revisar": True})
-    assert correr(listo).estado == "ok"
+    job = correr(listo)
+    assert job.estado == "ok", job.mensaje
     assert modos == [True]

@@ -8,6 +8,7 @@ colorama==0.4.6
 docx2pdf==0.1.8
 docxcompose==2.2.0
 fastapi==0.143.1
+graphviz==0.20.3
 greenlet==3.5.6
 h11==0.16.0
 httptools==0.9.0
