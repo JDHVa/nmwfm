@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import check, config, services
+from . import check, config, respaldo, services
 from .core import images
 from .scheduler import Programador
 from .services import ApiError, AppState
@@ -41,6 +41,10 @@ class GenerarBody(BaseModel):
 
 class SyncBody(BaseModel):
     modo: Literal["auto", "completo", "incremental"] = "auto"
+
+
+class RestaurarBody(BaseModel):
+    nombre: str
 
 
 class LeidasBody(BaseModel):
@@ -185,6 +189,31 @@ def create_app(
         return state.jobs.start(
             "diagnostico", lambda ctx: check.run_diagnostico(state, ctx)
         ).to_dict()
+
+    @router.get("/respaldo")
+    async def listar_respaldos():
+        return respaldo.listar(state)
+
+    @router.post("/respaldo")
+    async def crear_respaldo():
+        return await respaldo.crear(state)
+
+    @router.post("/respaldo/restaurar")
+    async def restaurar_respaldo(request: Request):
+        content_type = request.headers.get("content-type", "")
+        if "multipart/form-data" in content_type:
+            partes = parse_multipart(content_type, await request.body())
+            if not partes:
+                raise ApiError(400, "sin_archivos", "No se recibió ningún zip.")
+            _, nombre, datos = partes[0]
+            origen = respaldo.carpeta(state) / f"subido-{uuid.uuid4().hex[:8]}-{Path(nombre).name}"
+            origen.write_bytes(datos)
+        else:
+            cuerpo = RestaurarBody(**(await request.json()))
+            origen = respaldo.carpeta(state) / Path(cuerpo.nombre).name
+            if not origen.is_file():
+                raise ApiError(404, "respaldo_no_encontrado", "Ese respaldo no existe.")
+        return await respaldo.restaurar(state, origen)
 
     @router.post("/gemini/login")
     async def gemini_login():

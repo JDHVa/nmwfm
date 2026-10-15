@@ -154,7 +154,12 @@ class Credentials:
 class Storage:
     def __init__(self, db_path: Path):
         db_path.parent.mkdir(parents=True, exist_ok=True)
+        self.db_path = db_path
         self._lock = threading.RLock()
+        self._abrir()
+
+    def _abrir(self) -> None:
+        db_path = self.db_path
         self._db = sqlite3.connect(db_path, check_same_thread=False)
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA foreign_keys = ON")
@@ -175,6 +180,19 @@ class Storage:
         if "hist_id" not in gen_columnas:
             self._db.execute("ALTER TABLE generaciones ADD COLUMN hist_id INTEGER")
         self._db.commit()
+
+    def copiar_a(self, destino: Path) -> None:
+        with self._lock:
+            copia = sqlite3.connect(destino)
+            try:
+                self._db.backup(copia)
+            finally:
+                copia.close()
+
+    def reabrir(self) -> None:
+        with self._lock:
+            self._db.close()
+            self._abrir()
 
     def close(self) -> None:
         with self._lock:
