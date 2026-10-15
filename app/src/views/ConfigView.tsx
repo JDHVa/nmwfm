@@ -10,6 +10,7 @@ import { api, type Settings } from "@/lib/api";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useJobRunner, useSaveSettings, useSettings } from "@/lib/queries";
 import { PageHeader } from "@/components/PageHeader";
+import { ThemeSelector } from "@/components/ThemeToggle";
 
 export function ConfigView() {
   const { data: settings } = useSettings();
@@ -103,6 +104,13 @@ function ConfigForm({ settings }: { settings: Settings }) {
 
       <section className="space-y-5 rounded-xl border bg-card p-6 backdrop-blur">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Preferencias</h2>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <p className="text-sm font-medium">Tema</p>
+            <p className="text-xs text-muted-foreground">«Sistema» sigue el tema de Windows.</p>
+          </div>
+          <ThemeSelector />
+        </div>
         <Preferencia
           id="dev"
           titulo="Modo DEV"

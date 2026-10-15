@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { useNav } from "@/lib/app-context";
+import { useTheme } from "@/lib/theme";
 import { token } from "@/lib/tokens";
 import { keys, useGeneracion, useJobRunner, useSettings, useTarea } from "@/lib/queries";
 import { DetalleTarea } from "@/views/tarea/DetalleTarea";
@@ -16,6 +17,7 @@ import { RevisarStep } from "@/views/tarea/RevisarStep";
 
 export function TareaView({ id, materiaId }: { id: string; materiaId: string }) {
   const { go } = useNav();
+  const { resuelto } = useTheme();
   const qc = useQueryClient();
   const { data: tarea, isLoading, error } = useTarea(id);
   const { data: gen } = useGeneracion(id);
@@ -60,7 +62,7 @@ export function TareaView({ id, materiaId }: { id: string; materiaId: string }) 
             frame={false}
             width="100%"
             accentColor={token("--primary")}
-            theme="light"
+            theme={resuelto === "oscuro" ? "dark" : "light"}
           >
             <Step title="Insumos">
               <div className="space-y-6 pt-6">
