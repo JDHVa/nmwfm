@@ -11,3 +11,4 @@ app/src-tauri/binaries/
 build/
 dist/
 *.spec
+.claude/worktrees/
