@@ -75,6 +75,8 @@ NX_SNACKBAR_CLOSE = "snack-bar-container button"
 NX_SNACKBAR_EXITO_CLASS = "snackbar-success"
 NX_SNACKBAR_EXITO_TEXT = "entregada con exito"
 
+NX_PALABRA_OCULTA = "autoevaluacion"
+
 NX_TABS = "nav.mat-tab-nav-bar .mat-tab-links a.mat-tab-link"
 NX_TAB_RUBRICA_CSS = (
     "nav.mat-tab-nav-bar a.mat-tab-link[routerlink='Rubrica'], "

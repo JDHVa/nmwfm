@@ -50,6 +50,10 @@ def _norm(text: str) -> str:
     return "".join(c for c in nfd if unicodedata.category(c) != "Mn").lower().strip()
 
 
+def es_autoevaluacion(titulo: str) -> bool:
+    return S.NX_PALABRA_OCULTA in _norm(titulo)
+
+
 def _float(text: str) -> float | None:
     m = _PUNTOS_RE.search(text)
     if m:
@@ -101,7 +105,7 @@ def parse_estructura(markup: str) -> list[EtapaItem]:
         etapa = EtapaItem(nombre=nombre, descripcion=descripcion, orden=idx)
         for j, item in enumerate(select(panel, S.NX_PANEL_ITEM)):
             tarea = _parse_item(item, j)
-            if tarea:
+            if tarea and not es_autoevaluacion(tarea.titulo):
                 etapa.tareas.append(tarea)
         etapas.append(etapa)
     return etapas
@@ -436,6 +440,7 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
 
 
 __all__ = [
+    "es_autoevaluacion",
     "abrir_estructura",
     "abrir_materia",
     "abrir_tarea",

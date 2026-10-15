@@ -23,6 +23,12 @@ class ApiError(Exception):
         self.message = message
 
 
+def limpiar_autoevaluaciones(storage: Storage) -> int:
+    ids = [i for i, titulo in storage.listar_titulos_tareas() if nexus.es_autoevaluacion(titulo)]
+    storage.borrar_tareas(ids)
+    return len(ids)
+
+
 class AppState:
     def __init__(
         self,
@@ -43,6 +49,7 @@ class AppState:
         self.browser = BrowserManager(self.paths.browser_profile, dev)
         self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
         self.nexus_page: Page | None = None
+        limpiar_autoevaluaciones(self.storage)
 
     def file_url(self, path: str | Path | None) -> str | None:
         if not path:
@@ -226,6 +233,7 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
     if modo == "auto":
         hecha = state.storage.get_settings()["sync_inicial_hecha"]
         modo = "incremental" if hecha else "completo"
+    limpiar_autoevaluaciones(state.storage)
     acum = {"tareas": 0, "detalles_leidos": 0, "nuevas": 0, "errores": []}
     fallidas = 0
     async with state.browser.lock:
