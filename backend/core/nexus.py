@@ -248,8 +248,59 @@ async def _html(locator) -> str:
     return await locator.evaluate("e => e.outerHTML")
 
 
+class LecturaIncorrecta(RuntimeError):
+    pass
+
+
+async def _esperar(condicion, descripcion: str, timeout: float = 20.0, intervalo: float = 0.1):
+    loop = asyncio.get_running_loop()
+    fin = loop.time() + timeout
+    while True:
+        with contextlib.suppress(Exception):
+            if await condicion():
+                return
+        if loop.time() >= fin:
+            raise TimeoutError(f"Timeout esperando {descripcion}")
+        await asyncio.sleep(intervalo)
+
+
+async def _esperar_cargas(page: "Page") -> None:
+    with contextlib.suppress(Exception):
+        await page.wait_for_selector(S.NX_LOADER, state="hidden", timeout=10000)
+
+
+def numero_coincide(encabezado: str, numero: str) -> bool:
+    texto = encabezado.strip()
+    if not texto.startswith(numero):
+        return False
+    resto = texto[len(numero) : len(numero) + 1]
+    return not (resto.isalnum() or resto == ".")
+
+
+def detalle_cargado(encabezados: list[str], tarjetas: list[str], numero: str | None) -> bool:
+    if numero is not None and not any(numero_coincide(e, numero) for e in encabezados):
+        return False
+    return any(t.strip() for t in tarjetas)
+
+
+async def _esperar_detalle(page: "Page", numero: str | None) -> None:
+    async def lista() -> bool:
+        encabezados = await page.locator(S.NX_DETALLE_ENCABEZADO).all_inner_texts()
+        tarjetas = await page.locator(S.NX_DETALLE_CARDS).all_inner_texts()
+        return detalle_cargado(encabezados, tarjetas, numero)
+
+    await _esperar(lista, f"el detalle de la tarea {numero}")
+
+
 async def esperar_lista(page: "Page", timeout: float = 30000) -> None:
     await page.wait_for_selector(S.NX_CARD, timeout=timeout)
+
+    async def con_nombres() -> bool:
+        nombres = await page.locator(S.NX_CARD_NOMBRES).all_inner_texts()
+        return bool(nombres) and all(n.strip() for n in nombres)
+
+    await _esperar(con_nombres, "los nombres de las materias", timeout / 1000)
+    await _esperar_cargas(page)
 
 
 async def leer_materias(page: "Page") -> list[MateriaCard]:
@@ -257,9 +308,24 @@ async def leer_materias(page: "Page") -> list[MateriaCard]:
     return parse_materias(await _html(page.locator(S.NX_CARDS_ROOT)))
 
 
+async def _esperar_portada(page: "Page", nombre: str | None) -> None:
+    async def lista() -> bool:
+        if not (await page.locator(S.NX_PORTADA).inner_text()).strip():
+            return False
+        if nombre is None:
+            return True
+        encabezados = await page.locator(S.NX_ENCABEZADO_MATERIA).all_inner_texts()
+        return not encabezados or any(_norm(nombre) in _norm(e) for e in encabezados)
+
+    await _esperar(lista, "la portada de la materia")
+
+
 async def abrir_materia(page: "Page", indice: int) -> Portada:
     await esperar_lista(page)
     card = page.locator(S.NX_CARD).nth(indice)
+    nombre = None
+    with contextlib.suppress(Exception):
+        nombre = (await card.locator(S.NX_CARD_NAME).first.inner_text()).strip() or None
     enlace = card.locator(S.NX_CARD_CLICK).first
     await _clic(card.locator(S.NX_CARD_NAME), enlace)
     try:
@@ -267,12 +333,24 @@ async def abrir_materia(page: "Page", indice: int) -> Portada:
     except Exception:
         await enlace.dispatch_event("click")
         await page.wait_for_selector(S.NX_PORTADA, timeout=20000)
+    await _esperar_portada(page, nombre)
+    await _esperar_cargas(page)
     return parse_portada(await _html(page.locator(S.NX_PORTADA)))
+
+
+async def _esperar_estructura(page: "Page") -> None:
+    async def lista() -> bool:
+        return await page.locator(S.NX_PANEL).count() > 0 and (
+            await page.locator(S.NX_PANEL).locator(S.NX_PANEL_ITEM_LINK).count() > 0
+        )
+
+    await _esperar(lista, "la estructura de la materia", 30)
 
 
 async def volver_a_estructura(page: "Page") -> None:
     await _clic(page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA))
-    await page.wait_for_selector(S.NX_PANEL, timeout=30000)
+    await _esperar_estructura(page)
+    await _esperar_cargas(page)
 
 
 async def abrir_estructura(page: "Page") -> list[EtapaItem]:
@@ -280,15 +358,48 @@ async def abrir_estructura(page: "Page") -> list[EtapaItem]:
     return parse_estructura(await _html(page.locator(S.NX_ESTRUCTURA)))
 
 
-async def abrir_tarea(page: "Page", etapa_idx: int, tarea_idx: int) -> DetalleTarea:
+async def _preparar_panel(page: "Page", etapa_idx: int):
     panel = page.locator(S.NX_PANEL).nth(etapa_idx)
-    await _clic(panel.locator(S.NX_PANEL_ITEM_LINK).nth(tarea_idx))
-    await page.wait_for_selector(S.NX_DETALLE_ROOT, timeout=30000)
-    html = await _html(page.locator("mat-sidenav-content"))
-    detalle = parse_detalle(html)
-    if tiene_pestana_rubrica(html):
-        detalle.rubrica = await _leer_rubrica_pestana(page)
-    return detalle
+    enlaces = panel.locator(S.NX_PANEL_ITEM_LINK)
+
+    async def con_enlaces() -> bool:
+        return await enlaces.count() > 0
+
+    await _esperar(con_enlaces, "los paneles de la estructura", 20)
+    try:
+        await enlaces.first.wait_for(state="visible", timeout=2000)
+    except Exception:
+        await _clic(panel.locator(S.NX_PANEL_HEADER))
+        await enlaces.first.wait_for(state="visible", timeout=10000)
+    return panel, enlaces
+
+
+async def abrir_tarea(
+    page: "Page", etapa_idx: int, tarea_idx: int, numero: str | None = None
+) -> DetalleTarea:
+    ultimo: Exception | None = None
+    for _ in range(2):
+        _, enlaces = await _preparar_panel(page, etapa_idx)
+        await _clic(enlaces.nth(tarea_idx))
+        await page.wait_for_selector(S.NX_DETALLE_ROOT, timeout=20000)
+        await _esperar_detalle(page, numero)
+        await _esperar_cargas(page)
+        html = await _html(page.locator("mat-sidenav-content"))
+        detalle = parse_detalle(html)
+        if (
+            numero is not None
+            and detalle.numero is not None
+            and not numero_coincide(detalle.numero, numero)
+        ):
+            ultimo = LecturaIncorrecta(
+                f"Se leyó la tarea {detalle.numero} en lugar de la {numero}."
+            )
+            await volver_a_estructura(page)
+            continue
+        if tiene_pestana_rubrica(html):
+            detalle.rubrica = await _leer_rubrica_pestana(page)
+        return detalle
+    raise ultimo
 
 
 async def _clic_pestana(page: "Page", css: str, texto: str) -> None:
@@ -301,11 +412,21 @@ async def _clic_pestana(page: "Page", css: str, texto: str) -> None:
 async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
     await _clic_pestana(page, S.NX_TAB_RUBRICA_CSS, S.NX_TAB_RUBRICA_TEXT)
     try:
-        await page.wait_for_selector(S.NX_RUBRICA, timeout=10000)
+
+        async def con_criterios() -> bool:
+            return await page.locator(S.NX_RUBRICA_CRITERIO).count() > 0
+
+        await _esperar(con_criterios, "la rúbrica", 10)
         rubrica = parse_rubrica(await _html(page.locator("mat-sidenav-content")))
     finally:
         with contextlib.suppress(Exception):
             await _clic_pestana(page, S.NX_TAB_CONTENIDOS_CSS, S.NX_TAB_CONTENIDOS_TEXT)
+
+            async def en_contenidos() -> bool:
+                activas = await page.locator(S.NX_TAB_ACTIVA).all_inner_texts()
+                return any(_norm(a) == _norm(S.NX_TAB_CONTENIDOS_TEXT) for a in activas)
+
+            await _esperar(en_contenidos, "la pestaña Contenidos", 10)
     return rubrica
 
 

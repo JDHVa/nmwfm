@@ -88,7 +88,7 @@ class FakeNexus:
                     t.titulo = t.titulo.split(" *")[0] + self.titulo_extra
             return etapas
 
-        async def abrir_tarea(page, e, t):
+        async def abrir_tarea(page, e, t, numero=None):
             self.detalles.append((e, t))
             return DetalleTarea("T", "1", None, None, 1.0, None, "act", "cont", "crit", None)
 
@@ -165,7 +165,7 @@ def test_idempotente_y_actualiza_titulos(state, monkeypatch):
 def test_error_en_una_tarea_continua(state, monkeypatch):
     fake = FakeNexus(monkeypatch, state)
 
-    async def abrir_tarea(page, e, t):
+    async def abrir_tarea(page, e, t, numero=None):
         if t == 0:
             raise TimeoutError("boom")
         fake.detalles.append((e, t))
@@ -186,7 +186,7 @@ def test_sesion_caida_reintenta_la_materia_en_otra_pestana(state, monkeypatch):
     fake.paginas = [Caida()]
     intentos = {"n": 0}
 
-    async def abrir_tarea(page, e, t):
+    async def abrir_tarea(page, e, t, numero=None):
         intentos["n"] += 1
         if isinstance(page, Caida):
             raise TimeoutError("sesion")
@@ -216,7 +216,7 @@ def test_persistencia_incremental_y_reanudacion(state, monkeypatch):
     fake = FakeNexus(monkeypatch, state, tareas_por_materia=4)
     leidas = []
 
-    async def abrir_tarea(page, e, t):
+    async def abrir_tarea(page, e, t, numero=None):
         if len(leidas) == 2:
             await asyncio.sleep(30)
         leidas.append(t)
@@ -240,7 +240,7 @@ def test_persistencia_incremental_y_reanudacion(state, monkeypatch):
 
     leidas.clear()
 
-    async def normal(page, e, t):
+    async def normal(page, e, t, numero=None):
         leidas.append(t)
         return DetalleTarea("T", "1", None, None, 1.0, None, "a", "c", "k", None)
 

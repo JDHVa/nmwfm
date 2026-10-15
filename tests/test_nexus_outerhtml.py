@@ -33,6 +33,18 @@ class _Loc:
     async def click(self, **kw):
         return None
 
+    async def all_inner_texts(self):
+        return ["Texto"]
+
+    async def inner_text(self):
+        return "Texto"
+
+    async def count(self):
+        return 1
+
+    async def wait_for(self, **kw):
+        return None
+
     async def inner_html(self):
         return _interior(self.full)
 

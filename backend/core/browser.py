@@ -73,6 +73,8 @@ async def clic_robusto(locator: Locator, respaldo: Locator | None = None) -> Non
         await objetivo.click(timeout=5000)
     except Exception:
         # Workaround: overlays/forms de SIASE y NEXUS interceptan el clic real.
+        with contextlib.suppress(Exception):
+            await objetivo.wait_for(state="visible", timeout=3000)
         await (respaldo if respaldo is not None else objetivo).dispatch_event("click")
 
 
