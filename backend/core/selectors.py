@@ -94,6 +94,8 @@ NX_ENTREGAS_FILA = "tr.mat-row"
 NX_ENTREGAS_NOMBRE = "td.cdk-column-nombre"
 NX_ENTREGAS_FECHA = "td.cdk-column-fecha"
 NX_ENTREGAS_VACIO = "text=/No se encontraron Entregas/i"
+# VALIDAR en vivo: aviso de NEXUS cuando la sesion se cierra en otra ventana
+NX_SESION_CERRADA = "text=/sesi[oó]n.{0,20}(cerrada|expir)/i"
 NX_PALABRA_OCULTA = "autoevaluacion"
 
 NX_TABS = "nav.mat-tab-nav-bar .mat-tab-links a.mat-tab-link"

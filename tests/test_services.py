@@ -85,7 +85,8 @@ def test_generar_encadena_entrega(listo, monkeypatch):
     monkeypatch.setattr(nexus, "entregar", fake_entregar)
     listo.storage.set_settings({"entregar_sin_revisar": True})
     job = correr(listo)
-    assert job.estado == "ok" and len(llamadas) == 1 and llamadas[0].endswith("x.pdf")
+    assert job.estado == "ok", job.mensaje
+    assert len(llamadas) == 1 and llamadas[0].endswith("x.pdf")
     assert job.paso == "entregando"
     assert listo.storage.get_tarea(TID)["estado"] == "entregada"
     assert listo.storage.get_tarea(TID)["entregada_en"]

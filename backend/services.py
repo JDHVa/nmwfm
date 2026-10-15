@@ -50,6 +50,7 @@ class AppState:
         self.browser = BrowserManager(self.paths.browser_profile, dev)
         self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
         self.nexus_page: Page | None = None
+        self.sesion_muerta_registrada = False
         limpiar_autoevaluaciones(self.storage)
 
     def file_url(self, path: str | Path | None) -> str | None:
@@ -109,14 +110,38 @@ def require_credentials(state: AppState) -> tuple[str, str]:
     return cuenta, password
 
 
+async def _cerrar_nexus_previos(ctx) -> None:
+    for pagina in list(getattr(ctx, "pages", [])):
+        with contextlib.suppress(Exception):
+            if "plataformanexus.uanl.mx" in pagina.url:
+                await pagina.close()
+
+
 async def ensure_nexus(state: AppState, hooks: Hooks, headless: bool | None = None) -> Page:
     ctx = await state.browser.context(headless)
     page = state.nexus_page
-    if page is not None and not page.is_closed() and "plataformanexus.uanl.mx" in page.url:
+    if page is not None and not await _sesion_caida(page):
         return page
+    # NEXUS solo admite una instancia abierta: la pestaña vieja se cierra antes de abrir otra.
+    await _cerrar_nexus_previos(ctx)
+    state.nexus_page = None
     cuenta, password = require_credentials(state)
     state.nexus_page = await siase.login(ctx, cuenta, password, hooks)
+    state.sesion_muerta_registrada = False
     return state.nexus_page
+
+
+async def _con_nexus(state: AppState, hooks: Hooks, headless: bool | None, fn):
+    page = await ensure_nexus(state, hooks, headless=headless)
+    try:
+        return await fn(page)
+    except Exception:
+        actual = state.nexus_page or page
+        if not await _sesion_caida(actual):
+            raise
+        await _avisar_sesion_muerta(state, hooks, actual)
+        state.nexus_page = None
+        return await fn(await ensure_nexus(state, hooks, headless=headless))
 
 
 async def run_validar_siase(state: AppState, ctx: JobContext) -> dict:
@@ -146,58 +171,22 @@ def _resumen_error(exc: Exception) -> str:
 
 async def _sesion_caida(page: Page | None) -> bool:
     try:
-        return (
-            page is None
-            or page.is_closed()
-            or ("plataformanexus.uanl.mx" not in page.url or "Login" in page.url)
-        )
+        if page is None or page.is_closed():
+            return True
+        if "plataformanexus.uanl.mx" not in page.url or "Login" in page.url:
+            return True
     except Exception:
         return True
-
-
-async def _exportar_sesion(state: AppState):
     with contextlib.suppress(Exception):
-        return await (await state.browser.context(True)).storage_state()
-    return None
+        return await page.locator(selectors.NX_SESION_CERRADA).count() > 0
+    return False
 
 
-class Pestana:
-    def __init__(self, page: Page, ctx):
-        self.page = page
-        self.ctx = ctx
-
-    async def close(self) -> None:
-        with contextlib.suppress(Exception):
-            await self.ctx.close()
-
-
-async def _lista_cargada(page: Page) -> bool:
-    await page.goto(config.NEXUS_LISTA_URL, wait_until="domcontentloaded")
-    await nexus.esperar_lista(page, 20000)
-    return True
-
-
-async def _abrir_pestana(
-    state: AppState, hooks: Hooks, login_lock: asyncio.Lock, storage_state=None
-) -> Pestana:
-    ctx = await state.browser.contexto_aislado(storage_state)
-    try:
-        page = await ctx.new_page()
-        try:
-            await _lista_cargada(page)
-        except Exception:
-            # Workaround: si el estado exportado no basta, cada contexto entra por SIASE.
-            with contextlib.suppress(Exception):
-                await page.close()
-            async with login_lock:
-                cuenta, password = require_credentials(state)
-                page = await siase.login(ctx, cuenta, password, hooks)
-            await nexus.esperar_lista(page, 20000)
-        return Pestana(page, ctx)
-    except BaseException:
-        with contextlib.suppress(Exception):
-            await ctx.close()
-        raise
+async def _avisar_sesion_muerta(state: AppState, hooks: Hooks, page: Page | None) -> None:
+    if page is not None and not state.sesion_muerta_registrada:
+        state.sesion_muerta_registrada = True
+        await guardar_snapshot(state, page, "sesion-nexus-muerta")
+    await hooks.log("NEXUS cerró la sesión (¿está abierto en otra ventana?)", "error")
 
 
 class SesionCaida(Exception):
@@ -335,51 +324,56 @@ async def _revisar_materia(
     await nexus.volver_a_lista(page)
 
 
-async def _paralelo(state: AppState, ctx: JobContext, procesar, modo: str, reanudar: bool, acum):
+async def _en_lista(page: Page) -> None:
+    if not await page.locator(selectors.NX_CARD).count():
+        await nexus.volver_a_lista(page)
+
+
+async def _secuencial(state: AppState, ctx: JobContext, procesar, modo, reanudar, acum):
     hooks = ctx.hooks()
     await ctx.update("Iniciando sesión", 0.0)
     page = await ensure_nexus(state, hooks, headless=True)
     await ctx.update("Leyendo materias", 0.05)
-    materias = await nexus.leer_materias(page)
+    try:
+        await _en_lista(page)
+        materias = await nexus.leer_materias(page)
+    except Exception:
+        if not await _sesion_caida(state.nexus_page or page):
+            raise
+        await _avisar_sesion_muerta(state, hooks, state.nexus_page or page)
+        state.nexus_page = None
+        page = await ensure_nexus(state, hooks, headless=True)
+        materias = await nexus.leer_materias(page)
     if not materias:
         await guardar_snapshot(state, page, "sync-sin-materias")
         raise ApiError(502, "sin_materias", "No se encontraron materias en NEXUS")
     for m in materias:
         state.storage.upsert_materia(m.id, m.nombre, m.orden)
     n = len(materias)
-    estado = await _exportar_sesion(state)
-    semaforo = asyncio.Semaphore(config.SYNC_PESTANAS)
-    login_lock = asyncio.Lock()
-
-    async def trabajar(i: int, m) -> bool:
-        async with semaforo:
-            for intento in range(2):
-                tab = None
-                try:
-                    tab = await _abrir_pestana(state, hooks, login_lock, estado)
-                    await procesar(state, ctx, tab.page, modo, reanudar, i, n, m, acum)
-                    return True
-                except Exception as exc:
-                    caida = isinstance(exc, SesionCaida) or tab is None
-                    if intento == 0 and caida:
-                        await ctx.log(f"Sesión de NEXUS perdida en {m.nombre}; reintentando")
+    fallidas = 0
+    for i, m in enumerate(materias):
+        for intento in range(2):
+            try:
+                await procesar(state, ctx, page, modo, reanudar, i, n, m, acum)
+                break
+            except Exception as exc:
+                page = state.nexus_page or page
+                causa: Exception = exc
+                if intento == 0 and (isinstance(exc, SesionCaida) or await _sesion_caida(page)):
+                    await _avisar_sesion_muerta(state, hooks, page)
+                    try:
+                        state.nexus_page = None
+                        page = await ensure_nexus(state, hooks, headless=True)
                         continue
-                    acum["errores"].append(f"{m.nombre}: {_resumen_error(exc)}")
-                    await ctx.log(f"Error en la materia {m.nombre}: {exc}", "error")
-                    if tab is not None:
-                        await guardar_snapshot(state, tab.page, f"sync-materia-{m.id}")
-                    return False
-                finally:
-                    if tab is not None:
-                        with contextlib.suppress(Exception):
-                            await tab.close()
-            return False
-
-    try:
-        resultados = await asyncio.gather(*(trabajar(i, m) for i, m in enumerate(materias)))
-    finally:
-        await state.browser.cerrar_aislado()
-    fallidas = resultados.count(False)
+                    except Exception as exc2:
+                        causa = exc2
+                fallidas += 1
+                acum["errores"].append(f"{m.nombre}: {_resumen_error(causa)}")
+                await ctx.log(f"Error en la materia {m.nombre}: {causa}", "error")
+                await guardar_snapshot(state, page, f"sync-materia-{m.id}")
+                with contextlib.suppress(Exception):
+                    await nexus.volver_a_lista(page)
+                break
     if fallidas == n:
         raise ApiError(
             502, "sync_fallido", "No se pudo leer ninguna materia: " + acum["errores"][0]
@@ -411,7 +405,7 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
     limpiar_autoevaluaciones(state.storage)
     acum = _acumulador()
     async with state.browser.lock:
-        n, fallidas = await _paralelo(state, ctx, _sync_materia, modo, reanudar, acum)
+        n, fallidas = await _secuencial(state, ctx, _sync_materia, modo, reanudar, acum)
     valores: dict = {"ultima_sync": now_iso()}
     if modo == "completo":
         valores["sync_inicial_hecha"] = True
@@ -429,7 +423,7 @@ async def run_revisar_entregas(state: AppState, ctx: JobContext) -> dict:
     limpiar_autoevaluaciones(state.storage)
     acum = _acumulador()
     async with state.browser.lock:
-        await _paralelo(state, ctx, _revisar_materia, "revisar", False, acum)
+        await _secuencial(state, ctx, _revisar_materia, "revisar", False, acum)
     return {
         "revisadas": acum["revisadas"],
         "entregadas": acum["entregadas"],
@@ -486,11 +480,14 @@ async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):
 async def traer_detalle(state: AppState, tarea_id: str) -> dict:
     if state.storage.tarea_posicion(tarea_id) is None:
         raise ApiError(404, "tarea_no_encontrada", "La tarea no existe.")
-    async with state.browser.lock:
-        page = await ensure_nexus(state, Hooks(), headless=True)
+
+    async def leer(page: Page):
         detalle = await _abrir_tarea_nexus(state, page, tarea_id)
         state.storage.set_detalle(tarea_id, detalle)
         await nexus.volver_a_lista(page)
+
+    async with state.browser.lock:
+        await _con_nexus(state, Hooks(), True, leer)
     return state.storage.get_detalle(tarea_id)
 
 
@@ -610,14 +607,17 @@ async def run_entregar(state: AppState, ctx: JobContext, tarea_id: str) -> dict:
         await ctx.log("Reemplazando entrega previa")
     pdf_path = Path(gen["pdf_path"])
     hooks = ctx.hooks()
-    async with state.browser.lock:
-        page = await ensure_nexus(state, hooks)
+
+    async def subir(page: Page):
         await _abrir_tarea_nexus(state, page, tarea_id)
         try:
             await nexus.entregar(page, pdf_path, hooks)
         finally:
             with contextlib.suppress(Exception):
                 await nexus.volver_a_lista(page)
+
+    async with state.browser.lock:
+        await _con_nexus(state, hooks, None, subir)
     state.storage.add_entrega(tarea_id, str(pdf_path))
     state.storage.marcar_entregada(tarea_id, now_iso())
     return {"entregada": True}

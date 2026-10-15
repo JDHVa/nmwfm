@@ -204,9 +204,20 @@ def test_api_proximas_revisar_y_etapas(app, state, seeded):
     assert a["id"] == b["id"] and a["tipo"] == "revisar_entregas"
 
 
+class _Cuenta:
+    def __init__(self, sel=""):
+        self.sel = sel
+
+    async def count(self):
+        return 0 if self.sel == "text=/sesi[oó]n.{0,20}(cerrada|expir)/i" else 1
+
+
 class _Pagina:
     url = "https://plataformanexus.uanl.mx/#/App"
     page = property(lambda self: self)
+
+    def locator(self, sel):
+        return _Cuenta(sel)
 
     def is_closed(self):
         return False
@@ -226,12 +237,6 @@ def _montar(monkeypatch, state, tareas=3):
 
     async def ensure(st, hooks, **kw):
         return _Pagina()
-
-    async def pestana(st, hooks, lock, estado=None):
-        return _Pagina()
-
-    async def sin_estado(st):
-        return None
 
     async def leer(page):
         return [MateriaCard("100", "Lógica", 0)]
@@ -253,8 +258,6 @@ def _montar(monkeypatch, state, tareas=3):
         return None
 
     monkeypatch.setattr(services, "ensure_nexus", ensure)
-    monkeypatch.setattr(services, "_abrir_pestana", pestana)
-    monkeypatch.setattr(services, "_exportar_sesion", sin_estado)
     monkeypatch.setattr(nexus, "leer_materias", leer)
     monkeypatch.setattr(nexus, "abrir_materia", abrir_materia)
     monkeypatch.setattr(nexus, "abrir_estructura", abrir_estructura)

@@ -97,6 +97,8 @@ async def login(
         await clic_robusto(link)
     nexus = await nueva.value
     await nexus.wait_for_selector(S.NX_CARD, timeout=60000)
+    with contextlib.suppress(Exception):
+        await page.close()
     return nexus
 
 
