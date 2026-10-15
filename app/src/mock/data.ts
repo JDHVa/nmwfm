@@ -27,7 +27,7 @@ export const MATERIAS: Materia[] = NOMBRES_MATERIAS.map((nombre, i) => ({
 type EtapaSeed = {
   nombre: string;
   descripcion: string;
-  tareas: { titulo: string; puntos: number; tipo: "dimension" | "evidencia" }[];
+  tareas: { titulo: string; puntos: number; tipo: "dimension" | "evidencia" | "examen" | "pia" }[];
 };
 
 const ETAPAS_BIO: EtapaSeed[] = [
@@ -40,6 +40,7 @@ const ETAPAS_BIO: EtapaSeed[] = [
       { titulo: "Dimensión 2 - Comprensión - Ficha Técnica", puntos: 2.5, tipo: "dimension" },
       { titulo: "Dimensión 3 - Análisis - Mapa mental", puntos: 2.5, tipo: "dimension" },
       { titulo: "Evidencia de Aprendizaje - Informe", puntos: 5, tipo: "evidencia" },
+      { titulo: "Examen Etapa 1", puntos: 0, tipo: "examen" },
     ],
   },
   {
@@ -78,7 +79,7 @@ const ETAPAS_BIO: EtapaSeed[] = [
   {
     nombre: "Producto Integrador de Aprendizaje",
     descripcion: "",
-    tareas: [{ titulo: "PIA - Informe", puntos: 10, tipo: "evidencia" }],
+    tareas: [{ titulo: "PIA - Informe", puntos: 10, tipo: "pia" }],
   },
 ];
 
@@ -96,7 +97,7 @@ const ETAPAS_GENERICAS: EtapaSeed[] = [
   {
     nombre: "Producto Integrador de Aprendizaje",
     descripcion: "",
-    tareas: [{ titulo: "PIA - Informe", puntos: 10, tipo: "evidencia" }],
+    tareas: [{ titulo: "PIA - Informe", puntos: 10, tipo: "pia" }],
   },
 ];
 
@@ -275,6 +276,6 @@ export function detalleDe(tarea: Tarea): TareaDetalle {
       : `Desarrolla la actividad «${tarea.titulo}» siguiendo las indicaciones del curso y entrega el resultado en formato PDF.`,
     contenido: CONTENIDO_E1,
     criterios_desempeno: CRITERIOS_E1,
-    rubrica: tarea.tipo === "evidencia" ? RUBRICA : null,
+    rubrica: tarea.tipo === "evidencia" || tarea.tipo === "pia" ? RUBRICA : null,
   };
 }

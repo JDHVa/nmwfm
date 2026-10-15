@@ -1,3 +1,4 @@
+import { ClipboardCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import type { Tarea } from "@/lib/api";
 import { fechaCorta, vencimientoDe, type NivelVencimiento } from "@/lib/vencimiento";
@@ -58,4 +59,22 @@ export function VencimientoBadge({
       {v.texto}
     </Badge>
   );
+}
+
+export function TipoBadge({ tarea }: { tarea: Pick<Tarea, "tipo"> }) {
+  if (tarea.tipo === "examen") {
+    return (
+      <Badge variant="outline" className="gap-1 border-info/40 bg-info/10 font-medium text-info">
+        <ClipboardCheck className="size-3" /> Examen en NEXUS
+      </Badge>
+    );
+  }
+  if (tarea.tipo === "pia") {
+    return (
+      <Badge variant="outline" className="border-primary/40 bg-primary/10 font-medium text-primary">
+        PIA
+      </Badge>
+    );
+  }
+  return null;
 }

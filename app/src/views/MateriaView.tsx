@@ -1,7 +1,7 @@
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { EstadoBadge, VencimientoBadge } from "@/components/EstadoBadge";
+import { EstadoBadge, TipoBadge, VencimientoBadge } from "@/components/EstadoBadge";
 import { PageHeader } from "@/components/PageHeader";
 import type { EtapaConTareas, Tarea } from "@/lib/api";
 import { useNav } from "@/lib/app-context";
@@ -73,8 +73,9 @@ function EtapaItem({ etapa, onOpen }: { etapa: EtapaConTareas; onOpen: (t: Tarea
                 {t.puntos !== null && (
                   <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{t.puntos} pts</span>
                 )}
+                <TipoBadge tarea={t} />
                 <VencimientoBadge tarea={t} omitirVencida />
-                <EstadoBadge tarea={t} />
+                {(t.tipo !== "examen" || t.estado === "entregada" || t.vencida) && <EstadoBadge tarea={t} />}
                 <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
               </button>
             </li>
