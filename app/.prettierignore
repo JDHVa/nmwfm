@@ -1,0 +1,12 @@
+dist
+node_modules
+src-tauri
+src/components/Aurora.tsx
+src/components/SpotlightCard.tsx
+src/components/Dock.tsx
+src/components/DecryptedText.tsx
+src/components/RotatingText.tsx
+src/components/ClickSpark.tsx
+src/components/Stepper.tsx
+src/components/ui
+package-lock.json
