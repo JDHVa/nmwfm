@@ -3,7 +3,7 @@ import { Loader2, RefreshCw, Rocket, Send, Sparkles } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { PasswordInput } from "@/components/PasswordInput";
-import RotatingText from "@/components/RotatingText";
+import { FrasesRotativas } from "@/components/FrasesRotativas";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,21 +89,8 @@ export function LoginView({ settings, onEntrar }: { settings: Settings; onEntrar
           <Logo className="size-12" />
           <span className="text-brand text-3xl font-bold tracking-tight">nmwfm</span>
         </div>
-        <div className="min-h-[7.5rem] max-w-xl text-4xl font-semibold leading-tight tracking-tight lg:text-5xl">
-          {reducido ? (
-            <span>{FRASES[0]}</span>
-          ) : (
-            <RotatingText
-              texts={FRASES}
-              rotationInterval={3200}
-              splitBy="words"
-              staggerDuration={0}
-              animatePresenceMode="wait"
-              mainClassName="flex-wrap"
-              splitLevelClassName="overflow-hidden pb-1"
-              elementLevelClassName="mr-[0.25em]"
-            />
-          )}
+        <div className="max-w-xl text-4xl font-semibold leading-tight tracking-tight lg:text-5xl">
+          {reducido ? <span>{FRASES[0]}</span> : <FrasesRotativas frases={FRASES} />}
         </div>
         <ul className="space-y-3">
           {PUNTOS.map(({ icono: Icono, texto }) => (

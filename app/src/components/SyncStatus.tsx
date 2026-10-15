@@ -44,7 +44,7 @@ export function SyncOverlay() {
             </p>
             <div className="space-y-2">
               <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="font-medium">{sync.job?.paso ?? "Iniciando…"}</span>
+                <span className="min-w-0 break-words font-medium">{sync.job?.paso ?? "Iniciando…"}</span>
                 <span className="tabular-nums text-muted-foreground">{sync.job?.progreso ?? 0}%</span>
               </div>
               <Progress value={sync.job?.progreso ?? 0} className="h-2" />
