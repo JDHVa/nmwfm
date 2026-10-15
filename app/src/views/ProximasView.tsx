@@ -1,6 +1,6 @@
 import { CalendarClock, ChevronRight, ClipboardCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { EstadoBadge, VencimientoBadge } from "@/components/EstadoBadge";
+import { EstadoBadge, TipoBadge, VencimientoBadge } from "@/components/EstadoBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { api, type TareaProxima } from "@/lib/api";
@@ -67,6 +67,7 @@ export function ProximasView() {
                       {t.puntos} pts
                     </span>
                   )}
+                  <TipoBadge tarea={t} />
                   <VencimientoBadge tarea={t} />
                   {t.estado === "generada" && <EstadoBadge tarea={t} />}
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" />

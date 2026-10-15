@@ -3,12 +3,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import Stepper, { Step } from "@/components/Stepper";
 import { Button } from "@/components/ui/button";
-import { EstadoBadge } from "@/components/EstadoBadge";
+import { EstadoBadge, TipoBadge } from "@/components/EstadoBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { useNav } from "@/lib/app-context";
 import { useTheme } from "@/lib/theme";
 import { token } from "@/lib/tokens";
 import { keys, useGeneracion, useJobRunner, useSettings, useTarea } from "@/lib/queries";
+import { ExamenCard } from "@/views/tarea/ExamenCard";
 import { DetalleTarea } from "@/views/tarea/DetalleTarea";
 import { EntregarStep } from "@/views/tarea/EntregarStep";
 import { GenerarStep } from "@/views/tarea/GenerarStep";
@@ -48,11 +49,19 @@ export function TareaView({ id, materiaId }: { id: string; materiaId: string }) 
           </Button>
         }
         titulo={tarea ? `${tarea.numero} · ${tarea.titulo}` : "Tarea"}
-        acciones={tarea && <EstadoBadge tarea={tarea} />}
+        acciones={
+          tarea && (
+            <>
+              <TipoBadge tarea={tarea} />
+              {tarea.tipo !== "examen" && <EstadoBadge tarea={tarea} />}
+            </>
+          )
+        }
       />
       {isLoading && <p className="text-muted-foreground">Cargando tarea…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
-      {tarea && (
+      {tarea && tarea.tipo === "examen" && <ExamenCard tarea={tarea} />}
+      {tarea && tarea.tipo !== "examen" && (
         <>
           <Stepper
             step={paso}

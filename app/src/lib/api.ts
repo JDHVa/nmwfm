@@ -27,7 +27,7 @@ export type Tarea = {
   materia_id: string;
   numero: string;
   titulo: string;
-  tipo: "dimension" | "evidencia";
+  tipo: "dimension" | "evidencia" | "examen" | "pia";
   desde: string | null;
   hasta: string | null;
   puntos: number | null;
