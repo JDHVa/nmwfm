@@ -46,9 +46,9 @@ async def _buscar_alguno(
 
 
 async def _llenar_formulario(scope: Frame, cuenta: str, password: str) -> None:
-    await scope.locator(S.SIASE_TIPO_SELECT).select_option(S.SIASE_TIPO_ALUMNO)
-    await scope.locator(S.SIASE_CUENTA).fill(cuenta)
-    await scope.locator(S.SIASE_PASSWORD).fill(password)
+    await scope.locator(S.SIASE_TIPO_SELECT).first.select_option(S.SIASE_TIPO_ALUMNO)
+    await scope.locator(S.SIASE_CUENTA).first.fill(cuenta)
+    await scope.locator(S.SIASE_PASSWORD).first.fill(password)
     await clic_robusto(scope.locator(S.SIASE_ENTRAR))
 
 
@@ -91,7 +91,7 @@ async def login(
 
     await hooks.paso("Entrando a NEXUS", 0.1)
     await _mostrar_panel_nexus(logo_scope)
-    link = logo_scope.locator(S.SIASE_NEXUS_LINK)
+    link = logo_scope.locator(S.SIASE_NEXUS_LINK).first
     await link.wait_for(state="visible", timeout=15000)
     async with ctx.expect_page() as nueva:
         await clic_robusto(link)

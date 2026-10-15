@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import logging
 import re
 import unicodedata
 from typing import TYPE_CHECKING
@@ -20,6 +21,8 @@ from .types import (
     Snackbar,
     TareaItem,
 )
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from playwright.async_api import Page
@@ -245,7 +248,23 @@ def parse_rubrica(markup_or_el) -> Rubrica | None:
 
 
 async def _html(locator) -> str:
+    total = await locator.count()
+    if total > 1:
+        logger.warning("El selector resolvio a %s elementos; se usa el ultimo", total)
+        locator = locator.last
     return await locator.evaluate("e => e.outerHTML")
+
+
+async def _clic_hasta(locator, condicion, descripcion, respaldo=None, intentos=3, timeout=8.0):
+    # Workaround: a veces el clic llega antes de que Angular enlace el handler y no navega.
+    for k in range(intentos):
+        await _clic(locator, respaldo)
+        try:
+            await _esperar(condicion, descripcion, timeout)
+            return
+        except TimeoutError:
+            if k == intentos - 1:
+                raise
 
 
 class LecturaIncorrecta(RuntimeError):
@@ -283,13 +302,13 @@ def detalle_cargado(encabezados: list[str], tarjetas: list[str], numero: str | N
     return any(t.strip() for t in tarjetas)
 
 
-async def _esperar_detalle(page: "Page", numero: str | None) -> None:
+def _detalle_lista(page: "Page", numero: str | None):
     async def lista() -> bool:
         encabezados = await page.locator(S.NX_DETALLE_ENCABEZADO).all_inner_texts()
         tarjetas = await page.locator(S.NX_DETALLE_CARDS).all_inner_texts()
         return detalle_cargado(encabezados, tarjetas, numero)
 
-    await _esperar(lista, f"el detalle de la tarea {numero}")
+    return lista
 
 
 async def esperar_lista(page: "Page", timeout: float = 30000) -> None:
@@ -308,7 +327,7 @@ async def leer_materias(page: "Page") -> list[MateriaCard]:
     return parse_materias(await _html(page.locator(S.NX_CARDS_ROOT)))
 
 
-async def _esperar_portada(page: "Page", nombre: str | None) -> None:
+def _portada_lista(page: "Page", nombre: str | None):
     async def lista() -> bool:
         if not (await page.locator(S.NX_PORTADA).inner_text()).strip():
             return False
@@ -317,7 +336,7 @@ async def _esperar_portada(page: "Page", nombre: str | None) -> None:
         encabezados = await page.locator(S.NX_ENCABEZADO_MATERIA).all_inner_texts()
         return not encabezados or any(_norm(nombre) in _norm(e) for e in encabezados)
 
-    await _esperar(lista, "la portada de la materia")
+    return lista
 
 
 async def abrir_materia(page: "Page", indice: int) -> Portada:
@@ -327,29 +346,24 @@ async def abrir_materia(page: "Page", indice: int) -> Portada:
     with contextlib.suppress(Exception):
         nombre = (await card.locator(S.NX_CARD_NAME).first.inner_text()).strip() or None
     enlace = card.locator(S.NX_CARD_CLICK).first
-    await _clic(card.locator(S.NX_CARD_NAME), enlace)
-    try:
-        await page.wait_for_selector(S.NX_PORTADA, timeout=5000)
-    except Exception:
-        await enlace.dispatch_event("click")
-        await page.wait_for_selector(S.NX_PORTADA, timeout=20000)
-    await _esperar_portada(page, nombre)
+    await _clic_hasta(
+        card.locator(S.NX_CARD_NAME),
+        _portada_lista(page, nombre),
+        "la portada de la materia",
+        enlace,
+    )
     await _esperar_cargas(page)
     return parse_portada(await _html(page.locator(S.NX_PORTADA)))
 
 
-async def _esperar_estructura(page: "Page") -> None:
+async def volver_a_estructura(page: "Page") -> None:
     async def lista() -> bool:
         return await page.locator(S.NX_PANEL).count() > 0 and (
             await page.locator(S.NX_PANEL).locator(S.NX_PANEL_ITEM_LINK).count() > 0
         )
 
-    await _esperar(lista, "la estructura de la materia", 30)
-
-
-async def volver_a_estructura(page: "Page") -> None:
-    await _clic(page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA))
-    await _esperar_estructura(page)
+    menu = page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA)
+    await _clic_hasta(menu, lista, "la estructura de la materia", timeout=10.0)
     await _esperar_cargas(page)
 
 
@@ -380,11 +394,11 @@ async def abrir_tarea(
     ultimo: Exception | None = None
     for _ in range(2):
         _, enlaces = await _preparar_panel(page, etapa_idx)
-        await _clic(enlaces.nth(tarea_idx))
-        await page.wait_for_selector(S.NX_DETALLE_ROOT, timeout=20000)
-        await _esperar_detalle(page, numero)
+        await _clic_hasta(
+            enlaces.nth(tarea_idx), _detalle_lista(page, numero), f"el detalle de la tarea {numero}"
+        )
         await _esperar_cargas(page)
-        html = await _html(page.locator("mat-sidenav-content"))
+        html = await _html(page.locator(S.NX_CONTENIDO_MATERIA))
         detalle = parse_detalle(html)
         if (
             numero is not None
@@ -417,7 +431,7 @@ async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
             return await page.locator(S.NX_RUBRICA_CRITERIO).count() > 0
 
         await _esperar(con_criterios, "la rúbrica", 10)
-        rubrica = parse_rubrica(await _html(page.locator("mat-sidenav-content")))
+        rubrica = parse_rubrica(await _html(page.locator(S.NX_CONTENIDO_MATERIA)))
     finally:
         with contextlib.suppress(Exception):
             await _clic_pestana(page, S.NX_TAB_CONTENIDOS_CSS, S.NX_TAB_CONTENIDOS_TEXT)
