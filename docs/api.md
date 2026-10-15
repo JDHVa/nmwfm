@@ -12,7 +12,7 @@ type Tarea = { id: string; etapa_id: string; materia_id: string; numero: string;
 type Rubrica = { niveles: string[]; criterios: { criterio: string; niveles: { puntos: number; descripcion: string }[] }[] };
 type TareaDetalle = Tarea & { actividades: string; contenido: string; criterios_desempeno: string; rubrica: Rubrica | null };
 type Insumo = { id: string; tipo: "imagen" | "texto"; original_url?: string; recortada_url?: string; miniatura_url?: string | null; texto?: string; orden: number; rotacion: 0 | 90 | 180 | 270; usar_recorte: boolean };
-type Job = { id: string; tipo: "sync" | "generar" | "entregar" | "login_gemini"; estado: "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error"; paso: string; progreso: number; mensaje: string | null; resultado: unknown };
+type Job = { id: string; tipo: "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase"; estado: "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error"; paso: string; progreso: number; mensaje: string | null; resultado: unknown };
 type Generacion = { tarea_id: string; markdown: string; docx_url: string; pdf_url: string; creada_en: string };
 ```
 Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la imagen recortada SIN rotar: la UI aplica `rotacion` con CSS (el PDF sí la aplica). `miniatura_url` es una miniatura de la recortada.
@@ -21,6 +21,7 @@ Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la 
 ## Endpoints
 - `GET /health` → `{ok: true, version}`
 - `GET /settings` → `Settings` · `PUT /settings` body `Partial<Settings> & {password?: string}`
+- `POST /siase/validar` → `Job` (solo hace el login en SIASE con las credenciales guardadas y cierra; `estado: "ok"` si entró, `"error"` con `mensaje` legible si la cuenta/contraseña es incorrecta o el sitio no responde)
 - `POST /gemini/login` → `Job` (abre Chrome en gemini.google.com para que el usuario inicie sesión; termina cuando detecta la sesión)
 - `POST /sync` → `Job` (login SIASE → NEXUS → materias, profesor, etapas, tareas)
 - `GET /materias` → `Materia[]`
