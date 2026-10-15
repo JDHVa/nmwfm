@@ -107,7 +107,7 @@ async def _presente(page: Page, selector: str) -> bool:
 
 
 async def validar(
-    ctx: BrowserContext, cuenta: str, password: str, hooks: Hooks | None = None, timeout: float = 30
+    ctx: BrowserContext, cuenta: str, password: str, hooks: Hooks | None = None, timeout: float = 12
 ) -> None:
     hooks = hooks or Hooks()
     page = await ctx.new_page()

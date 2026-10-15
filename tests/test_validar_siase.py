@@ -53,3 +53,17 @@ def test_validar_sin_respuesta(state, monkeypatch):
 def test_validar_sin_credenciales(state):
     job = correr(state)
     assert job.estado == "error" and job.mensaje == "Faltan credenciales"
+
+
+def test_endpoint_crea_job(client):
+    r = client.post("/siase/validar")
+    assert r.status_code == 200
+    body = r.json()
+    assert body["tipo"] == "validar_siase"
+    assert body["estado"] in ("en_cola", "corriendo", "error")
+
+
+def test_endpoint_requiere_token(app):
+    from .asgi_client import MiniClient
+
+    assert MiniClient(app).post("/siase/validar").status_code in (401, 403)
