@@ -13,7 +13,7 @@ type Rubrica = { niveles: string[]; criterios: { criterio: string; niveles: { pu
 type TareaDetalle = Tarea & { actividades: string; contenido: string; criterios_desempeno: string; rubrica: Rubrica | null };
 type Insumo = { id: string; tipo: "imagen" | "texto"; original_url?: string; recortada_url?: string; miniatura_url?: string | null; texto?: string; orden: number; rotacion: 0 | 90 | 180 | 270; usar_recorte: boolean };
 type Job = { id: string; tipo: "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas"; estado: "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error"; paso: string; progreso: number; mensaje: string | null; resultado: unknown };
-type Generacion = { tarea_id: string; markdown: string; docx_url: string; pdf_url: string; creada_en: string };
+type Generacion = { tarea_id: string; markdown: string; docx_url: string; pdf_url: string; creada_en: string; avisos: string[] };
 ```
 Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la imagen recortada SIN rotar: la UI aplica `rotacion` con CSS (el PDF sí la aplica). `miniatura_url` es una miniatura de la recortada.
 `Job.progreso` es un entero de 0 a 100. Con `entregar_sin_revisar` activo, el job `generar` encadena la entrega (pasos `generando` y `entregando`); si la entrega falla el job termina en `error` pero la generación queda disponible.
@@ -35,7 +35,7 @@ Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la 
 - `PATCH /insumos/{id}` body `{orden?, rotacion?, usar_recorte?, texto?}` → `Insumo`
 - `DELETE /insumos/{id}` → 204
 - `POST /tareas/{id}/generar` body `{instrucciones_extra?: string}` → `Job` (insumos.pdf → Gemini → docx/pdf con portada)
-- `GET /tareas/{id}/generacion` → `Generacion | null`
+- `GET /tareas/{id}/generacion` → `Generacion | null` (`avisos`: advertencias de la generación, p. ej. un diagrama Mermaid que no se pudo renderizar como imagen y se insertó como lista/tabla porque no hay Graphviz local; la UI debe mostrarlas)
 - `POST /tareas/{id}/abrir-docx` → 204 (abre el .docx en Word)
 - `POST /tareas/{id}/reconstruir-pdf` → `Generacion` (tras editar el .docx a mano)
 - `POST /tareas/{id}/entregar` body `{confirmar: true}` → `Job`

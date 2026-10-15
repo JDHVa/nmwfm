@@ -66,7 +66,8 @@ CREATE TABLE IF NOT EXISTS generaciones (
     markdown TEXT NOT NULL,
     docx_path TEXT NOT NULL,
     pdf_path TEXT NOT NULL,
-    creada_en TEXT NOT NULL
+    creada_en TEXT NOT NULL,
+    avisos TEXT
 );
 CREATE TABLE IF NOT EXISTS entregas (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,6 +128,11 @@ class Storage:
         columnas = {r["name"] for r in self._db.execute("PRAGMA table_info(tareas)").fetchall()}
         if "entregada_en" not in columnas:
             self._db.execute("ALTER TABLE tareas ADD COLUMN entregada_en TEXT")
+        gen_columnas = {
+            r["name"] for r in self._db.execute("PRAGMA table_info(generaciones)").fetchall()
+        }
+        if "avisos" not in gen_columnas:
+            self._db.execute("ALTER TABLE generaciones ADD COLUMN avisos TEXT")
         self._db.commit()
 
     def close(self) -> None:
@@ -356,13 +362,21 @@ class Storage:
     def get_generacion(self, tarea_id: str) -> dict | None:
         return self._one("SELECT * FROM generaciones WHERE tarea_id = ?", (tarea_id,))
 
-    def set_generacion(self, tarea_id: str, markdown: str, docx_path: str, pdf_path: str) -> dict:
+    def set_generacion(
+        self,
+        tarea_id: str,
+        markdown: str,
+        docx_path: str,
+        pdf_path: str,
+        avisos: list[str] | None = None,
+    ) -> dict:
         self._run(
-            "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en) "
-            "VALUES(?, ?, ?, ?, ?) ON CONFLICT(tarea_id) DO UPDATE SET "
+            "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en, avisos) "
+            "VALUES(?, ?, ?, ?, ?, ?) ON CONFLICT(tarea_id) DO UPDATE SET "
             "markdown = excluded.markdown, docx_path = excluded.docx_path, "
-            "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en",
-            (tarea_id, markdown, docx_path, pdf_path, now_iso()),
+            "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en, "
+            "avisos = excluded.avisos",
+            (tarea_id, markdown, docx_path, pdf_path, now_iso(), json.dumps(avisos or [])),
         )
         return self.get_generacion(tarea_id)
 

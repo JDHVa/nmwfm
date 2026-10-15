@@ -11,6 +11,8 @@ from docx.shared import Cm, Pt, RGBColor
 from docx.text.paragraph import Paragraph
 from docxcompose.composer import Composer
 
+from . import diagramas
+
 MESES = (
     "enero",
     "febrero",
@@ -118,7 +120,8 @@ def _style_font(style, size: int, bold: bool | None = None, name: str = FONT) ->
 
 
 class _Builder:
-    def __init__(self) -> None:
+    def __init__(self, imagenes: dict[str, Path] | None = None) -> None:
+        self.imagenes = imagenes or {}
         self.doc = Document()
         section = self.doc.sections[0]
         for side in ("left_margin", "right_margin", "top_margin", "bottom_margin"):
@@ -187,6 +190,8 @@ class _Builder:
                 p.paragraph_format.space_before = Pt(12)
                 p.paragraph_format.keep_with_next = True
                 self.inline(p, tok["children"], bold=True, size=HEADING_PT.get(level, BODY_PT))
+            elif kind in ("paragraph", "block_text") and self._es_diagrama(tok):
+                self.diagrama(tok)
             elif kind in ("paragraph", "block_text"):
                 p = self.paragraph(tok["children"])
                 p.alignment = WD_ALIGN_PARAGRAPH.JUSTIFY
@@ -210,6 +215,16 @@ class _Builder:
                 continue
             elif tok.get("children"):
                 self.blocks(tok["children"], depth)
+
+    def _es_diagrama(self, tok) -> bool:
+        texto = "".join(c.get("raw", "") for c in tok["children"]).strip()
+        return texto in self.imagenes
+
+    def diagrama(self, tok) -> None:
+        texto = "".join(c.get("raw", "") for c in tok["children"]).strip()
+        p = self.doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        p.add_run().add_picture(str(self.imagenes[texto]), width=Cm(15))
 
     def list(self, tok, depth):
         ordered = tok["attrs"].get("ordered", False)
@@ -256,10 +271,17 @@ class _Builder:
         self.doc.add_paragraph().paragraph_format.space_after = Pt(0)
 
 
-def markdown_to_docx(markdown: str, out: Path) -> Path:
+def markdown_to_docx(
+    markdown: str, out: Path, work_dir: Path | None = None, avisos: list[str] | None = None
+) -> Path:
+    imagenes: dict[str, Path] = {}
+    if diagramas.extraer_bloques(markdown):
+        markdown, imagenes = diagramas.procesar_diagramas(
+            markdown, work_dir or out.parent / "diagramas", avisos
+        )
     parser = mistune.create_markdown(renderer=None, plugins=["table", "strikethrough"])
     tokens = parser(markdown)
-    builder = _Builder()
+    builder = _Builder(imagenes)
     builder.blocks(tokens)
     out.parent.mkdir(parents=True, exist_ok=True)
     builder.doc.save(str(out))
@@ -279,11 +301,16 @@ def combine(cover: Path, body: Path, out: Path) -> Path:
 
 
 def build_final_docx(
-    template: Path, markdown: str, out: Path, mapping: dict[str, str], work_dir: Path
+    template: Path,
+    markdown: str,
+    out: Path,
+    mapping: dict[str, str],
+    work_dir: Path,
+    avisos: list[str] | None = None,
 ) -> Path:
     work_dir.mkdir(parents=True, exist_ok=True)
     cover = fill_cover(template, work_dir / "portada.docx", mapping)
-    body = markdown_to_docx(markdown, work_dir / "cuerpo.docx")
+    body = markdown_to_docx(markdown, work_dir / "cuerpo.docx", work_dir, avisos)
     return combine(cover, body, out)
 
 

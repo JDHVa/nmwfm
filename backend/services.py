@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -93,6 +94,7 @@ class AppState:
             "docx_url": self.file_url(row["docx_path"]),
             "pdf_url": self.file_url(row["pdf_path"]),
             "creada_en": row["creada_en"],
+            "avisos": json.loads(row.get("avisos") or "[]"),
         }
 
     def tarea_detalle_public(self, tarea: dict, detalle: dict) -> dict:
@@ -610,11 +612,14 @@ def _construir_documentos(
     mapping = documents.marcadores(
         settings["nombre"], settings["matricula"], materia["profesor"], date.today()
     )
+    avisos: list[str] = []
     docx_path = documents.build_final_docx(
-        config.PORTADA_TEMPLATE, markdown, out_dir / "tarea.docx", mapping, out_dir / "tmp"
+        config.PORTADA_TEMPLATE, markdown, out_dir / "tarea.docx", mapping, out_dir / "tmp", avisos
     )
     pdf_path = documents.export_pdf(docx_path, out_dir / "tarea.pdf")
-    return state.storage.set_generacion(tarea["id"], markdown, str(docx_path), str(pdf_path))
+    return state.storage.set_generacion(
+        tarea["id"], markdown, str(docx_path), str(pdf_path), avisos
+    )
 
 
 async def reconstruir_pdf(state: AppState, tarea_id: str) -> dict:
@@ -624,7 +629,13 @@ async def reconstruir_pdf(state: AppState, tarea_id: str) -> dict:
     docx_path = Path(gen["docx_path"])
     pdf_path = await asyncio.to_thread(documents.export_pdf, docx_path, Path(gen["pdf_path"]))
     return state.generacion_public(
-        state.storage.set_generacion(tarea_id, gen["markdown"], str(docx_path), str(pdf_path))
+        state.storage.set_generacion(
+            tarea_id,
+            gen["markdown"],
+            str(docx_path),
+            str(pdf_path),
+            json.loads(gen.get("avisos") or "[]"),
+        )
     )
 
 

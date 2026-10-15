@@ -1,10 +1,16 @@
 import unicodedata
 from dataclasses import dataclass
 
-from .producto import detectar_producto, plantilla_producto
+from .producto import TIPOS_CON_DIAGRAMA, detectar_producto, plantilla_producto
 from .types import Rubrica
 
 EXCLUIDOS = ("responsabilidad", "compromiso")
+SINTAXIS_MERMAID = {
+    "mapa_mental": "sintaxis mindmap con el concepto central y la jerarquía por indentación",
+    "cuadro_sinoptico": "sintaxis graph LR, de la idea general a las categorías y detalles",
+    "diagrama": "sintaxis flowchart TD con nodos y flechas -->",
+    "linea_tiempo": "sintaxis timeline con líneas 'año : hecho'",
+}
 
 
 @dataclass
@@ -93,5 +99,11 @@ def build_prompt(data: PromptData) -> str:
     ]
     if data.instrucciones_extra and data.instrucciones_extra.strip():
         instrucciones.append(data.instrucciones_extra.strip())
+    if producto in TIPOS_CON_DIAGRAMA:
+        instrucciones.append(
+            "Además del texto, incluye UN bloque de código ```mermaid con el diagrama del "
+            f"producto ({SINTAXIS_MERMAID[producto]}), con etiquetas cortas en español; el "
+            "texto explicativo va fuera del bloque."
+        )
     partes.append("## Instrucciones\n" + "\n".join(f"- {i}" for i in instrucciones))
     return "\n\n".join(partes)
