@@ -5,6 +5,7 @@ import { api, jobActivo, useJobUpdates, type InsumoPatch, type Job, type Setting
 export const keys = {
   settings: ["settings"] as const,
   materias: ["materias"] as const,
+  proximas: ["proximas"] as const,
   etapas: (id: string) => ["etapas", id] as const,
   tarea: (id: string) => ["tarea", id] as const,
   insumos: (id: string) => ["insumos", id] as const,

@@ -100,36 +100,53 @@ const ETAPAS_GENERICAS: EtapaSeed[] = [
   },
 ];
 
-const FECHAS: Record<string, [string, string]> = {
-  "1.2": ["2026-08-10T00:00:00", "2026-09-21T23:59:00"],
-};
+const OFFSETS = [-10, -3, 0, 2, 5, 9, 14, 21, 30, 45];
 
-function construirEtapas(materiaId: string, seeds: EtapaSeed[]): EtapaConTareas[] {
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+export function isoLocal(offsetDias: number, h = 23, m = 59): string {
+  const d = new Date();
+  d.setDate(d.getDate() + offsetDias);
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(h)}:${pad(m)}:00`;
+}
+
+export function marcarVencida(t: Tarea) {
+  t.vencida = t.estado !== "entregada" && !!t.hasta && new Date(t.hasta).getTime() < Date.now();
+}
+
+function construirEtapas(materiaId: string, mi: number, seeds: EtapaSeed[]): EtapaConTareas[] {
+  let k = 0;
   return seeds.map((seed, ei) => {
     const etapaId = `${materiaId}-e${ei + 1}`;
     const esPia = seed.nombre.startsWith("Producto");
     const tareas: Tarea[] = seed.tareas
-      .map((t, ti): Tarea => {
+      .map((t, ti) => ({ t, ti }))
+      .filter(({ t }) => !t.titulo.includes("Autoevaluación"))
+      .map(({ t, ti }): Tarea => {
         const numero = esPia ? "PIA" : `${ei + 1}.${ti + 1}`;
-        const fechas = FECHAS[numero] ?? [
-          `2026-0${8 + Math.min(ei, 3)}-10T00:00:00`,
-          `2026-0${9 + Math.min(ei, 3)}-21T23:59:00`,
-        ];
-        return {
+        const offset = OFFSETS[(k + mi) % OFFSETS.length];
+        const entregada = mi === 0 && k === 0;
+        k += 1;
+        const tarea: Tarea = {
           id: `${materiaId}-t${ei + 1}${ti + 1}`,
           etapa_id: etapaId,
           materia_id: materiaId,
           numero,
           titulo: t.titulo,
           tipo: t.tipo,
-          desde: fechas[0],
-          hasta: fechas[1],
+          desde: isoLocal(offset - 30, 0, 0),
+          hasta: isoLocal(offset),
           puntos: t.puntos,
           modalidad: "Individual",
-          estado: "pendiente",
+          estado: entregada ? "entregada" : "pendiente",
+          entregada_en: entregada ? isoLocal(-11, 18, 30) : null,
+          vencida: false,
         };
-      })
-      .filter((t) => !t.titulo.includes("Autoevaluación"));
+        marcarVencida(tarea);
+        return tarea;
+      });
     return {
       id: etapaId,
       materia_id: materiaId,
@@ -143,7 +160,7 @@ function construirEtapas(materiaId: string, seeds: EtapaSeed[]): EtapaConTareas[
 export function crearEtapas(): Record<string, EtapaConTareas[]> {
   const out: Record<string, EtapaConTareas[]> = {};
   MATERIAS.forEach((m, i) => {
-    out[m.id] = construirEtapas(m.id, i === 0 ? ETAPAS_BIO : ETAPAS_GENERICAS);
+    out[m.id] = construirEtapas(m.id, i, i === 0 ? ETAPAS_BIO : ETAPAS_GENERICAS);
   });
   return out;
 }

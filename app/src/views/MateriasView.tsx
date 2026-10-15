@@ -57,12 +57,22 @@ export function MateriasView() {
                 >
                   Sincronizar todo de nuevo
                 </button>
+                <button
+                  type="button"
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
+                  onClick={() => {
+                    setMenu(false);
+                    sync.revisar();
+                  }}
+                >
+                  Revisar tareas entregadas
+                </button>
               </div>
             )}
           </div>
         }
       />
-      {sync.running && <JobProgress job={sync.job} error={sync.error} />}
+      {sync.running && !sync.esRevision && <JobProgress job={sync.job} error={sync.error} />}
 
       {isLoading && <p className="text-muted-foreground">Cargando materias…</p>}
       {error && <p className="text-destructive">{error.message}</p>}

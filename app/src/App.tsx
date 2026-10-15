@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BookOpen, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun } from "lucide-react";
+import { BookOpen, CalendarClock, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun } from "lucide-react";
 import Dock from "@/components/Dock";
 import { Background } from "@/components/Background";
 import { LogPanel } from "@/components/LogPanel";
@@ -16,6 +16,7 @@ import { ConfigView } from "@/views/ConfigView";
 import { LoginView } from "@/views/LoginView";
 import { MateriaView } from "@/views/MateriaView";
 import { MateriasView } from "@/views/MateriasView";
+import { ProximasView } from "@/views/ProximasView";
 import { SaludoView } from "@/views/SaludoView";
 import { TareaView } from "@/views/TareaView";
 
@@ -42,6 +43,12 @@ function Shell({ onSalir }: { onSalir: () => void }) {
                 onClick: () => go({ name: "materias" }),
               },
               {
+                label: "Próximas entregas",
+                icon: <CalendarClock className="size-5" />,
+                active: view.name === "proximas",
+                onClick: () => go({ name: "proximas" }),
+              },
+              {
                 label: "Configuración",
                 icon: <SettingsIcon className="size-5" />,
                 active: view.name === "config",
@@ -64,6 +71,7 @@ function Shell({ onSalir }: { onSalir: () => void }) {
           <SyncIndicator className="absolute right-6 top-4 z-20" />
           {view.name === "config" && <ConfigView />}
           {view.name === "materias" && <MateriasView />}
+          {view.name === "proximas" && <ProximasView />}
           {view.name === "materia" && <MateriaView id={view.id} />}
           {view.name === "tarea" && <TareaView id={view.id} materiaId={view.materiaId} />}
         </main>

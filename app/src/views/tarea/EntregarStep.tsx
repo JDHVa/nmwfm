@@ -30,6 +30,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
     if (j.estado !== "ok") return;
     qc.invalidateQueries({ queryKey: keys.tarea(tarea.id) });
     qc.invalidateQueries({ queryKey: keys.etapas(tarea.materia_id) });
+    qc.invalidateQueries({ queryKey: keys.proximas });
     const r = caja.current?.getBoundingClientRect();
     chispa.current?.spark(r ? r.width / 2 : undefined, r ? r.height / 2 : undefined);
   });

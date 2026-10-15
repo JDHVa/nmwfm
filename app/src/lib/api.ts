@@ -33,7 +33,10 @@ export type Tarea = {
   puntos: number | null;
   modalidad: string | null;
   estado: EstadoTarea;
+  entregada_en: string | null;
+  vencida: boolean;
 };
+export type TareaProxima = Tarea & { materia_nombre: string };
 export type Rubrica = {
   niveles: string[];
   criterios: { criterio: string; niveles: { puntos: number; descripcion: string }[] }[];
@@ -56,7 +59,7 @@ export type Insumo = {
   usar_recorte: boolean;
 };
 export type InsumoPatch = Partial<Pick<Insumo, "orden" | "rotacion" | "usar_recorte" | "texto">>;
-export type JobTipo = "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase";
+export type JobTipo = "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas";
 export type JobEstado = "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error";
 export type Job = {
   id: string;
@@ -73,6 +76,12 @@ export type SyncResultado = {
   tareas: number;
   detalles_leidos: number;
   nuevas: number;
+  errores: string[];
+};
+export type RevisionResultado = {
+  revisadas: number;
+  entregadas: number;
+  pendientes: number;
   errores: string[];
 };
 export type Generacion = {
@@ -161,6 +170,8 @@ export const api = {
   getSettings: () => request<Settings>("GET", "/settings"),
   putSettings: (data: SettingsUpdate) => request<Settings>("PUT", "/settings", data),
   loginGemini: () => request<Job>("POST", "/gemini/login"),
+  revisarEntregas: () => request<Job>("POST", "/entregas/revisar"),
+  proximas: () => request<TareaProxima[]>("GET", "/tareas/proximas"),
   validarSiase: () => request<Job>("POST", "/siase/validar"),
   sync: (modo: SyncModo = "auto") => request<Job>("POST", "/sync", { modo }),
   materias: () => request<Materia[]>("GET", "/materias"),

@@ -48,7 +48,7 @@ export function TareaView({ id, materiaId }: { id: string; materiaId: string }) 
           </Button>
         }
         titulo={tarea ? `${tarea.numero} · ${tarea.titulo}` : "Tarea"}
-        acciones={tarea && <EstadoBadge estado={tarea.estado} />}
+        acciones={tarea && <EstadoBadge tarea={tarea} />}
       />
       {isLoading && <p className="text-muted-foreground">Cargando tarea…</p>}
       {error && <p className="text-destructive">{error.message}</p>}

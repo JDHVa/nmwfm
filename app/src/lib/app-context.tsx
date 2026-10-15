@@ -4,6 +4,7 @@ import { useSettings } from "@/lib/queries";
 export type View =
   | { name: "config" }
   | { name: "materias" }
+  | { name: "proximas" }
   | { name: "materia"; id: string }
   | { name: "tarea"; materiaId: string; id: string };
 

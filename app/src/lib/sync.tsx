@@ -1,6 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { api, emitLocalLog, type Job, type SyncModo, type SyncResultado } from "@/lib/api";
+import {
+  api,
+  emitLocalLog,
+  type Job,
+  type RevisionResultado,
+  type SyncModo,
+  type SyncResultado,
+} from "@/lib/api";
 import { keys, useJobRunner } from "@/lib/queries";
 
 type SyncCtx = {
@@ -10,6 +17,9 @@ type SyncCtx = {
   minimizado: boolean;
   setMinimizado: (v: boolean) => void;
   iniciar: (modo: SyncModo) => Promise<void>;
+  revisar: () => Promise<void>;
+  esRevision: boolean;
+  resumenRevision: string | null;
   errores: string[];
   resultado: SyncResultado | null;
 };
@@ -28,6 +38,15 @@ export function resultadoDe(job: Job | null): SyncResultado | null {
   };
 }
 
+export function resumenDeRevision(job: Job | null): string | null {
+  if (job?.tipo !== "revisar_entregas" || job.estado !== "ok") return null;
+  const r = job.resultado as Partial<RevisionResultado> | null;
+  if (!r) return null;
+  const e = r.entregadas ?? 0;
+  const p = r.pendientes ?? 0;
+  return `${e} ${e === 1 ? "entregada" : "entregadas"}, ${p} ${p === 1 ? "pendiente" : "pendientes"}`;
+}
+
 export function SyncProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const [minimizado, setMinimizado] = useState(false);
@@ -36,6 +55,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     qc.invalidateQueries({ queryKey: keys.materias });
     qc.invalidateQueries({ queryKey: ["etapas"] });
     qc.invalidateQueries({ queryKey: ["tarea"] });
+    qc.invalidateQueries({ queryKey: keys.proximas });
     const errores = resultadoDe(j)?.errores ?? [];
     errores.forEach((e) => emitLocalLog("error", `Sincronización: ${e}`));
     if (j.estado === "error") emitLocalLog("error", `Sincronización: ${j.mensaje ?? "falló"}`);
@@ -60,6 +80,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
         setMinimizado(false);
         await start(() => api.sync(modo));
       },
+      revisar: async () => {
+        setMinimizado(true);
+        await start(() => api.revisarEntregas());
+      },
+      esRevision: runner.job?.tipo === "revisar_entregas",
+      resumenRevision: resumenDeRevision(runner.job),
       errores: resultadoDe(runner.job)?.errores ?? [],
       resultado: resultadoDe(runner.job),
     }),
