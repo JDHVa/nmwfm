@@ -60,6 +60,10 @@ NX_ENTREGA_CONFIRMAR_FALLBACK = (
     "xpath=//app-file-upload/following::button[contains(@class,'mat-raised-button')]"
     "[contains(@class,'mat-primary')][not(@disabled)]"
 )
+NX_ENTREGA_CERRAR = (
+    "button[mat-dialog-close], button[aria-label='Close'], button[aria-label='Cerrar']"
+)
+NX_OVERLAY_BACKDROP = ".cdk-overlay-backdrop"
 NX_SNACKBAR = "snack-bar-container"
 NX_SNACKBAR_TEXT = "simple-snack-bar > span"
 NX_SNACKBAR_CLOSE = "snack-bar-container button"

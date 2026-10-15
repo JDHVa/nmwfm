@@ -359,6 +359,32 @@ async def _esperar_snackbar(page: "Page", timeout: float = 60.0) -> Snackbar:
     raise EntregaError("NEXUS no confirmo la entrega en 60 segundos.")
 
 
+async def _subir_archivo(page: "Page", pdf_path) -> None:
+    try:
+        await page.wait_for_selector(S.NX_ENTREGA_INPUT, state="attached", timeout=5000)
+        await page.locator(S.NX_ENTREGA_INPUT).first.set_input_files(str(pdf_path))
+        return
+    except Exception:
+        pass
+    async with page.expect_file_chooser() as info:
+        await page.locator(S.NX_ENTREGA_DROPZONE).click()
+    chooser = await info.value
+    await chooser.set_files(str(pdf_path))
+
+
+async def _cerrar_dialogo(page: "Page") -> None:
+    with contextlib.suppress(Exception):
+        dialogo = page.locator(S.NX_ENTREGA_DIALOG).filter(has=page.locator(S.NX_ENTREGA_UPLOAD))
+        if not await dialogo.count():
+            return
+        cerrar = dialogo.last.locator(S.NX_ENTREGA_CERRAR)
+        if await cerrar.count():
+            await cerrar.first.click(timeout=3000)
+        else:
+            await page.keyboard.press("Escape")
+        await page.wait_for_selector(S.NX_OVERLAY_BACKDROP, state="detached", timeout=10000)
+
+
 async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
     from .browser import pausa
 
@@ -375,7 +401,7 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
         await pausa()
 
     await hooks.log("Subiendo el PDF a NEXUS")
-    await page.locator(S.NX_ENTREGA_INPUT).first.set_input_files(str(pdf_path))
+    await _subir_archivo(page, pdf_path)
     await pausa()
 
     dialogo = page.locator(S.NX_ENTREGA_DIALOG).filter(has=page.locator(S.NX_ENTREGA_UPLOAD))
@@ -395,6 +421,7 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
     await pausa(0.6, 1.2)
     with contextlib.suppress(Exception):
         await page.locator(S.NX_SNACKBAR_CLOSE).last.click(timeout=3000)
+    await _cerrar_dialogo(page)
     if not snack.exito:
         raise EntregaError(f"NEXUS rechazo la entrega: {snack.texto}")
     await hooks.log(snack.texto)
