@@ -70,6 +70,11 @@ CREATE TABLE IF NOT EXISTS recursos (
     ruta TEXT,
     usado INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS calificaciones (
+    materia_id TEXT PRIMARY KEY REFERENCES materias(id) ON DELETE CASCADE,
+    datos TEXT NOT NULL,
+    actualizada_en TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS novedades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
@@ -602,3 +607,19 @@ class Storage:
                 )
             self._db.commit()
             return cursor.rowcount
+
+    def set_calificaciones(self, materia_id: str, datos: dict) -> None:
+        self._run(
+            "INSERT INTO calificaciones(materia_id, datos, actualizada_en) VALUES(?, ?, ?) "
+            "ON CONFLICT(materia_id) DO UPDATE SET datos = excluded.datos, "
+            "actualizada_en = excluded.actualizada_en",
+            (materia_id, json.dumps(datos, ensure_ascii=False), now_iso()),
+        )
+
+    def get_calificaciones(self, materia_id: str) -> dict | None:
+        fila = self._one(
+            "SELECT datos, actualizada_en FROM calificaciones WHERE materia_id = ?", (materia_id,)
+        )
+        if fila is None:
+            return None
+        return {**json.loads(fila["datos"]), "actualizada_en": fila["actualizada_en"]}

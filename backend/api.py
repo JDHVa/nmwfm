@@ -209,6 +209,12 @@ def create_app(
     async def materias():
         return state.storage.list_materias()
 
+    @router.get("/materias/{materia_id}/calificaciones")
+    async def calificaciones(materia_id: str):
+        if state.storage.get_materia(materia_id) is None:
+            raise ApiError(404, "materia_no_encontrada", "La materia no existe.")
+        return state.storage.get_calificaciones(materia_id)
+
     @router.get("/materias/{materia_id}/etapas")
     async def etapas(materia_id: str):
         if state.storage.get_materia(materia_id) is None:

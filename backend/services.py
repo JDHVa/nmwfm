@@ -364,7 +364,25 @@ async def _sync_materia(
         _registrar_entregas(state, fila["id"], detalle.entregas, acum)
 
     await _recorrer_tareas(state, ctx, page, i, n, materia, pendientes, acum, leer)
+    if modo == "completo":
+        await _leer_calificaciones(state, ctx, page, materia)
     await nexus.volver_a_lista(page)
+
+
+async def _leer_calificaciones(state: AppState, ctx: JobContext, page: Page, materia) -> None:
+    try:
+        async with metricas.medir("calificaciones"):
+            html = await nexus.abrir_calificaciones(page)
+        datos = nexus.parse_calificaciones(html)
+        if datos is None:
+            await ctx.log(f"Calificaciones de {materia.nombre}: formato no reconocido", "error")
+            await guardar_snapshot(state, page, f"calificaciones-{materia.id}")
+        else:
+            state.storage.set_calificaciones(materia.id, datos)
+    except Exception as exc:
+        if await _sesion_caida(page):
+            raise SesionCaida() from exc
+        await ctx.log(f"Calificaciones de {materia.nombre}: {_resumen_error(exc)}", "error")
 
 
 async def _revisar_materia(

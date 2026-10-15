@@ -6,6 +6,7 @@ Errores: HTTP 4xx/5xx con `{"error": {"code": str, "message": str}}`.
 ## Tipos
 ```ts
 type Settings = { cuenta: string; tiene_password: boolean; nombre: string; matricula: string; dev: boolean; entregar_sin_revisar: boolean; reducir_animaciones: boolean; sync_inicial_hecha: boolean; ultima_sync: string | null; sync_cada_horas: number };
+type Calificaciones = { columnas: string[]; filas: string[][]; actualizada_en: string };
 type Novedad = { id: number; tarea_id: string; materia_id: string; materia_nombre: string; numero: string; titulo: string; tipo: "nueva" | "modificada"; detalle: string; creada_en: string; leida: boolean };
 type Materia = { id: string; nombre: string; profesor: string | null; periodo: string | null; sincronizada_en: string | null };
 type Etapa = { id: string; materia_id: string; nombre: string; descripcion: string };
@@ -32,6 +33,7 @@ Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la 
 - `POST /novedades/leidas` body `{ids?: number[]}` (sin `ids` = todas) → `{marcadas: number}`
 - `GET /alertas` → `(Tarea & {materia_nombre: string; dias: 0 | 1})[]` (no entregadas que vencen hoy (`dias: 0`) o mañana (`dias: 1`), todavía no vencidas; para notificaciones)
 - `GET /materias` → `Materia[]`
+- `GET /materias/{id}/calificaciones` → `Calificaciones | null` (tabla de la pestaña "Calificaciones" de la materia, leída en el sync COMPLETO tal como aparece en NEXUS; `null` si todavía no se leyó o si NEXUS no mostró una tabla reconocible: en ese caso se guarda un snapshot en `data/debug/` para ajustar el lector)
 - `GET /materias/{id}/etapas` → `(Etapa & {tareas: Tarea[]})[]`
 - `GET /tareas/{id}` → `TareaDetalle` (si no hay detalle en caché lo trae de NEXUS)
 - `GET /tareas/{id}/insumos` → `Insumo[]`

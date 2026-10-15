@@ -308,6 +308,22 @@ def parse_entregas(markup: str) -> list[Entrega]:
     return entregas
 
 
+def parse_calificaciones(markup: str) -> dict | None:
+    root = parse(markup)
+    tabla = select_one(root, "table")
+    if tabla is None:
+        return None
+    columnas = [text_of(th) for th in tabla.xpath(".//thead//th")]
+    filas = []
+    for tr in tabla.xpath(".//tr"):
+        celdas = [text_of(td) for td in tr.xpath("./td")]
+        if any(celdas):
+            filas.append(celdas)
+    if not columnas and filas:
+        columnas = [text_of(th) for th in tabla.xpath(".//tr[1]/th")] or filas.pop(0)
+    return {"columnas": columnas, "filas": filas} if filas or columnas else None
+
+
 def tarea_entregada(markup: str) -> bool:
     return bool(parse_entregas(markup))
 
@@ -546,6 +562,19 @@ async def _leer_entregas(page: "Page") -> list[Entrega]:
         await _volver_a_contenidos(page)
 
 
+async def abrir_calificaciones(page: "Page") -> str:
+    menu = page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_CALIFICACIONES)
+    await _clic(menu)
+
+    async def con_tabla() -> bool:
+        return await page.locator(S.NX_CALIFICACIONES_TABLA).count() > 0
+
+    with contextlib.suppress(TimeoutError):
+        await _esperar(con_tabla, "la tabla de calificaciones", 6)
+    await _esperar_cargas(page)
+    return await _html(page.locator(S.NX_CONTENIDO_MATERIA))
+
+
 async def volver_a_lista(page: "Page") -> None:
     link = page.locator(S.NX_LISTA_LINK)
     if await link.count():
@@ -656,6 +685,8 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
 
 
 __all__ = [
+    "parse_calificaciones",
+    "abrir_calificaciones",
     "es_examen",
     "clasificar",
     "parse_entregas",
