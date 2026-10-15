@@ -56,6 +56,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     qc.invalidateQueries({ queryKey: ["etapas"] });
     qc.invalidateQueries({ queryKey: ["tarea"] });
     qc.invalidateQueries({ queryKey: keys.proximas });
+    qc.invalidateQueries({ queryKey: keys.novedades });
+    qc.invalidateQueries({ queryKey: keys.alertas });
     const errores = resultadoDe(j)?.errores ?? [];
     errores.forEach((e) => emitLocalLog("error", `Sincronización: ${e}`));
     if (j.estado === "error") emitLocalLog("error", `Sincronización: ${j.mensaje ?? "falló"}`);

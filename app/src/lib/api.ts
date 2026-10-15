@@ -99,6 +99,24 @@ export type Recurso = {
   tamano: number | null;
   usar: boolean;
 };
+export type Novedad = {
+  id: string;
+  tarea_id: string;
+  materia_id: string;
+  materia_nombre: string;
+  titulo: string;
+  tipo: "nueva" | "modificada";
+  detectada_en: string;
+  leida: boolean;
+};
+export type Alerta = {
+  tarea_id: string;
+  materia_id: string;
+  materia_nombre: string;
+  titulo: string;
+  hasta: string;
+  cuando: "hoy" | "manana";
+};
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
   materias: number;
@@ -236,6 +254,9 @@ export const api = {
   recursos: (tareaId: string) => request<Recurso[]>("GET", `/tareas/${tareaId}/recursos`),
   usarRecurso: (tareaId: string, id: string, usar: boolean) =>
     request<Recurso>("PATCH", `/tareas/${tareaId}/recursos/${id}`, { usar }),
+  novedades: () => request<Novedad[]>("GET", "/novedades"),
+  leerNovedades: (ids?: string[]) => request<void>("POST", "/novedades/leer", ids ? { ids } : {}),
+  alertas: () => request<Alerta[]>("GET", "/alertas"),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),

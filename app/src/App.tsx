@@ -11,10 +11,12 @@ import {
 } from "lucide-react";
 import Dock from "@/components/Dock";
 import { Background } from "@/components/Background";
+import { Campanita } from "@/components/Campanita";
 import { LogPanel } from "@/components/LogPanel";
 import { PaletaBusqueda } from "@/components/PaletaBusqueda";
 import { SyncIndicator, SyncOverlay } from "@/components/SyncStatus";
 import { siguienteTema } from "@/components/ThemeToggle";
+import { useAlertas } from "@/lib/alertas";
 import { NavProvider, useNav, useReducedMotion } from "@/lib/app-context";
 import type { Settings } from "@/lib/api";
 import { useSettings } from "@/lib/queries";
@@ -33,6 +35,7 @@ import { TareaView } from "@/views/TareaView";
 function Shell({ onSalir }: { onSalir: () => void }) {
   const { view, go } = useNav();
   const [buscando, setBuscando] = useState(false);
+  useAlertas();
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -99,6 +102,7 @@ function Shell({ onSalir }: { onSalir: () => void }) {
               <Search className="size-3.5" /> Buscar
               <kbd className="rounded border px-1 text-[10px] text-muted-foreground">Ctrl K</kbd>
             </button>
+            <Campanita />
             <SyncIndicator />
           </div>
           <PaletaBusqueda abierto={buscando} onCerrar={() => setBuscando(false)} />

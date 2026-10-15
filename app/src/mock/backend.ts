@@ -117,6 +117,38 @@ export function createMockBackend(options: MockOptions = {}) {
     string,
     { id: string; nombre: string; tipo: string; tamano: number | null; usar: boolean }[]
   >();
+  const novedades: {
+    id: string;
+    tarea_id: string;
+    materia_id: string;
+    materia_nombre: string;
+    titulo: string;
+    tipo: "nueva" | "modificada";
+    detectada_en: string;
+    leida: boolean;
+  }[] = [];
+  const sembrarNovedades = () => {
+    if (novedades.length) return;
+    const ahora = Date.now();
+    [
+      ["m1-t13", "nueva", 2],
+      ["m1-t14", "modificada", 26],
+      ["m2-t12", "nueva", 50],
+    ].forEach(([id, tipo, horas], i) => {
+      const t = buscarTarea(id as string);
+      if (!t) return;
+      novedades.push({
+        id: `nov-${i + 1}`,
+        tarea_id: t.id,
+        materia_id: t.materia_id,
+        materia_nombre: materias.find((x) => x.id === t.materia_id)?.nombre ?? "",
+        titulo: t.titulo,
+        tipo: tipo as "nueva" | "modificada",
+        detectada_en: new Date(ahora - (horas as number) * 3_600_000).toISOString(),
+        leida: false,
+      });
+    });
+  };
   let syncActivo: string | null = null;
   let revisionActiva: string | null = null;
   let seq = 0;
@@ -271,6 +303,36 @@ export function createMockBackend(options: MockOptions = {}) {
       );
       syncActivo = job.id;
       return json(job);
+    }
+    if (path === "/novedades" && method === "GET") {
+      sembrarNovedades();
+      return json(novedades);
+    }
+    if (path === "/novedades/leer") {
+      const ids = (body as { ids?: string[] } | undefined)?.ids;
+      novedades.forEach((n) => {
+        if (!ids || ids.includes(n.id)) n.leida = true;
+      });
+      return json(null, 204);
+    }
+    if (path === "/alertas") {
+      const ahora = new Date();
+      const inicio = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const lista = Object.values(etapas)
+        .flat()
+        .flatMap((e) => e.tareas)
+        .filter((t) => t.estado !== "entregada" && t.hasta && new Date(t.hasta).getTime() >= ahora.getTime())
+        .map((t) => ({ t, dias: Math.round((inicio(new Date(t.hasta!)) - inicio(ahora)) / 86_400_000) }))
+        .filter(({ dias }) => dias <= 1)
+        .map(({ t, dias }) => ({
+          tarea_id: t.id,
+          materia_id: t.materia_id,
+          materia_nombre: materias.find((x) => x.id === t.materia_id)?.nombre ?? "",
+          titulo: t.titulo,
+          hasta: t.hasta!,
+          cuando: dias === 0 ? "hoy" : "manana",
+        }));
+      return json(lista);
     }
     if (path === "/tareas/proximas") {
       const todas = Object.values(etapas)
