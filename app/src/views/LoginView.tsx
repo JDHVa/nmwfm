@@ -95,7 +95,8 @@ export function LoginView({ settings, onEntrar }: { settings: Settings; onEntrar
               texts={FRASES}
               rotationInterval={3200}
               splitBy="words"
-              staggerDuration={0.03}
+              staggerDuration={0}
+              animatePresenceMode="wait"
               mainClassName="flex-wrap"
               splitLevelClassName="overflow-hidden pb-1"
               elementLevelClassName="mr-[0.25em]"
