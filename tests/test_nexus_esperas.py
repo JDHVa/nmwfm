@@ -25,7 +25,15 @@ class _Loc:
     def filter(self, **kw):
         return self
 
+    @property
+    def last(self):
+        return _Loc(self.page, self.sel + " >> last")
+
     async def count(self):
+        if self.sel == "mat-sidenav-content":
+            return 2
+        if self.sel == S.NX_CONTENIDO_MATERIA:
+            return 1
         return 3
 
     async def wait_for(self, **kw):
@@ -41,6 +49,8 @@ class _Loc:
         await self.click()
 
     async def evaluate(self, script):
+        if self.sel == "mat-sidenav-content":
+            raise RuntimeError("strict mode violation: resolved to 2 elements")
         if "outerHTML" in script:
             return self.page.html()
 
@@ -139,3 +149,20 @@ def test_rubrica_espera_criterios_y_pestana_contenidos(monkeypatch):
     rubrica = asyncio.run(nexus._leer_rubrica_pestana(Page()))
     assert rubrica is not None
     assert estado["criterios"] >= 3 and estado["activa"] >= 3
+
+
+def test_html_ambiguo_usa_el_ultimo_en_vez_de_fallar(caplog):
+    page = _Page()
+    html = asyncio.run(nexus._html(page.locator("mat-sidenav-content")))
+    assert html == page.html()
+    assert "resolvio a 2 elementos" in caplog.text
+
+
+def test_parse_detalle_con_dos_mat_sidenav_content():
+    interior = f'<mat-sidenav-content class="p-3">{fixtures.detalle_html()}</mat-sidenav-content>'
+    pagina = (
+        f'<mat-sidenav-content class="app"><app-curso>{interior}</app-curso></mat-sidenav-content>'
+    )
+    for markup in (pagina, interior):
+        detalle = nexus.parse_detalle(markup)
+        assert detalle.numero == "1.2" and detalle.actividades

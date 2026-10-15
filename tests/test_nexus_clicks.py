@@ -25,6 +25,9 @@ class _Loc:
         return ["Texto"]
 
     async def inner_text(self):
+        if self.sel == S.NX_PORTADA and not self.page.portada_tras_clic:
+            clics = [e for e in self.page.eventos if e[0] in ("click", "dispatch")]
+            return "Texto" if len(clics) >= 2 else ""
         return "Texto"
 
     async def count(self):
@@ -57,9 +60,7 @@ class _Page:
         return _Loc(self, sel)
 
     async def wait_for_selector(self, sel, **kw):
-        if sel == S.NX_PORTADA and not self.portada_tras_clic and self.intentos == 0:
-            self.intentos += 1
-            raise TimeoutError("sin portada")
+        return None
 
 
 def _sin_pausa(monkeypatch):
@@ -80,8 +81,14 @@ def test_abrir_materia_usa_respaldo_si_el_clic_es_interceptado(monkeypatch):
     assert ("dispatch", S.NX_CARD_CLICK, "click") in page.eventos
 
 
-def test_abrir_materia_dispara_click_si_no_aparece_la_portada(monkeypatch):
+def test_abrir_materia_repite_el_clic_si_no_aparece_la_portada(monkeypatch):
     _sin_pausa(monkeypatch)
+    esperar_real = nexus._esperar
+
+    async def rapido(condicion, descripcion, timeout=20.0, intervalo=0.1):
+        await esperar_real(condicion, descripcion, min(timeout, 0.3), 0.05)
+
+    monkeypatch.setattr(nexus, "_esperar", rapido)
     page = _Page(portada_tras_clic=False)
     asyncio.run(nexus.abrir_materia(page, 0))
     assert page.eventos.count(("dispatch", S.NX_CARD_CLICK, "click")) >= 2

@@ -75,6 +75,7 @@ NX_SNACKBAR_CLOSE = "snack-bar-container button"
 NX_SNACKBAR_EXITO_CLASS = "snackbar-success"
 NX_SNACKBAR_EXITO_TEXT = "entregada con exito"
 
+NX_CONTENIDO_MATERIA = "app-curso mat-sidenav-content"
 NX_DETALLE_ENCABEZADO = ".bold-500.font-size-20"
 NX_DETALLE_CARDS = "app-estructura-elemento-contenido mat-card"
 NX_RUBRICA_CRITERIO = "table.nx-table-rubrica div.puntos"
