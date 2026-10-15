@@ -105,6 +105,11 @@ export function createMockBackend(options: MockOptions = {}) {
   const etapas = crearEtapas();
   const insumos = new Map<string, Insumo[]>();
   const generaciones = new Map<string, Generacion>();
+  const versiones = new Map<string, Generacion[]>();
+  const registrar = (g: Generacion) => {
+    generaciones.set(g.tarea_id, g);
+    versiones.set(g.tarea_id, [...(versiones.get(g.tarea_id) ?? []), g]);
+  };
   const jobs = new Map<string, Job>();
   const emitters = new Set<Emitter>();
   let password = "";
@@ -407,7 +412,7 @@ export function createMockBackend(options: MockOptions = {}) {
           () => {
             t.estado = settings.entregar_sin_revisar ? "entregada" : "generada";
             if (t.estado === "entregada") t.entregada_en = new Date().toISOString();
-            generaciones.set(t.id, {
+            registrar({
               tarea_id: t.id,
               markdown: `# ${t.titulo}`,
               docx_url: `/files/${t.id}.docx`,
@@ -420,6 +425,27 @@ export function createMockBackend(options: MockOptions = {}) {
       );
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/generacion$/))) return json(generaciones.get(m[1]) ?? null);
+    if ((m = path.match(/^\/tareas\/([^/]+)\/generaciones$/))) {
+      const actual = generaciones.get(m[1]);
+      const lista = (versiones.get(m[1]) ?? []).map((g, i) => ({
+        id: `${m![1]}-v${i + 1}`,
+        tarea_id: g.tarea_id,
+        version: i + 1,
+        creada_en: g.creada_en,
+        pdf_url: g.pdf_url,
+        docx_url: g.docx_url,
+        actual: actual?.pdf_url === g.pdf_url,
+        resumen: g.markdown.slice(0, 80),
+      }));
+      return json(lista);
+    }
+    if ((m = path.match(/^\/tareas\/([^/]+)\/generaciones\/([^/]+)\/restaurar$/))) {
+      const lista = versiones.get(m[1]) ?? [];
+      const g = lista[Number(m[2].split("-v").pop()) - 1];
+      if (!g) return fallo(404, "no_encontrada", "Versión no encontrada");
+      generaciones.set(m[1], g);
+      return json(g);
+    }
     if ((m = path.match(/^\/tareas\/([^/]+)\/abrir-docx$/))) {
       log("info", "Abriendo documento en Word");
       return json(null, 204);
@@ -433,7 +459,7 @@ export function createMockBackend(options: MockOptions = {}) {
         pdf_url: pdfUrl(`${t.titulo} (reconstruido)`),
         creada_en: new Date().toISOString(),
       };
-      generaciones.set(m[1], nueva);
+      registrar(nueva);
       return json(nueva);
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/entregar$/))) {

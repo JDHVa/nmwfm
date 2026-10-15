@@ -10,6 +10,7 @@ export const keys = {
   tarea: (id: string) => ["tarea", id] as const,
   insumos: (id: string) => ["insumos", id] as const,
   generacion: (id: string) => ["generacion", id] as const,
+  generaciones: (id: string) => ["generaciones", id] as const,
 };
 
 export function useSettings() {

@@ -79,6 +79,16 @@ export type PortadaPreview = {
   fecha: string;
 };
 export type PortadaOverrides = { profesor?: string; titulo?: string };
+export type GeneracionVersion = {
+  id: string;
+  tarea_id: string;
+  version: number;
+  creada_en: string;
+  pdf_url: string;
+  docx_url: string;
+  actual: boolean;
+  resumen: string;
+};
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
   materias: number;
@@ -210,6 +220,9 @@ export const api = {
     return request<PortadaPreview>("GET", `/tareas/${tareaId}/portada-preview${qs ? `?${qs}` : ""}`);
   },
   generacion: (tareaId: string) => request<Generacion | null>("GET", `/tareas/${tareaId}/generacion`),
+  generaciones: (tareaId: string) => request<GeneracionVersion[]>("GET", `/tareas/${tareaId}/generaciones`),
+  restaurarGeneracion: (tareaId: string, id: string) =>
+    request<Generacion>("POST", `/tareas/${tareaId}/generaciones/${id}/restaurar`),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),

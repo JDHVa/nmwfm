@@ -22,7 +22,8 @@ if (!window.matchMedia) {
 
 HTMLCanvasElement.prototype.getContext = (() => null) as unknown as HTMLCanvasElement["getContext"];
 Element.prototype.scrollIntoView = () => {};
-URL.createObjectURL = () => "blob:mock";
+let blobs = 0;
+URL.createObjectURL = () => `blob:mock-${++blobs}`;
 
 class IO {
   observe() {}
