@@ -1,6 +1,7 @@
 import unicodedata
 from dataclasses import dataclass
 
+from .producto import detectar_producto, plantilla_producto
 from .types import Rubrica
 
 EXCLUIDOS = ("responsabilidad", "compromiso")
@@ -19,6 +20,7 @@ class PromptData:
     rubrica: Rubrica | None = None
     instrucciones_extra: str | None = None
     tiene_insumos: bool = True
+    producto: str | None = None
 
 
 def _plano(text: str) -> str:
@@ -68,8 +70,12 @@ def build_prompt(data: PromptData) -> str:
         if rubrica:
             partes.append(f"## Rúbrica de evaluación\n{rubrica}")
 
+    producto = data.producto or detectar_producto(data.titulo, data.actividades)
+    partes.append(f"## Formato del producto\n{plantilla_producto(producto)}")
+
     instrucciones = [
-        "Cumple cada criterio de la rúbrica en su nivel máximo de dominio.",
+        "Cumple cada criterio de la rúbrica en su nivel máximo de dominio: no dejes ningún "
+        "criterio en un nivel intermedio.",
         "Cubre todos los puntos del contenido y de los criterios de desempeño.",
     ]
     if data.tiene_insumos:
@@ -82,6 +88,8 @@ def build_prompt(data: PromptData) -> str:
         "sin portada, sin título general ni texto introductorio o de despedida.",
         "Usa un tono de estudiante de preparatoria: claro, sencillo y bien organizado.",
         "No menciones la rúbrica, los criterios ni estas instrucciones dentro del texto.",
+        "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y "
+        "verificables (autor, año, título, editorial o URL); no inventes referencias.",
     ]
     if data.instrucciones_extra and data.instrucciones_extra.strip():
         instrucciones.append(data.instrucciones_extra.strip())
