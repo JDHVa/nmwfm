@@ -126,7 +126,7 @@ const MARGIN = 8;
 const POP = 'cubic-bezier(0.2, 1.25, 0.4, 1)';
 
 const ROOT =
-  'absolute z-10 flex box-border gap-[var(--dock-gap)] p-[var(--dock-pad)] rounded-[calc(var(--dock-base)*var(--dock-round)*0.5_+_var(--dock-pad))] [background:var(--dock-panel)] [box-shadow:inset_0_0_0_1px_var(--dock-panel-edge),inset_0_1px_0_var(--dock-panel-highlight),var(--dock-panel-shadow)] backdrop-blur-[20px] backdrop-saturate-[1.6] touch-none [transition:translate_0.5s_cubic-bezier(0.22,1,0.36,1),opacity_0.2s_ease] data-[hidden]:pointer-events-none data-[hidden]:opacity-0 data-[hidden]:[transition:translate_0.36s_cubic-bezier(0.55,0,0.75,0.15),opacity_0.24s_ease_0.1s] motion-reduce:!transition-none before:absolute before:-z-10 before:hidden before:content-[""] hover:before:block';
+  'absolute z-10 flex box-border gap-[var(--dock-gap)] p-[var(--dock-pad)] rounded-[calc(var(--dock-base)*var(--dock-round)*0.5_+_var(--dock-pad))] [background:var(--dock-panel)] [box-shadow:inset_0_0_0_1px_var(--dock-panel-edge),inset_0_1px_0_var(--dock-panel-highlight),var(--dock-panel-shadow)] touch-none [transition:translate_0.5s_cubic-bezier(0.22,1,0.36,1),opacity_0.2s_ease] data-[hidden]:pointer-events-none data-[hidden]:opacity-0 data-[hidden]:[transition:translate_0.36s_cubic-bezier(0.55,0,0.75,0.15),opacity_0.24s_ease_0.1s] motion-reduce:!transition-none before:absolute before:-z-10 before:hidden before:content-[""] hover:before:block';
 
 const ROOT_SIDES = {
   bottom:
@@ -186,7 +186,7 @@ const MENU = 'invisible fixed left-0 top-0 z-[1000] text-[13px] leading-none tex
 
 const MENU_SHADOW = 'pointer-events-none absolute inset-0 rounded-[10px] [box-shadow:var(--dock-menu-shadow)]';
 
-const MENU_GLASS = 'pointer-events-none absolute -inset-[9px] backdrop-blur-[24px] backdrop-saturate-[1.8]';
+const MENU_GLASS = 'pointer-events-none absolute -inset-[9px]';
 
 const MENU_SHAPE =
   'pointer-events-none absolute -left-[9px] -top-[9px] h-[calc(100%_+_18px)] w-[calc(100%_+_18px)] overflow-visible';

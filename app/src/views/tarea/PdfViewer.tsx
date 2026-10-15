@@ -25,7 +25,7 @@ export default function PdfViewer({ url }: { url: string }) {
   }, []);
 
   return (
-    <div className="overflow-hidden rounded-xl border bg-card backdrop-blur">
+    <div className="overflow-hidden rounded-xl border bg-card">
       <div className="flex items-center justify-between gap-2 border-b px-3 py-2 text-sm">
         <div className="flex items-center gap-1">
           <Button

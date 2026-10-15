@@ -20,7 +20,7 @@ export function SyncOverlay() {
       role="dialog"
       aria-modal="true"
       aria-labelledby="titulo-sync"
-      className="fixed inset-0 z-40 flex items-center justify-center bg-background/70 p-6 backdrop-blur-md"
+      className="fixed inset-0 z-40 flex items-center justify-center bg-background/70 p-6"
     >
       <div className="w-full max-w-lg space-y-5 rounded-2xl border bg-popover p-8 shadow-pop">
         <div className="flex items-center gap-3">

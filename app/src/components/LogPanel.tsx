@@ -21,7 +21,7 @@ export function LogPanel() {
   }, [logs, abierto]);
 
   return (
-    <section aria-label="Registro" className="relative z-10 border-t bg-background/85 backdrop-blur">
+    <section aria-label="Registro" className="relative z-10 border-t bg-background/85">
       <div className="flex h-9 items-center gap-2 px-3 text-xs">
         <button
           type="button"

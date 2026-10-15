@@ -41,7 +41,7 @@ export function MateriaView({ id }: { id: string }) {
 function EtapaItem({ etapa, onOpen }: { etapa: EtapaConTareas; onOpen: (t: Tarea) => void }) {
   const entregadas = etapa.tareas.filter((t) => t.estado === "entregada").length;
   return (
-    <AccordionItem value={etapa.id} className="rounded-xl border bg-card px-5 backdrop-blur last:border-b">
+    <AccordionItem value={etapa.id} className="rounded-xl border bg-card px-5 last:border-b">
       <AccordionTrigger className="hover:no-underline">
         <span className="flex flex-col items-start gap-1 text-left">
           <span className="text-base font-semibold">{etapa.nombre}</span>

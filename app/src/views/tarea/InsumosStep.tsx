@@ -153,7 +153,7 @@ export function InsumosStep({ tareaId, onContinuar }: { tareaId: string; onConti
         </DndContext>
       )}
 
-      <div className="space-y-2 rounded-xl border bg-card p-4 backdrop-blur">
+      <div className="space-y-2 rounded-xl border bg-card p-4">
         <label htmlFor="texto-propio" className="flex items-center gap-2 text-sm font-medium">
           <Type className="size-4 text-primary" /> Texto propio
         </label>
@@ -211,7 +211,7 @@ function TarjetaInsumo({
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
       className={cn(
-        "group relative flex flex-col overflow-hidden rounded-xl border bg-card backdrop-blur",
+        "group relative flex flex-col overflow-hidden rounded-xl border bg-card",
         isDragging && "z-10 opacity-80 shadow-2xl ring-2 ring-primary",
       )}
     >

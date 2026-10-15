@@ -50,7 +50,7 @@ function ConfigForm({ settings }: { settings: Settings }) {
     <div className="mx-auto w-full max-w-3xl space-y-6 p-8">
       <PageHeader titulo="Configuración" descripcion="Tus datos de acceso y preferencias." />
 
-      <form onSubmit={onSubmit} className="space-y-4 rounded-xl border bg-card p-6 backdrop-blur">
+      <form onSubmit={onSubmit} className="space-y-4 rounded-xl border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Cuenta SIASE</h2>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -90,7 +90,7 @@ function ConfigForm({ settings }: { settings: Settings }) {
         </div>
       </form>
 
-      <section className="space-y-4 rounded-xl border bg-card p-6 backdrop-blur">
+      <section className="space-y-4 rounded-xl border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Gemini</h2>
         <p className="text-sm text-muted-foreground">
           Se abre Chrome para que inicies sesión tú mismo en Gemini. La sesión queda guardada en el perfil
@@ -102,7 +102,7 @@ function ConfigForm({ settings }: { settings: Settings }) {
         <JobProgress job={gemini.job} error={gemini.error} />
       </section>
 
-      <section className="space-y-5 rounded-xl border bg-card p-6 backdrop-blur">
+      <section className="space-y-5 rounded-xl border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Preferencias</h2>
         <div className="flex items-center justify-between gap-4">
           <div>
