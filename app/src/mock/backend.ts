@@ -113,6 +113,10 @@ export function createMockBackend(options: MockOptions = {}) {
   const jobs = new Map<string, Job>();
   const emitters = new Set<Emitter>();
   let password = "";
+  const recursos = new Map<
+    string,
+    { id: string; nombre: string; tipo: string; tamano: number | null; usar: boolean }[]
+  >();
   let syncActivo: string | null = null;
   let revisionActiva: string | null = null;
   let seq = 0;
@@ -338,11 +342,29 @@ export function createMockBackend(options: MockOptions = {}) {
           orden: lista.length + nuevos.length,
           rotacion: 0,
           usar_recorte: true,
+          ocr_texto: `Texto detectado en ${f.name}: apuntes de clase, definiciones y un ejemplo resuelto.`,
         });
       }
       lista.push(...nuevos);
       log("info", `${nuevos.length} imagen(es) recortada(s)`);
       return json(nuevos);
+    }
+    if ((m = path.match(/^\/tareas\/([^/]+)\/recursos(?:\/([^/]+))?$/))) {
+      if (!recursos.has(m[1])) {
+        recursos.set(m[1], [
+          { id: "r1", nombre: "Lectura de la unidad.pdf", tipo: "pdf", tamano: 482_000, usar: false },
+          { id: "r2", nombre: "Presentación de la clase.pptx", tipo: "pptx", tamano: 2_300_000, usar: false },
+          { id: "r3", nombre: "Guía de estudio.docx", tipo: "docx", tamano: 96_000, usar: false },
+        ]);
+      }
+      const lista = recursos.get(m[1])!;
+      if (method === "PATCH" && m[2]) {
+        const r = lista.find((x) => x.id === m![2]);
+        if (!r) return fallo(404, "no_encontrado", "Recurso no encontrado");
+        r.usar = !!(body as { usar?: boolean }).usar;
+        return json(r);
+      }
+      return json(lista);
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/insumos\/texto$/))) {
       const lista = insumos.get(m[1]) ?? [];

@@ -9,6 +9,7 @@ export const keys = {
   etapas: (id: string) => ["etapas", id] as const,
   tarea: (id: string) => ["tarea", id] as const,
   insumos: (id: string) => ["insumos", id] as const,
+  recursos: (id: string) => ["recursos", id] as const,
   generacion: (id: string) => ["generacion", id] as const,
   generaciones: (id: string) => ["generaciones", id] as const,
 };

@@ -54,11 +54,14 @@ export type Insumo = {
   miniatura_url?: string | null;
   recortada_url?: string;
   texto?: string;
+  ocr_texto?: string | null;
   orden: number;
   rotacion: 0 | 90 | 180 | 270;
   usar_recorte: boolean;
 };
-export type InsumoPatch = Partial<Pick<Insumo, "orden" | "rotacion" | "usar_recorte" | "texto">>;
+export type InsumoPatch = Partial<
+  Pick<Insumo, "orden" | "rotacion" | "usar_recorte" | "texto" | "ocr_texto">
+>;
 export type JobTipo = "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas";
 export type JobEstado = "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error";
 export type Job = {
@@ -88,6 +91,13 @@ export type GeneracionVersion = {
   docx_url: string;
   actual: boolean;
   resumen: string;
+};
+export type Recurso = {
+  id: string;
+  nombre: string;
+  tipo: string;
+  tamano: number | null;
+  usar: boolean;
 };
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
@@ -223,6 +233,9 @@ export const api = {
   generaciones: (tareaId: string) => request<GeneracionVersion[]>("GET", `/tareas/${tareaId}/generaciones`),
   restaurarGeneracion: (tareaId: string, id: string) =>
     request<Generacion>("POST", `/tareas/${tareaId}/generaciones/${id}/restaurar`),
+  recursos: (tareaId: string) => request<Recurso[]>("GET", `/tareas/${tareaId}/recursos`),
+  usarRecurso: (tareaId: string, id: string, usar: boolean) =>
+    request<Recurso>("PATCH", `/tareas/${tareaId}/recursos/${id}`, { usar }),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),
