@@ -10,7 +10,10 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "test": "vitest run",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "pretauri": "node scripts/ensure-sidecar.mjs",
+    "build:sidecar": "node scripts/build-sidecar.mjs",
+    "tauri:build": "npm run build:sidecar && tauri build"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
