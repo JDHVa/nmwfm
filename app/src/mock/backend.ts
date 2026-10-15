@@ -9,7 +9,7 @@ import type {
   Transport,
   WsMessage,
 } from "@/lib/api";
-import { MATERIAS, crearEtapas, detalleDe } from "./data";
+import { MATERIAS, crearEtapas, detalleDe, marcarVencida } from "./data";
 
 type Emitter = (msg: WsMessage) => void;
 
@@ -88,6 +88,7 @@ export function createMockBackend(options: MockOptions = {}) {
   const emitters = new Set<Emitter>();
   let password = "";
   let syncActivo: string | null = null;
+  let revisionActiva: string | null = null;
   let seq = 0;
   let hue = 200;
 
@@ -241,13 +242,52 @@ export function createMockBackend(options: MockOptions = {}) {
       syncActivo = job.id;
       return json(job);
     }
+    if (path === "/tareas/proximas") {
+      const todas = Object.values(etapas)
+        .flat()
+        .flatMap((e) =>
+          e.tareas.map((t) => {
+            marcarVencida(t);
+            return { ...t, materia_nombre: materias.find((x) => x.id === t.materia_id)?.nombre ?? "" };
+          }),
+        );
+      const pendientes = todas.filter((t) => t.estado !== "entregada");
+      const t = (x: { hasta: string | null }) => new Date(x.hasta ?? 0).getTime();
+      const vigentes = pendientes.filter((x) => !x.vencida).sort((a, b) => t(a) - t(b));
+      const vencidas = pendientes.filter((x) => x.vencida).sort((a, b) => t(a) - t(b));
+      return json([...vigentes, ...vencidas]);
+    }
+    if (path === "/entregas/revisar") {
+      const activo = revisionActiva && jobs.get(revisionActiva);
+      if (activo && (activo.estado === "en_cola" || activo.estado === "corriendo")) return json(activo);
+      const job = lanzarJob(
+        "revisar_entregas",
+        [
+          "Abriendo NEXUS",
+          ...materias.map((_, i) => `Revisando entregas · materia ${i + 1}/${materias.length}`),
+        ],
+        () => {
+          const todas = Object.values(etapas)
+            .flat()
+            .flatMap((e) => e.tareas);
+          const entregadas = todas.filter((x) => x.estado === "entregada").length;
+          return { revisadas: todas.length, entregadas, pendientes: todas.length - entregadas, errores: [] };
+        },
+        undefined,
+        0.5,
+      );
+      revisionActiva = job.id;
+      return json(job);
+    }
     if (path === "/materias") return json(materias);
     if ((m = path.match(/^\/materias\/([^/]+)\/etapas$/))) {
       const lista = etapas[m[1]];
+      lista?.forEach((e) => e.tareas.forEach(marcarVencida));
       return lista ? json(lista) : fallo(404, "no_encontrada", "Materia no encontrada");
     }
     if ((m = path.match(/^\/tareas\/([^/]+)$/))) {
       const t = buscarTarea(m[1]);
+      if (t) marcarVencida(t);
       return t ? json(detalleDe(t)) : fallo(404, "no_encontrada", "Tarea no encontrada");
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/insumos$/))) {
@@ -331,6 +371,7 @@ export function createMockBackend(options: MockOptions = {}) {
           ],
           () => {
             t.estado = settings.entregar_sin_revisar ? "entregada" : "generada";
+            if (t.estado === "entregada") t.entregada_en = new Date().toISOString();
             generaciones.set(t.id, {
               tarea_id: t.id,
               markdown: `# ${t.titulo}`,
@@ -368,6 +409,7 @@ export function createMockBackend(options: MockOptions = {}) {
       return json(
         lanzarJob("entregar", ["Abriendo NEXUS", "Subiendo PDF", "Confirmando entrega"], () => {
           t.estado = "entregada";
+          t.entregada_en = new Date().toISOString();
           return null;
         }),
       );

@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 export function SyncOverlay() {
   const sync = useSync();
   const { data: settings } = useSettings();
-  const primera = settings && !settings.sync_inicial_hecha;
+  const primera = settings && !settings.sync_inicial_hecha && sync.job?.tipo !== "revisar_entregas";
   const activo = jobActivo(sync.job);
   const fallo = sync.job?.estado === "error" || !!sync.error;
   if (!primera || sync.minimizado || !(activo || fallo)) return null;
@@ -76,7 +76,9 @@ export function SyncIndicator({ className }: { className?: string }) {
   const avisos = sync.errores.length;
 
   let texto: string;
-  if (activo) texto = `Sincronizando… ${sync.job?.progreso ?? 0}%`;
+  if (activo && sync.esRevision) texto = `Revisando entregas… ${sync.job?.progreso ?? 0}%`;
+  else if (activo) texto = `Sincronizando… ${sync.job?.progreso ?? 0}%`;
+  else if (sync.resumenRevision) texto = sync.resumenRevision;
   else if (fallo) texto = "Error al sincronizar";
   else if (avisos > 0) texto = `Sincronizado con ${avisos} aviso${avisos === 1 ? "" : "s"}`;
   else texto = `Al día · ${haceTiempo(settings?.ultima_sync ?? null)}`;
