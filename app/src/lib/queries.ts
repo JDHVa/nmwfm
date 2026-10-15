@@ -7,6 +7,7 @@ export const keys = {
   materias: ["materias"] as const,
   proximas: ["proximas"] as const,
   novedades: ["novedades"] as const,
+  respaldos: ["respaldos"] as const,
   alertas: ["alertas"] as const,
   etapas: (id: string) => ["etapas", id] as const,
   tarea: (id: string) => ["tarea", id] as const,

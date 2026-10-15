@@ -10,6 +10,7 @@ export type Settings = {
   reducir_animaciones: boolean;
   sync_inicial_hecha: boolean;
   ultima_sync: string | null;
+  sync_cada_horas?: number;
 };
 export type SettingsUpdate = Partial<Settings> & { password?: string };
 export type Materia = {
@@ -62,7 +63,8 @@ export type Insumo = {
 export type InsumoPatch = Partial<
   Pick<Insumo, "orden" | "rotacion" | "usar_recorte" | "texto" | "ocr_texto">
 >;
-export type JobTipo = "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas";
+export type JobTipo =
+  "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas" | "diagnostico";
 export type JobEstado = "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error";
 export type Job = {
   id: string;
@@ -117,6 +119,9 @@ export type Alerta = {
   hasta: string;
   cuando: "hoy" | "manana";
 };
+export type Respaldo = { id: string; creado_en: string; tamano: number };
+export type PasoDiagnostico = { nombre: string; ok: boolean; detalle: string };
+export type DiagnosticoResultado = { pasos: PasoDiagnostico[] };
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
   materias: number;
@@ -257,6 +262,10 @@ export const api = {
   novedades: () => request<Novedad[]>("GET", "/novedades"),
   leerNovedades: (ids?: string[]) => request<void>("POST", "/novedades/leer", ids ? { ids } : {}),
   alertas: () => request<Alerta[]>("GET", "/alertas"),
+  respaldos: () => request<Respaldo[]>("GET", "/respaldos"),
+  crearRespaldo: () => request<Respaldo>("POST", "/respaldos"),
+  restaurarRespaldo: (id: string) => request<void>("POST", `/respaldos/${id}/restaurar`),
+  diagnostico: () => request<Job>("POST", "/diagnostico"),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),

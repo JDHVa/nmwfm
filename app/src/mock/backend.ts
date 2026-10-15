@@ -98,6 +98,7 @@ export function createMockBackend(options: MockOptions = {}) {
     dev: true,
     entregar_sin_revisar: false,
     reducir_animaciones: false,
+    sync_cada_horas: 0,
     sync_inicial_hecha: false,
     ultima_sync: null,
   };
@@ -149,6 +150,7 @@ export function createMockBackend(options: MockOptions = {}) {
       });
     });
   };
+  const respaldos: { id: string; creado_en: string; tamano: number }[] = [];
   let syncActivo: string | null = null;
   let revisionActiva: string | null = null;
   let seq = 0;
@@ -303,6 +305,48 @@ export function createMockBackend(options: MockOptions = {}) {
       );
       syncActivo = job.id;
       return json(job);
+    }
+    if (path === "/respaldos" && method === "GET") return json([...respaldos].reverse());
+    if (path === "/respaldos" && method === "POST") {
+      const r = {
+        id: `resp-${respaldos.length + 1}`,
+        creado_en: new Date().toISOString(),
+        tamano: 1_250_000 + respaldos.length * 4000,
+      };
+      respaldos.push(r);
+      log("info", "Respaldo creado");
+      return json(r);
+    }
+    if ((m = path.match(/^\/respaldos\/([^/]+)\/restaurar$/))) {
+      if (!respaldos.some((r) => r.id === m![1]))
+        return fallo(404, "no_encontrado", "Respaldo no encontrado");
+      log("info", "Respaldo restaurado");
+      return json(null, 204);
+    }
+    if (path === "/diagnostico") {
+      return json(
+        lanzarJob(
+          "diagnostico",
+          [
+            "Abriendo NEXUS",
+            "Comprobando selectores de materias",
+            "Comprobando selectores de tareas",
+            "Comprobando pestaña Entregas",
+          ],
+          () => ({
+            pasos: [
+              { nombre: "Inicio de sesión en SIASE", ok: true, detalle: "Entró correctamente" },
+              { nombre: "Lista de materias", ok: true, detalle: "10 materias encontradas" },
+              { nombre: "Estructura de etapas", ok: true, detalle: "5 etapas en la primera materia" },
+              {
+                nombre: "Pestaña Entregas",
+                ok: false,
+                detalle: "No se encontró el botón «Entregar» (selector desactualizado)",
+              },
+            ],
+          }),
+        ),
+      );
     }
     if (path === "/novedades" && method === "GET") {
       sembrarNovedades();
