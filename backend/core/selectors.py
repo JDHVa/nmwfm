@@ -98,6 +98,8 @@ NX_ENTREGAS_VACIO = "text=/No se encontraron Entregas/i"
 NX_SESION_CERRADA = "text=/sesi[oó]n.{0,20}(cerrada|expir)/i"
 NX_PALABRAS_EXAMEN = ("examen", "diagnostic", "cuestionario en linea")
 NX_ETAPA_PIA = "producto integrador"
+NX_MENU_CALIFICACIONES = "Calificaciones"
+NX_CALIFICACIONES_TABLA = "app-curso mat-sidenav-content table"
 NX_PALABRA_OCULTA = "autoevaluacion"
 
 NX_TABS = "nav.mat-tab-nav-bar .mat-tab-links a.mat-tab-link"

@@ -1,5 +1,8 @@
 import asyncio
 import contextlib
+import json
+import shutil
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -7,7 +10,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from playwright.async_api import Page
 
 from . import config
-from .core import documents, images, nexus, selectors, siase
+from .core import documents, images, metricas, nexus, ocr, selectors, siase
+from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
 from .core.prompt_builder import PromptData, build_prompt
@@ -51,6 +55,7 @@ class AppState:
         self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
+        self.catalogo = Catalogo(self.paths.debug / "api" if dev else None)
         limpiar_autoevaluaciones(self.storage)
 
     def file_url(self, path: str | Path | None) -> str | None:
@@ -76,6 +81,7 @@ class AppState:
             "usar_recorte": bool(row["usar_recorte"]),
         }
         if row["tipo"] == "imagen":
+            out["ocr_texto"] = row.get("ocr_texto")
             out["original_url"] = self.file_url(row["original_path"])
             out["recortada_url"] = self.file_url(row["recortada_path"])
             thumb = Path(row["recortada_path"]).with_name(f"{row['id']}_thumb.jpg")
@@ -91,6 +97,8 @@ class AppState:
             "docx_url": self.file_url(row["docx_path"]),
             "pdf_url": self.file_url(row["pdf_path"]),
             "creada_en": row["creada_en"],
+            "avisos": json.loads(row.get("avisos") or "[]"),
+            "id": row.get("hist_id") if "hist_id" in row else row.get("id"),
         }
 
     def tarea_detalle_public(self, tarea: dict, detalle: dict) -> dict:
@@ -128,6 +136,7 @@ async def ensure_nexus(state: AppState, hooks: Hooks, headless: bool | None = No
     cuenta, password = require_credentials(state)
     state.nexus_page = await siase.login(ctx, cuenta, password, hooks)
     state.sesion_muerta_registrada = False
+    state.catalogo.adjuntar(state.nexus_page)
     return state.nexus_page
 
 
@@ -194,6 +203,9 @@ class SesionCaida(Exception):
 
 
 async def _a_estructura(page: Page, indice: int, nombre: str) -> None:
+    with contextlib.suppress(Exception):
+        if await page.locator(selectors.NX_PANEL_ITEM_LINK).count() > 0:
+            return
     try:
         await nexus.volver_a_estructura(page)
     except Exception:
@@ -209,13 +221,61 @@ async def _abrir_materia_y_estructura(
     state.storage.set_portada(materia.id, portada.profesor, portada.periodo)
     etapas = await nexus.abrir_estructura(page)
     antes = state.storage.ids_tareas(materia.id)
+    titulos_antes = state.storage.titulos_tareas(materia.id)
     state.storage.replace_estructura(materia.id, etapas)
     filas = state.storage.tareas_con_posicion(materia.id)
+    if acum.get("novedades"):
+        _novedades_estructura(state, filas, antes, titulos_antes)
     if i not in acum["contadas"]:
         acum["contadas"].add(i)
         acum["tareas"] += len(filas)
         acum["nuevas"] += sum(1 for f in filas if f["id"] not in antes)
     return filas, antes
+
+
+def _novedades_estructura(state: AppState, filas: list[dict], antes: set, titulos: dict) -> None:
+    for fila in filas:
+        if fila["id"] not in antes:
+            state.storage.add_novedad(fila["id"], "nueva", f"Tarea nueva: {fila['titulo']}")
+        elif titulos.get(fila["id"]) not in (None, fila["titulo"]):
+            state.storage.add_novedad(
+                fila["id"], "modificada", f"Título: {titulos[fila['id']]} → {fila['titulo']}"
+            )
+
+
+CAMPOS_DETALLE = (
+    ("actividades", "Actividades actualizadas"),
+    ("contenido", "Contenido actualizado"),
+    ("criterios_desempeno", "Criterios de desempeño actualizados"),
+)
+
+
+def cambios_detalle(previo: dict | None, tarea_previa: dict, nuevo, tarea_nueva: dict) -> list[str]:
+    if previo is None:
+        return []
+    cambios = []
+    for campo, nombre in (("desde", "Fecha de inicio"), ("hasta", "Fecha de entrega")):
+        if tarea_previa.get(campo) != tarea_nueva.get(campo):
+            cambios.append(f"{nombre}: {tarea_previa.get(campo)} → {tarea_nueva.get(campo)}")
+    if tarea_previa.get("puntos") != tarea_nueva.get("puntos"):
+        cambios.append(f"Puntos: {tarea_previa.get('puntos')} → {tarea_nueva.get('puntos')}")
+    for campo, nombre in CAMPOS_DETALLE:
+        if (previo.get(campo) or "") != (getattr(nuevo, campo, "") or ""):
+            cambios.append(nombre)
+    rubrica_nueva = nuevo.rubrica.to_dict() if nuevo.rubrica else None
+    if previo.get("rubrica") != rubrica_nueva:
+        cambios.append("Rúbrica actualizada")
+    return cambios
+
+
+def _guardar_detalle_con_novedades(state: AppState, tarea_id: str, detalle, acum: dict) -> None:
+    previo = state.storage.get_detalle(tarea_id) if acum.get("novedades") else None
+    tarea_previa = state.storage.get_tarea(tarea_id)
+    state.storage.set_detalle(tarea_id, detalle)
+    if previo is not None:
+        cambios = cambios_detalle(previo, tarea_previa, detalle, state.storage.get_tarea(tarea_id))
+        if cambios:
+            state.storage.add_novedad(tarea_id, "modificada", "; ".join(cambios))
 
 
 def _registrar_entregas(state: AppState, tarea_id: str, entregas, acum: dict) -> None:
@@ -229,14 +289,8 @@ def _registrar_entregas(state: AppState, tarea_id: str, entregas, acum: dict) ->
         acum["pendientes"] += 1
 
 
-TIPOS_SIN_DETALLE = ("examen", "pia")
-
-
-async def _omitir_sin_soporte(ctx: JobContext, filas: list[dict]) -> list[dict]:
-    for fila in filas:
-        if fila["tipo"] == "pia":
-            await ctx.log(f"PIA pendiente de soporte: {fila['titulo']}")
-    return [f for f in filas if f["tipo"] not in TIPOS_SIN_DETALLE]
+def _sin_examenes(filas: list[dict]) -> list[dict]:
+    return [f for f in filas if f["tipo"] != "examen"]
 
 
 async def _recorrer_tareas(
@@ -257,13 +311,17 @@ async def _recorrer_tareas(
             0.08 + 0.9 * sum(acum["fracciones"].values()) / n,
         )
         try:
-            await leer(page, fila)
+            async with metricas.medir("tarea"):
+                await leer(page, fila)
         except Exception as exc:
             if await _sesion_caida(page):
                 raise SesionCaida() from exc
-            mensaje = f"{materia.nombre} · {fila['numero']}: {_resumen_error(exc)}"
-            acum["errores"].append(mensaje)
-            await ctx.log(f"Error en la tarea {mensaje}", "error")
+            if fila["tipo"] == "pia":
+                await ctx.log(f"PIA pendiente de soporte: {fila['titulo']}")
+            else:
+                mensaje = f"{materia.nombre} · {fila['numero']}: {_resumen_error(exc)}"
+                acum["errores"].append(mensaje)
+                await ctx.log(f"Error en la tarea {mensaje}", "error")
             await guardar_snapshot(state, page, f"sync-tarea-{materia.id}-{fila['numero']}")
         await _a_estructura(page, i, materia.nombre)
     acum["fracciones"][i] = 1.0
@@ -283,7 +341,7 @@ async def _sync_materia(
     filas, antes = await _abrir_materia_y_estructura(state, page, i, materia, acum)
     leidas = acum["leidas"]
     forzada = modo == "completo" and not reanudar
-    filas = await _omitir_sin_soporte(ctx, filas)
+    filas = _sin_examenes(filas)
     pendientes = [
         f
         for f in filas
@@ -300,13 +358,31 @@ async def _sync_materia(
             fila["numero"],
             entregas=modo == "completo",
         )
-        state.storage.set_detalle(fila["id"], detalle)
+        _guardar_detalle_con_novedades(state, fila["id"], detalle, acum)
         leidas.add(fila["id"])
         acum["detalles_leidos"] += 1
         _registrar_entregas(state, fila["id"], detalle.entregas, acum)
 
     await _recorrer_tareas(state, ctx, page, i, n, materia, pendientes, acum, leer)
+    if modo == "completo":
+        await _leer_calificaciones(state, ctx, page, materia)
     await nexus.volver_a_lista(page)
+
+
+async def _leer_calificaciones(state: AppState, ctx: JobContext, page: Page, materia) -> None:
+    try:
+        async with metricas.medir("calificaciones"):
+            html = await nexus.abrir_calificaciones(page)
+        datos = nexus.parse_calificaciones(html)
+        if datos is None:
+            await ctx.log(f"Calificaciones de {materia.nombre}: formato no reconocido", "error")
+            await guardar_snapshot(state, page, f"calificaciones-{materia.id}")
+        else:
+            state.storage.set_calificaciones(materia.id, datos)
+    except Exception as exc:
+        if await _sesion_caida(page):
+            raise SesionCaida() from exc
+        await ctx.log(f"Calificaciones de {materia.nombre}: {_resumen_error(exc)}", "error")
 
 
 async def _revisar_materia(
@@ -321,7 +397,7 @@ async def _revisar_materia(
     acum: dict,
 ) -> None:
     filas, _ = await _abrir_materia_y_estructura(state, page, i, materia, acum)
-    filas = await _omitir_sin_soporte(ctx, filas)
+    filas = _sin_examenes(filas)
     pendientes = [f for f in filas if f["estado"] != "entregada"]
 
     async def leer(pagina: Page, fila: dict) -> None:
@@ -342,9 +418,23 @@ async def _en_lista(page: Page) -> None:
 
 
 async def _secuencial(state: AppState, ctx: JobContext, procesar, modo, reanudar, acum):
+    medidor = metricas.Metricas()
+    token = metricas.actual.set(medidor)
+    try:
+        n, fallidas = await _recorrer_materias(state, ctx, procesar, modo, reanudar, acum)
+    finally:
+        metricas.actual.reset(token)
+        await ctx.log(medidor.texto())
+        state.catalogo.guardar()
+    acum["tiempos"] = medidor.resumen()
+    return n, fallidas
+
+
+async def _recorrer_materias(state: AppState, ctx: JobContext, procesar, modo, reanudar, acum):
     hooks = ctx.hooks()
     await ctx.update("Iniciando sesión", 0.0)
-    page = await ensure_nexus(state, hooks, headless=True)
+    async with metricas.medir("login"):
+        page = await ensure_nexus(state, hooks, headless=True)
     await ctx.update("Leyendo materias", 0.05)
     try:
         await _en_lista(page)
@@ -366,7 +456,8 @@ async def _secuencial(state: AppState, ctx: JobContext, procesar, modo, reanudar
     for i, m in enumerate(materias):
         for intento in range(2):
             try:
-                await procesar(state, ctx, page, modo, reanudar, i, n, m, acum)
+                async with metricas.medir("materia"):
+                    await procesar(state, ctx, page, modo, reanudar, i, n, m, acum)
                 break
             except Exception as exc:
                 page = state.nexus_page or page
@@ -405,17 +496,19 @@ def _acumulador() -> dict:
         "revisadas": 0,
         "entregadas": 0,
         "pendientes": 0,
+        "tiempos": {},
     }
 
 
 async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict:
     reanudar = False
+    hecha = state.storage.get_settings()["sync_inicial_hecha"]
     if modo == "auto":
-        hecha = state.storage.get_settings()["sync_inicial_hecha"]
         modo = "incremental" if hecha else "completo"
         reanudar = not hecha
     limpiar_autoevaluaciones(state.storage)
     acum = _acumulador()
+    acum["novedades"] = hecha
     async with state.browser.lock:
         n, fallidas = await _secuencial(state, ctx, _sync_materia, modo, reanudar, acum)
     valores: dict = {"ultima_sync": now_iso()}
@@ -428,6 +521,7 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
         "detalles_leidos": acum["detalles_leidos"],
         "nuevas": acum["nuevas"],
         "errores": acum["errores"],
+        "tiempos": acum["tiempos"],
     }
 
 
@@ -465,6 +559,21 @@ def tareas_proximas(state: AppState, ahora: datetime | None = None) -> list[dict
     tareas = [con_vencida(t, ahora) for t in state.storage.tareas_no_entregadas()]
     tareas.sort(key=lambda t: (t["vencida"], t["hasta"] is None, t["hasta"] or ""))
     return tareas
+
+
+def tareas_alertas(state: AppState, ahora: datetime | None = None) -> list[dict]:
+    ahora = ahora or ahora_monterrey()
+    alertas = []
+    for tarea in state.storage.tareas_no_entregadas():
+        if not tarea.get("hasta"):
+            continue
+        with contextlib.suppress(ValueError):
+            limite = datetime.fromisoformat(tarea["hasta"])
+            dias = (limite.date() - ahora.date()).days
+            if limite >= ahora and dias in (0, 1):
+                alertas.append({**con_vencida(tarea, ahora), "dias": dias})
+    alertas.sort(key=lambda t: t["hasta"])
+    return alertas
 
 
 def tarea_materia_nombre(state: AppState, tarea: dict) -> str | None:
@@ -525,6 +634,103 @@ def _insumo_refs(state: AppState, tarea_id: str) -> list[images.InsumoRef]:
     return refs
 
 
+def _ocr_pendiente(state: AppState, tarea_id: str) -> list[str]:
+    textos = []
+    for fila in state.storage.list_insumos(tarea_id):
+        if fila["tipo"] != "imagen" or not fila["recortada_path"]:
+            continue
+        texto = fila.get("ocr_texto")
+        if texto is None:
+            origen = fila["recortada_path"] if fila["usar_recorte"] else fila["original_path"]
+            try:
+                texto = ocr.extraer_texto(Path(origen), fila["rotacion"])
+            except Exception:
+                continue
+            state.storage.set_ocr(fila["id"], texto)
+        if texto.strip():
+            textos.append(texto.strip())
+    return textos
+
+
+async def _texto_ocr(state: AppState, ctx: JobContext, tarea_id: str) -> str:
+    if not any(f["tipo"] == "imagen" for f in state.storage.list_insumos(tarea_id)):
+        return ""
+    if not ocr.disponible():
+        await ctx.log(
+            "OCR local no disponible: instala rapidocr-onnxruntime para leer las imágenes"
+        )
+        return ""
+    await ctx.update("Leyendo el texto de las imágenes", 0.35)
+    return "\n\n".join(await asyncio.to_thread(_ocr_pendiente, state, tarea_id))
+
+
+EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
+EXTENSIONES_TEXTO = {".txt", ".md"}
+
+
+def tipo_recurso(nombre: str) -> str:
+    ext = Path(nombre).suffix.lower()
+    if ext in EXTENSIONES_IMAGEN:
+        return "imagen"
+    if ext in EXTENSIONES_TEXTO:
+        return "texto"
+    return "pdf" if ext == ".pdf" else "otro"
+
+
+def registrar_recurso(state: AppState, tarea_id: str, nombre: str, origen: Path | None) -> dict:
+    ruta = None
+    if origen is not None:
+        carpeta = state.paths.data / "recursos" / tarea_id
+        carpeta.mkdir(parents=True, exist_ok=True)
+        destino = carpeta / f"{uuid.uuid4().hex}_{Path(nombre).name}"
+        shutil.copyfile(origen, destino)
+        ruta = str(destino)
+    return state.storage.add_recurso(tarea_id, nombre, tipo_recurso(nombre), ruta)
+
+
+def recurso_public(recurso: dict) -> dict:
+    return {
+        "id": recurso["id"],
+        "tarea_id": recurso["tarea_id"],
+        "nombre": recurso["nombre"],
+        "tipo": recurso["tipo"],
+        "descargado": bool(recurso["ruta"]) and Path(recurso["ruta"]).exists(),
+        "usado": bool(recurso["usado"]),
+    }
+
+
+def usar_recurso(state: AppState, tarea_id: str, recurso_id: str) -> dict:
+    recurso = state.storage.get_recurso(recurso_id)
+    if recurso is None or recurso["tarea_id"] != tarea_id:
+        raise ApiError(404, "recurso_no_encontrado", "El recurso no existe.")
+    if not recurso["ruta"] or not Path(recurso["ruta"]).exists():
+        raise ApiError(409, "sin_descargar", "El recurso todavía no se descargó.")
+    ruta = Path(recurso["ruta"])
+    if recurso["tipo"] == "texto":
+        fila = state.storage.add_insumo(
+            tarea_id, "texto", texto=ruta.read_text(encoding="utf-8", errors="replace")
+        )
+    elif recurso["tipo"] == "imagen":
+        insumo_id = uuid.uuid4().hex
+        carpeta = state.paths.insumos / tarea_id
+        carpeta.mkdir(parents=True, exist_ok=True)
+        original = carpeta / f"{insumo_id}_orig{ruta.suffix.lower()}"
+        recortada = carpeta / f"{insumo_id}_crop.jpg"
+        shutil.copyfile(ruta, original)
+        images.process_upload(original, recortada, carpeta / f"{insumo_id}_thumb.jpg")
+        fila = state.storage.add_insumo(
+            tarea_id,
+            "imagen",
+            id=insumo_id,
+            original_path=str(original),
+            recortada_path=str(recortada),
+        )
+    else:
+        raise ApiError(415, "tipo_no_soportado", "Este tipo de recurso aún no se puede usar.")
+    state.storage.marcar_recurso_usado(recurso_id)
+    return state.insumo_public(fila)
+
+
 def _generacion_dir(state: AppState, tarea_id: str) -> Path:
     return state.paths.generaciones / tarea_id
 
@@ -552,6 +758,7 @@ async def run_generar(
         await ctx.update("Armando el PDF de insumos", 0.3)
         pdf_insumos = await asyncio.to_thread(images.build_pdf, refs, out_dir / "insumos.pdf")
 
+    texto_ocr = await _texto_ocr(state, ctx, tarea_id)
     prompt = build_prompt(
         PromptData(
             materia=materia["nombre"],
@@ -565,6 +772,7 @@ async def run_generar(
             rubrica=Rubrica.from_dict(detalle["rubrica"]) if detalle["rubrica"] else None,
             instrucciones_extra=instrucciones_extra,
             tiene_insumos=pdf_insumos is not None,
+            texto_ocr=texto_ocr,
         )
     )
     await ctx.update("generando", 0.45)
@@ -585,15 +793,61 @@ async def run_generar(
 def _construir_documentos(
     state: AppState, tarea: dict, materia: dict, settings: dict, markdown: str
 ) -> dict:
-    out_dir = _generacion_dir(state, tarea["id"])
+    out_dir = _generacion_dir(state, tarea["id"]) / datetime.now().strftime("%Y%m%d-%H%M%S")
     mapping = documents.marcadores(
         settings["nombre"], settings["matricula"], materia["profesor"], date.today()
     )
+    avisos: list[str] = []
     docx_path = documents.build_final_docx(
-        config.PORTADA_TEMPLATE, markdown, out_dir / "tarea.docx", mapping, out_dir / "tmp"
+        config.PORTADA_TEMPLATE,
+        markdown,
+        out_dir / "tarea.docx",
+        mapping,
+        out_dir / "tmp",
+        avisos,
+        f"{materia['nombre']} - {tarea['titulo']}",
     )
     pdf_path = documents.export_pdf(docx_path, out_dir / "tarea.pdf")
-    return state.storage.set_generacion(tarea["id"], markdown, str(docx_path), str(pdf_path))
+    return state.storage.set_generacion(
+        tarea["id"], markdown, str(docx_path), str(pdf_path), avisos
+    )
+
+
+def listar_generaciones(state: AppState, tarea_id: str) -> list[dict]:
+    return [
+        {**state.generacion_public({**fila, "hist_id": fila["id"]}), "actual": fila["actual"]}
+        for fila in state.storage.listar_generaciones(tarea_id)
+    ]
+
+
+def restaurar_generacion(state: AppState, hist_id: int) -> dict:
+    fila = state.storage.restaurar_generacion(hist_id)
+    if fila is None:
+        raise ApiError(404, "generacion_no_encontrada", "La generación no existe.")
+    return state.generacion_public(fila)
+
+
+def _portada_preview(state: AppState, tarea: dict) -> Path:
+    materia = state.storage.get_materia(tarea["materia_id"])
+    settings = state.storage.get_settings()
+    mapping = documents.marcadores(
+        settings["nombre"] or "NOMBRE DEL ALUMNO",
+        settings["matricula"] or "MATRÍCULA",
+        (materia or {}).get("profesor") or "PROFESOR",
+        date.today(),
+    )
+    carpeta = _generacion_dir(state, tarea["id"]) / "preview"
+    docx_path = documents.fill_cover(config.PORTADA_TEMPLATE, carpeta / "portada.docx", mapping)
+    return documents.export_pdf(docx_path, carpeta / "portada.pdf")
+
+
+async def portada_preview(state: AppState, tarea_id: str) -> dict:
+    tarea = state.storage.get_tarea(tarea_id)
+    try:
+        pdf = await asyncio.to_thread(_portada_preview, state, tarea)
+    except Exception as exc:
+        raise ApiError(502, "sin_word", f"No se pudo generar la vista previa: {exc}") from exc
+    return {"pdf_url": state.file_url(pdf)}
 
 
 async def reconstruir_pdf(state: AppState, tarea_id: str) -> dict:
@@ -603,7 +857,14 @@ async def reconstruir_pdf(state: AppState, tarea_id: str) -> dict:
     docx_path = Path(gen["docx_path"])
     pdf_path = await asyncio.to_thread(documents.export_pdf, docx_path, Path(gen["pdf_path"]))
     return state.generacion_public(
-        state.storage.set_generacion(tarea_id, gen["markdown"], str(docx_path), str(pdf_path))
+        state.storage.set_generacion(
+            tarea_id,
+            gen["markdown"],
+            str(docx_path),
+            str(pdf_path),
+            json.loads(gen.get("avisos") or "[]"),
+            historial=False,
+        )
     )
 
 
