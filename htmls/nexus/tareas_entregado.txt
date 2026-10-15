@@ -1,0 +1,83 @@
+
+PRIMERO ENTRAR A ENTREGAR EN DONDE YA ESTAS EN LA Tareas
+
+
+<nav _ngcontent-c36="" class="mat-tab-nav-bar mat-primary" mat-tab-nav-bar=""><div class="mat-tab-links"><a _ngcontent-c36="" class="no-underline mat-tab-link mat-tab-label-active" mat-tab-link="" routerlink="Contenidos" routerlinkactive="" ng-reflect-active="true" ng-reflect-router-link="Contenidos" ng-reflect-router-link-active="" aria-current="true" aria-disabled="false" tabindex="0" href="#/App/UnidadesAprendizaje/UA/Estructura/Evidencia/Contenidos">Contenidos</a><a _ngcontent-c36="" class="no-underline mat-tab-link" mat-tab-link="" routerlink="Recursos" routerlinkactive="" ng-reflect-active="false" ng-reflect-router-link="Recursos" ng-reflect-router-link-active="" aria-current="false" aria-disabled="false" tabindex="0" href="#/App/UnidadesAprendizaje/UA/Estructura/Evidencia/Recursos">Recursos</a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a _ngcontent-c36="" class="no-underline mat-tab-link ng-star-inserted" mat-tab-link="" routerlink="Entregas" routerlinkactive="" ng-reflect-active="false" ng-reflect-router-link="Entregas" ng-reflect-router-link-active="" aria-current="false" aria-disabled="false" tabindex="0" href="#/App/UnidadesAprendizaje/UA/Estructura/Evidencia/Entregas">Entregas</a><mat-ink-bar class="mat-ink-bar" style="visibility: visible; left: 0px; width: 160px;"></mat-ink-bar></div></nav>
+
+DARLE CLICK AQUI
+<a _ngcontent-c36="" class="no-underline mat-tab-link ng-star-inserted" mat-tab-link="" routerlink="Entregas" routerlinkactive="" ng-reflect-active="false" ng-reflect-router-link="Entregas" ng-reflect-router-link-active="" aria-current="false" aria-disabled="false" tabindex="0" href="#/App/UnidadesAprendizaje/UA/Estructura/Evidencia/Entregas">Entregas</a>
+
+ASI SE VE SI ESTA LA TAREA ENTREGADA 
+
+<table _ngcontent-c40="" class="table mat-elevation-z2 p-0 w-100 font-size-13 mat-table ng-star-inserted" mat-table="" matsort="" role="grid" ng-reflect-data-source="[object Object]"><thead><!----><tr _ngcontent-c40="" class="mat-header-row ng-star-inserted" mat-header-row="" role="row"><!----><th _ngcontent-c40="" class="mat-header-cell ng-tns-c42-26 cdk-column-icon mat-column-icon ng-star-inserted" mat-header-cell="" mat-sort-header="" role="columnheader" ng-reflect-id=""><div class="mat-sort-header-container"><button class="mat-sort-header-button" type="button" aria-label="Change sorting for icon"></button><div class="mat-sort-header-arrow ng-trigger ng-trigger-arrowPosition" style="transform: translateY(25%); opacity: 0;"><div class="mat-sort-header-stem"></div><div class="mat-sort-header-indicator ng-trigger ng-trigger-indicator" style="transform: translateY(0px);"><div class="mat-sort-header-pointer-left ng-trigger ng-trigger-leftPointer" style="transform: rotate(-45deg);"></div><div class="mat-sort-header-pointer-right ng-trigger ng-trigger-rightPointer" style="transform: rotate(45deg);"></div><div class="mat-sort-header-pointer-middle"></div></div></div></div></th><th _ngcontent-c40="" class="mat-header-cell ng-tns-c42-27 cdk-column-nombre mat-column-nombre ng-star-inserted" mat-header-cell="" mat-sort-header="" role="columnheader" width="100%" ng-reflect-id=""><div class="mat-sort-header-container"><button class="mat-sort-header-button" type="button" aria-label="Change sorting for nombre"> Nombre </button><div class="mat-sort-header-arrow ng-trigger ng-trigger-arrowPosition" style="transform: translateY(25%); opacity: 0;"><div class="mat-sort-header-stem"></div><div class="mat-sort-header-indicator ng-trigger ng-trigger-indicator" style="transform: translateY(0px);"><div class="mat-sort-header-pointer-left ng-trigger ng-trigger-leftPointer" style="transform: rotate(-45deg);"></div><div class="mat-sort-header-pointer-right ng-trigger ng-trigger-rightPointer" style="transform: rotate(45deg);"></div><div class="mat-sort-header-pointer-middle"></div></div></div></div></th><th _ngcontent-c40="" class="mat-header-cell ng-tns-c42-28 cdk-column-equipo mat-column-equipo ng-star-inserted" mat-header-cell="" mat-sort-header="" role="columnheader" ng-reflect-id=""><div class="mat-sort-header-container"><button class="mat-sort-header-button" type="button" aria-label="Change sorting for equipo">Entrega</button><div class="mat-sort-header-arrow ng-trigger ng-trigger-arrowPosition" style="transform: translateY(25%); opacity: 0;"><div class="mat-sort-header-stem"></div><div class="mat-sort-header-indicator ng-trigger ng-trigger-indicator" style="transform: translateY(0px);"><div class="mat-sort-header-pointer-left ng-trigger ng-trigger-leftPointer" style="transform: rotate(-45deg);"></div><div class="mat-sort-header-pointer-right ng-trigger ng-trigger-rightPointer" style="transform: rotate(45deg);"></div><div class="mat-sort-header-pointer-middle"></div></div></div></div></th><th _ngcontent-c40="" class="mat-header-cell ng-tns-c42-29 cdk-column-fecha mat-column-fecha ng-star-inserted" mat-header-cell="" mat-sort-header="" role="columnheader" ng-reflect-id=""><div class="mat-sort-header-container"><button class="mat-sort-header-button" type="button" aria-label="Change sorting for fecha"><div _ngcontent-c40="" class="text-center">Entregado el</div></button><div class="mat-sort-header-arrow ng-trigger ng-trigger-arrowPosition" style="transform: translateY(25%); opacity: 0;"><div class="mat-sort-header-stem"></div><div class="mat-sort-header-indicator ng-trigger ng-trigger-indicator" style="transform: translateY(0px);"><div class="mat-sort-header-pointer-left ng-trigger ng-trigger-leftPointer" style="transform: rotate(-45deg);"></div><div class="mat-sort-header-pointer-right ng-trigger ng-trigger-rightPointer" style="transform: rotate(45deg);"></div><div class="mat-sort-header-pointer-middle"></div></div></div></div></th><th _ngcontent-c40="" class="mat-header-cell ng-tns-c42-30 cdk-column-actions mat-column-actions ng-star-inserted" mat-header-cell="" mat-sort-header="" role="columnheader" ng-reflect-id=""><div class="mat-sort-header-container"><button class="mat-sort-header-button" type="button" aria-label="Change sorting for actions"></button><div class="mat-sort-header-arrow ng-trigger ng-trigger-arrowPosition" style="transform: translateY(25%); opacity: 0;"><div class="mat-sort-header-stem"></div><div class="mat-sort-header-indicator ng-trigger ng-trigger-indicator" style="transform: translateY(0px);"><div class="mat-sort-header-pointer-left ng-trigger ng-trigger-leftPointer" style="transform: rotate(-45deg);"></div><div class="mat-sort-header-pointer-right ng-trigger ng-trigger-rightPointer" style="transform: rotate(45deg);"></div><div class="mat-sort-header-pointer-middle"></div></div></div></div></th></tr></thead><tbody><!----><tr _ngcontent-c40="" class="mat-row ng-star-inserted" mat-row="" role="row"><!----><td _ngcontent-c40="" class="py-1 v-align-middle text-center mat-cell cdk-column-icon mat-column-icon ng-star-inserted" mat-cell="" role="gridcell"><!--bindings={
+  "ng-reflect-ng-switch": "1"
+}--><!--bindings={
+  "ng-reflect-ng-switch-case": "1"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!--bindings={
+  "ng-reflect-ng-switch-case": "2"
+}--><!----></td><td _ngcontent-c40="" class="py-1 v-align-middle line-nowrap mat-cell cdk-column-nombre mat-column-nombre ng-star-inserted" mat-cell="" role="gridcell" width="100%"><!--bindings={
+  "ng-reflect-ng-switch": "1"
+}--><!--bindings={
+  "ng-reflect-ng-switch-case": "1"
+}--><!----><span _ngcontent-c40="" class="ng-star-inserted">D2E1_ABI.pdf</span><!--bindings={
+  "ng-reflect-ng-switch-case": "2"
+}--></td><td _ngcontent-c40="" class="py-1 v-align-middle line-nowrap color-3 text-center mat-cell cdk-column-equipo mat-column-equipo ng-star-inserted" mat-cell="" role="gridcell"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c40="" class="fa fa-user ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-21" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></td><td _ngcontent-c40="" class="py-1 v-align-middle line-nowrap text-center mat-cell cdk-column-fecha mat-column-fecha ng-star-inserted" mat-cell="" role="gridcell"><div _ngcontent-c40="" class="px-3">20-09-2026 10:24 pm</div></td><td _ngcontent-c40="" class="py-1 v-align-middle line-nowrap text-right mat-cell cdk-column-actions mat-column-actions ng-star-inserted" mat-cell="" role="gridcell"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><button _ngcontent-c40="" class="mat-box-30 mat-icon-button mat-primary ng-star-inserted" color="primary" mat-icon-button="" mattooltip="Descargar" ng-reflect-color="primary" aria-describedby="cdk-describedby-message-23" cdk-describedby-host="" ng-reflect-message="Descargar"><span class="mat-button-wrapper"><i _ngcontent-c40="" class="fa fa-download color-3"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!----><!----><button _ngcontent-c40="" class="mat-box-30 mat-icon-button mat-primary" color="primary" mat-icon-button="" mattooltip="Ver" ng-reflect-color="primary" aria-describedby="cdk-describedby-message-22" cdk-describedby-host="" ng-reflect-message="Ver"><span class="mat-button-wrapper"><i _ngcontent-c40="" class="fa fa-eye color-3"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><button _ngcontent-c40="" class="mat-box-30 mat-icon-button mat-warn ng-star-inserted" color="warn" mat-icon-button="" mattooltip="Eliminar" ng-reflect-color="warn" aria-describedby="cdk-describedby-message-24" cdk-describedby-host="" ng-reflect-message="Eliminar"><span class="mat-button-wrapper"><i _ngcontent-c40="" class="fa fa-trash-alt color-3"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!----></td></tr></tbody><tfoot class="mat-table-sticky" style="bottom: 0px; position: sticky; z-index: 10;"><!----></tfoot></table>
+
+
+ASI SE VE SI NO HAY TAREA ENTREGADA
+
+<div _ngcontent-c40="" class="text-center color-3 p-4 my-4 ng-star-inserted"><i _ngcontent-c40="" class="far fa-file-alt font-size-40 mb-3"></i><div _ngcontent-c40="">No se encontraron Entregas</div></div>
+
+
+TAMBIEN SACA EL DATO DE CUANDO SE ENTREGAN LAS TAREAS LO ENCUENTRAS EN LA TAREA AQUI
+
+<div _ngcontent-c36="" class="d-md-flex justify-content-between"><div _ngcontent-c36="" class="font-size-15 color-3"><div _ngcontent-c36=""><div _ngcontent-c36="" class="my-2"><i _ngcontent-c36="" class="far fa-calendar w-25px text-center"></i>Desde 2026/NOV/02 12:00 A. M. hasta 2026/NOV/09 11:59 P. M.</div><div _ngcontent-c36="" class="d-flex justify-content-between align-items-start"><div _ngcontent-c36="" class="d-flex align-items-center"><div _ngcontent-c36="" class="mr-4"><i _ngcontent-c36="" class="far fa-trophy w-25px text-center"></i>2.5 pts </div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c36="" class="mr-4 ng-star-inserted"><i _ngcontent-c36="" class="fa fa-user w-25px text-center"></i>Individual </div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></div></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><div _ngcontent-c36="" class="d-flex d-md-block justify-content-center mt-2 mt-md-0"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><button _ngcontent-c36="" class="w-100 mat-raised-button mat-primary ng-star-inserted" color="primary" mat-raised-button="" ng-reflect-color="primary"><span class="mat-button-wrapper"><i _ngcontent-c36="" class="fa fa-vote-yea mr-2 font-size-20"></i>Entregar</span><div class="mat-button-ripple mat-ripple" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!----></div></div>
+
+<div _ngcontent-c36="" class="my-2"><i _ngcontent-c36="" class="far fa-calendar w-25px text-center"></i>Desde 2026/NOV/02 12:00 A. M. hasta 2026/NOV/09 11:59 P. M.</div>
+
