@@ -10,6 +10,7 @@ SIASE_ERROR_LOGIN = (
     "text=/contraseña incorrecta|usuario o contraseña|datos incorrectos|no es válid/i"
 )
 SIASE_NEXUS_LOGO = "a[onmouseover*=\"muestra('nexus')\"]"
+SIASE_MOSTRAR_NEXUS_JS = "muestra('nexus')"
 SIASE_NEXUS_LINK = "#linkNexus"
 
 NX_CARDS_ROOT = "app-cursos-card"

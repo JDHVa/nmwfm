@@ -222,6 +222,7 @@ class _FakePw:
 
     async def launch_persistent_context(self, **kw):
         ctx = _FakeCtx(kw["headless"])
+        ctx.kw = kw
         self.lanzados.append(ctx)
         return ctx
 
@@ -255,3 +256,14 @@ def test_browser_sin_dev_es_headless_por_defecto(tmp_path):
     asyncio.run(mgr.context())
     assert mgr._pw.lanzados[0].headless is True
     assert browser_mod
+
+
+def test_viewport_fijo_igual_en_ambos_modos(manager):
+    async def scenario():
+        await manager.context(headless=True)
+        await manager.context(headless=False)
+
+    asyncio.run(scenario())
+    kws = [c.kw for c in manager._pw.lanzados]
+    assert kws[0]["viewport"] == kws[1]["viewport"] == {"width": 1366, "height": 900}
+    assert "no_viewport" not in kws[0]

@@ -5,6 +5,7 @@ import unicodedata
 from typing import TYPE_CHECKING
 
 from . import selectors as S
+from .browser import clic_robusto as _clic
 from .htmlq import has_class, html_to_markdown, parse, select, select_one, text_of
 from .types import (
     DetalleTarea,
@@ -247,17 +248,6 @@ async def _pausa(minimo: float = 0.3, maximo: float = 0.9) -> None:
 
 async def _html(locator) -> str:
     return await locator.evaluate("e => e.outerHTML")
-
-
-async def _clic(locator, respaldo=None) -> None:
-    objetivo = locator.first
-    with contextlib.suppress(Exception):
-        await objetivo.evaluate("e => e.scrollIntoView({block: 'center'})")
-    try:
-        await objetivo.click(timeout=5000)
-    except Exception:
-        # Workaround: overlays/toolbar sticky de NEXUS interceptan el clic real.
-        await (respaldo if respaldo is not None else objetivo).dispatch_event("click")
 
 
 async def esperar_lista(page: "Page", timeout: float = 30000) -> None:
