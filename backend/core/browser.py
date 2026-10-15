@@ -5,6 +5,8 @@ from pathlib import Path
 
 from playwright.async_api import BrowserContext, Locator, Page, Playwright, async_playwright
 
+VIEWPORT = {"width": 1366, "height": 900}
+
 
 async def pausa(minimo: float = 0.4, maximo: float = 1.4) -> None:
     await asyncio.sleep(random.uniform(minimo, maximo))
@@ -40,6 +42,17 @@ async def clic_humano(target: Locator) -> None:
     await target.click()
 
 
+async def clic_robusto(locator: Locator, respaldo: Locator | None = None) -> None:
+    objetivo = locator.first
+    with contextlib.suppress(Exception):
+        await objetivo.evaluate("e => e.scrollIntoView({block: 'center'})")
+    try:
+        await objetivo.click(timeout=5000)
+    except Exception:
+        # Workaround: overlays/forms de SIASE y NEXUS interceptan el clic real.
+        await (respaldo if respaldo is not None else objetivo).dispatch_event("click")
+
+
 class BrowserManager:
     def __init__(self, profile_dir: Path, dev: bool):
         self.profile_dir = profile_dir
@@ -66,7 +79,7 @@ class BrowserManager:
             user_data_dir=str(self.profile_dir),
             channel="chrome",
             headless=objetivo,
-            no_viewport=True,
+            viewport=VIEWPORT,
             ignore_default_args=["--enable-automation"],
             args=["--disable-blink-features=AutomationControlled"],
         )

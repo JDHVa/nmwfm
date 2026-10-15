@@ -7,7 +7,7 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from .. import config
 from . import selectors as S
-from .browser import clic_humano, pausa, pausa_larga
+from .browser import clic_robusto, pausa, pausa_larga
 from .types import Hooks
 
 
@@ -53,7 +53,15 @@ async def _llenar_formulario(scope: Frame, cuenta: str, password: str) -> None:
     await campo.fill("")
     await campo.press_sequentially(password, delay=70)
     await pausa()
-    await clic_humano(scope.locator(S.SIASE_ENTRAR))
+    await clic_robusto(scope.locator(S.SIASE_ENTRAR))
+
+
+async def _mostrar_panel_nexus(scope: Frame) -> None:
+    # Workaround: el hover real lo intercepta un form de SIASE; se ejecuta el mismo handler.
+    try:
+        await scope.evaluate(S.SIASE_MOSTRAR_NEXUS_JS)
+    except Exception:
+        await scope.locator(S.SIASE_NEXUS_LOGO).first.dispatch_event("mouseover")
 
 
 async def login(
@@ -84,12 +92,12 @@ async def login(
 
     await hooks.paso("Entrando a NEXUS", 0.1)
     await pausa()
-    await logo_scope.locator(S.SIASE_NEXUS_LOGO).first.hover()
+    await _mostrar_panel_nexus(logo_scope)
     await pausa_larga()
     link = logo_scope.locator(S.SIASE_NEXUS_LINK)
     await link.wait_for(state="visible", timeout=15000)
     async with ctx.expect_page() as nueva:
-        await link.click()
+        await clic_robusto(link)
     nexus = await nueva.value
     await nexus.wait_for_selector(S.NX_CARD, timeout=60000)
     await pausa()
