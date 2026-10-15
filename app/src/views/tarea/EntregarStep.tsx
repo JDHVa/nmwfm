@@ -33,7 +33,9 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
     chispa.current?.spark(r ? r.width / 2 : undefined, r ? r.height / 2 : undefined);
   });
 
-  const entregada = tarea.estado === "entregada" || runner.job?.estado === "ok";
+  const reemplazo = tarea.estado === "entregada";
+  const entregada = runner.job?.estado === "ok";
+  const mensajeOk = runner.job?.mensaje ?? "La Tarea ha sido cargada y entregada con éxito";
 
   async function confirmar() {
     setAbierto(false);
@@ -60,7 +62,9 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
           ) : (
             <>
               <Send className="size-10 text-primary" />
-              <h2 className="text-xl font-semibold">Entregar en NEXUS</h2>
+              <h2 className="text-xl font-semibold">
+                {reemplazo ? "Reemplazar entrega en NEXUS" : "Entregar en NEXUS"}
+              </h2>
               <p className="max-w-md text-sm text-muted-foreground">
                 Se subirá el PDF de «{tarea.titulo}». Esta acción no se puede deshacer desde la aplicación.
               </p>
@@ -69,12 +73,20 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
               )}
               {!gen && <p className="text-sm text-destructive">Primero genera el documento.</p>}
               <Button size="lg" disabled={!gen || runner.running} onClick={() => setAbierto(true)}>
-                <Send /> Entregar
+                <Send /> {reemplazo ? "Reemplazar entrega" : "Entregar"}
               </Button>
             </>
           )}
         </div>
         <JobProgress job={runner.job} error={runner.error} />
+        {entregada && (
+          <div
+            role="status"
+            className="fixed bottom-14 right-6 z-50 rounded-lg border border-emerald-400/40 bg-popover px-4 py-3 text-sm shadow-2xl"
+          >
+            {mensajeOk}
+          </div>
+        )}
         {!entregada && (
           <div className="flex justify-start">
             <Button variant="ghost" onClick={onAtras} disabled={runner.running}>
@@ -87,7 +99,15 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
       <Dialog open={abierto} onOpenChange={setAbierto}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>¿Entregar esta tarea?</DialogTitle>
+            <DialogTitle>{reemplazo ? "¿Reemplazar la entrega?" : "¿Entregar esta tarea?"}</DialogTitle>
+            {reemplazo && (
+              <p
+                role="alert"
+                className="rounded-md border border-amber-400/50 bg-amber-400/10 px-3 py-2 text-sm font-medium text-amber-300"
+              >
+                Ya entregaste esta tarea. Se reemplazará la entrega anterior.
+              </p>
+            )}
             <DialogDescription>
               Se subirá el PDF de «{tarea.numero} · {tarea.titulo}» a NEXUS. Confirma que ya lo revisaste.
             </DialogDescription>
@@ -96,7 +116,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
             <Button variant="ghost" onClick={() => setAbierto(false)}>
               Cancelar
             </Button>
-            <Button onClick={confirmar}>Sí, entregar</Button>
+            <Button onClick={confirmar}>{reemplazo ? "Reemplazar entrega" : "Sí, entregar"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
