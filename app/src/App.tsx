@@ -18,12 +18,13 @@ import { PaletaBusqueda } from "@/components/PaletaBusqueda";
 import { SyncIndicator, SyncOverlay } from "@/components/SyncStatus";
 import { siguienteTema } from "@/components/ThemeToggle";
 import { estaEscribiendo } from "@/lib/atajos";
+import { escucharSyncDeBandeja, sincronizarPreferenciaConRust } from "@/lib/bandeja";
 import { useAlertas } from "@/lib/alertas";
 import { NavProvider, useNav, useReducedMotion } from "@/lib/app-context";
 import type { Settings } from "@/lib/api";
 import { useSettings } from "@/lib/queries";
 import { leerRecordar } from "@/lib/session";
-import { SyncProvider } from "@/lib/sync";
+import { SyncProvider, useSync } from "@/lib/sync";
 import { ETIQUETA_TEMA, useTheme } from "@/lib/theme";
 import { token } from "@/lib/tokens";
 import { ConfigView } from "@/views/ConfigView";
@@ -39,6 +40,22 @@ function Shell({ onSalir }: { onSalir: () => void }) {
   const [buscando, setBuscando] = useState(false);
   const [ayuda, setAyuda] = useState(false);
   useAlertas();
+  const sync = useSync();
+  const iniciarSync = sync.iniciar;
+
+  useEffect(() => {
+    void sincronizarPreferenciaConRust();
+    let quitar = () => {};
+    let vivo = true;
+    void escucharSyncDeBandeja(() => void iniciarSync("incremental")).then((fn) => {
+      if (vivo) quitar = fn;
+      else fn();
+    });
+    return () => {
+      vivo = false;
+      quitar();
+    };
+  }, [iniciarSync]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
