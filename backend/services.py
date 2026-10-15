@@ -144,14 +144,28 @@ async def run_sync(state: AppState, ctx: JobContext) -> dict:
         for m in materias:
             state.storage.upsert_materia(m.id, m.nombre, m.orden)
         total = max(len(materias), 1)
+        errores: list[str] = []
         for i, m in enumerate(materias):
             await ctx.update(f"Materia {i + 1}/{len(materias)}: {m.nombre}", 0.15 + 0.8 * i / total)
-            portada = await nexus.abrir_materia(page, i)
-            state.storage.set_portada(m.id, portada.profesor, portada.periodo)
-            etapas = await nexus.abrir_estructura(page)
-            state.storage.replace_estructura(m.id, etapas)
-            await nexus.volver_a_lista(page)
-    return {"materias": len(materias)}
+            try:
+                portada = await nexus.abrir_materia(page, i)
+                state.storage.set_portada(m.id, portada.profesor, portada.periodo)
+                etapas = await nexus.abrir_estructura(page)
+                state.storage.replace_estructura(m.id, etapas)
+            except Exception as exc:
+                mensaje = (
+                    f"{m.nombre}: {str(exc).splitlines()[0] if str(exc) else type(exc).__name__}"
+                )
+                errores.append(mensaje)
+                await ctx.log(f"Error en la materia {mensaje}", "error")
+                await guardar_snapshot(state, page, f"sync-materia-{m.id}")
+            try:
+                await nexus.volver_a_lista(page)
+            except Exception as exc:
+                await ctx.log(f"No se pudo volver a la lista: {exc}", "error")
+        if len(errores) == len(materias):
+            raise ApiError(502, "sync_fallido", "No se pudo leer ninguna materia: " + errores[0])
+    return {"materias": len(materias) - len(errores), "errores": errores}
 
 
 async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):

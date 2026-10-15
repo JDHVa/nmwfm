@@ -243,6 +243,17 @@ async def _html(locator) -> str:
     return await locator.evaluate("e => e.outerHTML")
 
 
+async def _clic(locator, respaldo=None) -> None:
+    objetivo = locator.first
+    with contextlib.suppress(Exception):
+        await objetivo.evaluate("e => e.scrollIntoView({block: 'center'})")
+    try:
+        await objetivo.click(timeout=5000)
+    except Exception:
+        # Workaround: overlays/toolbar sticky de NEXUS interceptan el clic real.
+        await (respaldo if respaldo is not None else objetivo).dispatch_event("click")
+
+
 async def esperar_lista(page: "Page", timeout: float = 30000) -> None:
     await page.wait_for_selector(S.NX_CARD, timeout=timeout)
 
@@ -258,8 +269,13 @@ async def abrir_materia(page: "Page", indice: int) -> Portada:
     await esperar_lista(page)
     card = page.locator(S.NX_CARD).nth(indice)
     await pausa()
-    await card.locator(S.NX_CARD_CLICK).first.click()
-    await page.wait_for_selector(S.NX_PORTADA, timeout=30000)
+    enlace = card.locator(S.NX_CARD_CLICK).first
+    await _clic(card.locator(S.NX_CARD_NAME), enlace)
+    try:
+        await page.wait_for_selector(S.NX_PORTADA, timeout=5000)
+    except Exception:
+        await enlace.dispatch_event("click")
+        await page.wait_for_selector(S.NX_PORTADA, timeout=30000)
     await pausa()
     return parse_portada(await _html(page.locator(S.NX_PORTADA)))
 
@@ -268,7 +284,7 @@ async def abrir_estructura(page: "Page") -> list[EtapaItem]:
     from .browser import pausa
 
     await pausa()
-    await page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA).first.click()
+    await _clic(page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA))
     await page.wait_for_selector(S.NX_PANEL, timeout=30000)
     await pausa()
     return parse_estructura(await _html(page.locator(S.NX_ESTRUCTURA)))
@@ -279,7 +295,7 @@ async def abrir_tarea(page: "Page", etapa_idx: int, tarea_idx: int) -> DetalleTa
 
     await pausa()
     panel = page.locator(S.NX_PANEL).nth(etapa_idx)
-    await panel.locator(S.NX_PANEL_ITEM_LINK).nth(tarea_idx).click()
+    await _clic(panel.locator(S.NX_PANEL_ITEM_LINK).nth(tarea_idx))
     await page.wait_for_selector(S.NX_DETALLE_ROOT, timeout=30000)
     await pausa()
     html = await _html(page.locator("mat-sidenav-content"))
@@ -293,7 +309,7 @@ async def _clic_pestana(page: "Page", css: str, texto: str) -> None:
     tab = page.locator(css)
     if not await tab.count():
         tab = page.locator(S.NX_TABS).filter(has_text=texto)
-    await tab.first.click()
+    await _clic(tab)
 
 
 async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
@@ -317,7 +333,7 @@ async def volver_a_lista(page: "Page") -> None:
     link = page.locator(S.NX_LISTA_LINK)
     await pausa()
     if await link.count():
-        await link.first.click()
+        await _clic(link)
     else:
         # Workaround: no se conoce el enlace de retorno; se cambia el hash dentro de la SPA.
         await page.evaluate("location.hash = '#/App/UnidadesAprendizaje'")
@@ -395,13 +411,13 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
     hooks = hooks or Hooks()
     await pausa()
     boton = page.locator(S.NX_ENTREGAR_BUTTON).filter(has_text=S.NX_ENTREGAR_TEXT).first
-    await boton.click()
+    await _clic(boton)
     await page.wait_for_selector(S.NX_ENTREGA_UPLOAD, timeout=30000)
     await pausa()
 
     if not await page.locator(S.NX_ENTREGA_TAB_ACTIVA).filter(has_text=S.NX_ENTREGA_TAB_PC).count():
         tab_pc = page.locator(S.NX_ENTREGA_TAB).filter(has_text=re.compile(r"^\s*PC\s*$")).first
-        await tab_pc.click()
+        await _clic(tab_pc)
         await pausa()
 
     await hooks.log("Subiendo el PDF a NEXUS")
@@ -419,7 +435,7 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
     except Exception as exc:
         raise EntregaError("El boton de confirmar no se habilito tras cargar el PDF.") from exc
     await pausa()
-    await confirmar.click()
+    await _clic(confirmar)
 
     snack = await _esperar_snackbar(page)
     await pausa(0.6, 1.2)
