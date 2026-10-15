@@ -84,6 +84,7 @@ export function createMockBackend(options: MockOptions = {}) {
   const generaciones = new Map<string, Generacion>();
   const jobs = new Map<string, Job>();
   const emitters = new Set<Emitter>();
+  let password = "";
   let seq = 0;
   let hue = 200;
 
@@ -100,7 +101,12 @@ export function createMockBackend(options: MockOptions = {}) {
     return undefined;
   }
 
-  function lanzarJob(tipo: JobTipo, pasos: string[], alTerminar?: () => unknown): Job {
+  function lanzarJob(
+    tipo: JobTipo,
+    pasos: string[],
+    alTerminar?: () => unknown,
+    rechazo?: () => string | null,
+  ): Job {
     const job: Job = {
       id: `job-${++seq}`,
       tipo,
@@ -122,6 +128,15 @@ export function createMockBackend(options: MockOptions = {}) {
         i += 1;
         setTimeout(tick, stepMs);
       } else {
+        const motivo = rechazo?.() ?? null;
+        if (motivo) {
+          job.estado = "error";
+          job.paso = "Error";
+          job.mensaje = motivo;
+          log("error", motivo);
+          emit({ type: "job", job: { ...job } });
+          return;
+        }
         job.resultado = alTerminar?.() ?? null;
         job.estado = "ok";
         job.paso = "Terminado";
@@ -157,9 +172,19 @@ export function createMockBackend(options: MockOptions = {}) {
     if (path === "/health") return json({ ok: true, version: "mock" });
     if (path === "/settings" && method === "GET") return json(settings);
     if (path === "/settings" && method === "PUT") {
-      const { password, ...rest } = body as Partial<Settings> & { password?: string };
-      settings = { ...settings, ...rest, tiene_password: password ? true : settings.tiene_password };
+      const { password: nueva, ...rest } = body as Partial<Settings> & { password?: string };
+      if (nueva) password = nueva;
+      settings = { ...settings, ...rest, tiene_password: password !== "" };
       return json(settings);
+    }
+    if (path === "/siase/validar") {
+      return json(
+        lanzarJob("validar_siase", ["Abriendo SIASE", "Verificando credenciales"], undefined, () =>
+          !settings.cuenta || !password || password === "mala"
+            ? "La cuenta o la contraseña son incorrectas"
+            : null,
+        ),
+      );
     }
     if (path === "/gemini/login") {
       return json(

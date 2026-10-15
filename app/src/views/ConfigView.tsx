@@ -7,19 +7,18 @@ import { Switch } from "@/components/ui/switch";
 import { HoldButton } from "@/components/HoldButton";
 import { JobProgress } from "@/components/JobProgress";
 import { api, type Settings } from "@/lib/api";
-import { useNav } from "@/lib/app-context";
+import { PasswordInput } from "@/components/PasswordInput";
 import { useJobRunner, useSaveSettings, useSettings } from "@/lib/queries";
 import { PageHeader } from "@/components/PageHeader";
 
-export function ConfigView({ primerArranque }: { primerArranque: boolean }) {
+export function ConfigView() {
   const { data: settings } = useSettings();
   if (!settings) return <p className="p-8 text-muted-foreground">Cargando configuración…</p>;
-  return <ConfigForm settings={settings} primerArranque={primerArranque} />;
+  return <ConfigForm settings={settings} />;
 }
 
-function ConfigForm({ settings, primerArranque }: { settings: Settings; primerArranque: boolean }) {
+function ConfigForm({ settings }: { settings: Settings }) {
   const guardar = useSaveSettings();
-  const { go } = useNav();
   const gemini = useJobRunner();
   const [form, setForm] = useState({
     cuenta: settings.cuenta,
@@ -41,7 +40,6 @@ function ConfigForm({ settings, primerArranque }: { settings: Settings; primerAr
     await guardar.mutateAsync({ ...resto, ...(password ? { password } : {}) });
     setForm((f) => ({ ...f, password: "" }));
     setGuardado(true);
-    if (primerArranque) go({ name: "materias" });
   }
 
   const incompleto =
@@ -49,14 +47,7 @@ function ConfigForm({ settings, primerArranque }: { settings: Settings; primerAr
 
   return (
     <div className="mx-auto w-full max-w-3xl space-y-6 p-8">
-      <PageHeader
-        titulo={primerArranque ? "Bienvenido a nmwfm" : "Configuración"}
-        descripcion={
-          primerArranque
-            ? "Antes de empezar, captura tus datos de acceso y los de la portada de tus tareas."
-            : "Tus datos de acceso y preferencias."
-        }
-      />
+      <PageHeader titulo="Configuración" descripcion="Tus datos de acceso y preferencias." />
 
       <form onSubmit={onSubmit} className="space-y-4 rounded-xl border bg-card p-6 backdrop-blur">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Cuenta SIASE</h2>
@@ -67,13 +58,14 @@ function ConfigForm({ settings, primerArranque }: { settings: Settings; primerAr
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Contraseña</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
-              autoComplete="current-password"
-              placeholder={settings.tiene_password ? "Guardada (escribe para cambiarla)" : ""}
               value={form.password}
-              onChange={set("password")}
+              onChange={(v) => {
+                setGuardado(false);
+                setForm((f) => ({ ...f, password: v }));
+              }}
+              placeholder={settings.tiene_password ? "Guardada (escribe para cambiarla)" : undefined}
             />
           </div>
           <div className="space-y-2">
@@ -90,9 +82,9 @@ function ConfigForm({ settings, primerArranque }: { settings: Settings; primerAr
         </p>
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={incompleto || guardar.isPending}>
-            <Save /> {primerArranque ? "Guardar y continuar" : "Guardar"}
+            <Save /> Guardar
           </Button>
-          {guardado && <span className="text-sm text-emerald-400">Cambios guardados</span>}
+          {guardado && <span className="text-sm text-success">Cambios guardados</span>}
           {guardar.error && <span className="text-sm text-destructive">{guardar.error.message}</span>}
         </div>
       </form>

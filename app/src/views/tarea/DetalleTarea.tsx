@@ -3,12 +3,12 @@ import { fechaRango } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 const COLORES_NIVEL = [
-  "bg-emerald-500/10 border-emerald-400/30",
-  "bg-sky-500/10 border-sky-400/30",
-  "bg-amber-500/10 border-amber-400/30",
-  "bg-red-500/10 border-red-400/30",
+  "bg-success/10 border-success/30",
+  "bg-info/10 border-info/30",
+  "bg-warning/10 border-warning/30",
+  "bg-danger/10 border-danger/30",
 ];
-const COLORES_TITULO = ["text-emerald-300", "text-sky-300", "text-amber-300", "text-red-300"];
+const COLORES_TITULO = ["text-success", "text-info", "text-warning", "text-danger"];
 
 function Bloque({ titulo, texto }: { titulo: string; texto: string }) {
   if (!texto.trim()) return null;

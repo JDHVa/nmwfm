@@ -1,5 +1,6 @@
-import Aurora from "@/components/Aurora";
+import Silk from "@/components/Silk";
 import { useReducedMotion } from "@/lib/app-context";
+import { token } from "@/lib/tokens";
 
 export function Background() {
   const reducido = useReducedMotion();
@@ -7,18 +8,19 @@ export function Background() {
     return (
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 -z-0 bg-[radial-gradient(ellipse_at_top,oklch(0.25_0.05_285),transparent_60%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(160deg,var(--silk),var(--background)_55%,var(--silk-sheen))] opacity-60"
       />
     );
   }
   return (
-    <div aria-hidden className="pointer-events-none absolute inset-0 -z-0 opacity-60">
-      <Aurora
-        colorStops={["#4c3bd6", "#2a7fd6", "#7a3fd6"]}
-        amplitude={0.9}
-        blend={0.6}
-        speed={0.5}
+    <div aria-hidden className="pointer-events-none absolute inset-0 opacity-60">
+      <Silk
+        color={token("--silk", "#93c5fd")}
+        sheenColor={token("--silk-sheen", "#a5f3fc")}
+        lightMode
+        speed={1}
         mouseInteraction={false}
+        clickRipple={false}
       />
     </div>
   );

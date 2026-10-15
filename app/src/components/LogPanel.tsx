@@ -4,9 +4,9 @@ import { useLogs, useWsStatus } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const COLORES: Record<string, string> = {
-  error: "text-red-400",
-  warning: "text-amber-300",
-  warn: "text-amber-300",
+  error: "text-danger",
+  warning: "text-warning",
+  warn: "text-warning",
   info: "text-muted-foreground",
 };
 
@@ -48,7 +48,7 @@ export function LogPanel() {
             </button>
           )}
           <span className="flex items-center gap-1.5 text-muted-foreground">
-            <span className={cn("size-2 rounded-full", conectado ? "bg-emerald-400" : "bg-red-400")} />
+            <span className={cn("size-2 rounded-full", conectado ? "bg-success" : "bg-danger")} />
             {conectado ? "Conectado" : "Sin conexión"}
           </span>
         </span>
