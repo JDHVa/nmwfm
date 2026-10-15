@@ -29,8 +29,10 @@ CORS_ORIGINS = [
 
 SIASE_URL = "https://www.uanl.mx/enlinea/"
 NEXUS_URL_FRAGMENT = "plataformanexus.uanl.mx/#/App/UnidadesAprendizaje"
+NEXUS_LISTA_URL = "https://" + NEXUS_URL_FRAGMENT
 GEMINI_URL = "https://gemini.google.com/app"
 
+SYNC_PESTANAS = 5
 GEMINI_RESPONSE_TIMEOUT_S = 300
 USER_WAIT_TIMEOUT_S = 900
 

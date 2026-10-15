@@ -8,7 +8,7 @@ from playwright.async_api import Page
 
 from .. import config
 from . import selectors as S
-from .browser import BrowserManager, escribir_humano, pausa, pausa_larga
+from .browser import BrowserManager, escribir_humano, pausa
 from .types import Hooks
 
 
@@ -36,7 +36,6 @@ class GeminiWeb:
             )
         page = await ctx.new_page()
         await page.goto(config.GEMINI_URL, wait_until="domcontentloaded")
-        await pausa_larga()
         return page
 
     async def _hay_sesion(self, page: Page) -> bool:
@@ -112,27 +111,37 @@ class GeminiWeb:
                 "y pulsa continuar."
             )
             await page.goto(config.GEMINI_URL, wait_until="domcontentloaded")
-            await pausa_larga()
-        raise GeminiError("No se pudo detectar la sesion de Gemini.")
+            raise GeminiError("No se pudo detectar la sesion de Gemini.")
 
     async def _adjuntar(self, page: Page, pdf_path: Path) -> None:
         inputs = page.locator(S.GM_FILE_INPUT)
         if await inputs.count():
             await inputs.first.set_input_files(str(pdf_path))
         else:
-            await pausa()
             await page.locator(S.GM_UPLOAD_MENU_BUTTON).first.click()
-            await pausa(0.3, 0.8)
             async with page.expect_file_chooser() as chooser:
                 await page.locator(S.GM_UPLOAD_MENU_ITEM).first.click()
             await (await chooser.value).set_files(str(pdf_path))
         await page.wait_for_selector(S.GM_ATTACHMENT_CHIP, timeout=60000)
-        await pausa_larga()
+
+    async def _pegar_prompt(self, page: Page, editor, prompt: str) -> None:
+        await editor.click()
+        with contextlib.suppress(Exception):
+            await editor.fill(prompt)
+            if (await editor.inner_text()).strip():
+                return
+        with contextlib.suppress(Exception):
+            await page.evaluate("t => navigator.clipboard.writeText(t)", prompt)
+            await page.keyboard.press("Control+V")
+            if (await editor.inner_text()).strip():
+                return
+        await escribir_humano(page, editor, prompt)
 
     async def _escribir_y_enviar(self, page: Page, prompt: str) -> None:
         editor = page.locator(S.GM_EDITOR).first
-        await escribir_humano(page, editor, prompt)
-        await pausa(0.8, 2.0)
+        await pausa(0.5, 1.5)
+        await self._pegar_prompt(page, editor, prompt)
+        await pausa(0.5, 1.5)
         send = page.locator(S.GM_SEND_BUTTON).first
         try:
             await send.wait_for(state="visible", timeout=15000)
@@ -170,7 +179,6 @@ class GeminiWeb:
         with contextlib.suppress(Exception):
             ultima = page.locator("model-response").last
             await ultima.hover()
-            await pausa(0.3, 0.8)
             await ultima.locator(S.GM_COPY_BUTTON).first.click(timeout=8000)
             await pausa(0.3, 0.8)
             copiado = await page.evaluate("navigator.clipboard.readText()")

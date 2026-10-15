@@ -154,26 +154,33 @@ async def _sesion_caida(page: Page | None) -> bool:
         return True
 
 
-async def _reconectar(state: AppState, hooks: Hooks, indice: int | None = None) -> Page:
-    state.nexus_page = None
-    page = await ensure_nexus(state, hooks, headless=True)
-    if indice is not None:
-        await nexus.abrir_materia(page, indice)
-        await nexus.abrir_estructura(page)
-    return page
-
-
-async def _a_estructura(state: AppState, page: Page, hooks: Hooks, indice: int) -> Page:
+async def _abrir_pestana(state: AppState, hooks: Hooks, login_lock: asyncio.Lock) -> Page:
+    ctx = await state.browser.context(True)
+    page = await ctx.new_page()
     try:
-        await nexus.volver_a_estructura(page)
+        await page.goto(config.NEXUS_LISTA_URL, wait_until="domcontentloaded")
+        await page.wait_for_selector(selectors.NX_CARD, timeout=20000)
         return page
     except Exception:
-        if await _sesion_caida(page):
-            return await _reconectar(state, hooks, indice)
+        with contextlib.suppress(Exception):
+            await page.close()
+    # Workaround: si la pestaña nueva no hereda la sesión, se entra por SIASE.
+    async with login_lock:
+        cuenta, password = require_credentials(state)
+        return await siase.login(ctx, cuenta, password, hooks)
+
+
+class SesionCaida(Exception):
+    pass
+
+
+async def _a_estructura(page: Page, indice: int) -> None:
+    try:
+        await nexus.volver_a_estructura(page)
+    except Exception:
         await nexus.volver_a_lista(page)
         await nexus.abrir_materia(page, indice)
         await nexus.abrir_estructura(page)
-        return page
 
 
 async def _sync_materia(
@@ -181,60 +188,70 @@ async def _sync_materia(
     ctx: JobContext,
     page: Page,
     modo: str,
+    reanudar: bool,
     i: int,
     n: int,
     materia,
     acum: dict,
-) -> Page:
-    hooks = ctx.hooks()
-    base = 0.08 + 0.9 * i / n
-    ancho = 0.9 / n
+) -> None:
     portada = await nexus.abrir_materia(page, i)
     state.storage.set_portada(materia.id, portada.profesor, portada.periodo)
     etapas = await nexus.abrir_estructura(page)
     antes = state.storage.ids_tareas(materia.id)
     state.storage.replace_estructura(materia.id, etapas)
     filas = state.storage.tareas_con_posicion(materia.id)
-    acum["tareas"] += len(filas)
-    acum["nuevas"] += sum(1 for f in filas if f["id"] not in antes)
-    if modo == "completo":
-        pendientes = filas
-    else:
-        pendientes = [f for f in filas if f["id"] not in antes or not f["tiene_detalle"]]
+    if i not in acum["contadas"]:
+        acum["contadas"].add(i)
+        acum["tareas"] += len(filas)
+        acum["nuevas"] += sum(1 for f in filas if f["id"] not in antes)
+    leidas = acum["leidas"]
+    pendientes = []
+    for f in filas:
+        if f["id"] in leidas:
+            continue
+        forzada = modo == "completo" and not reanudar
+        if forzada or f["id"] not in antes or not f["tiene_detalle"]:
+            pendientes.append(f)
 
     for j, fila in enumerate(pendientes):
+        acum["fracciones"][i] = j / len(pendientes)
         await ctx.update(
             f"Materia {i + 1}/{n} · Tarea {j + 1}/{len(pendientes)}: {fila['titulo']}",
-            base + ancho * j / len(pendientes),
+            0.08 + 0.9 * sum(acum["fracciones"].values()) / n,
         )
-        for intento in range(2):
-            try:
-                detalle = await nexus.abrir_tarea(page, fila["etapa_idx"], fila["tarea_idx"])
-                state.storage.set_detalle(fila["id"], detalle)
-                acum["detalles_leidos"] += 1
-                break
-            except Exception as exc:
-                if intento == 0 and await _sesion_caida(page):
-                    await ctx.log("La sesión de NEXUS se cerró; iniciando sesión de nuevo")
-                    page = await _reconectar(state, hooks, i)
-                    continue
-                mensaje = f"{materia.nombre} · {fila['numero']}: {_resumen_error(exc)}"
-                acum["errores"].append(mensaje)
-                await ctx.log(f"Error en la tarea {mensaje}", "error")
-                break
-        page = await _a_estructura(state, page, hooks, i)
-
-    await nexus.volver_a_lista(page)
-    return page
+        try:
+            detalle = await nexus.abrir_tarea(page, fila["etapa_idx"], fila["tarea_idx"])
+        except Exception as exc:
+            if await _sesion_caida(page):
+                raise SesionCaida() from exc
+            mensaje = f"{materia.nombre} · {fila['numero']}: {_resumen_error(exc)}"
+            acum["errores"].append(mensaje)
+            await ctx.log(f"Error en la tarea {mensaje}", "error")
+        else:
+            state.storage.set_detalle(fila["id"], detalle)
+            leidas.add(fila["id"])
+            acum["detalles_leidos"] += 1
+        await _a_estructura(page, i)
+    acum["fracciones"][i] = 1.0
 
 
 async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict:
     hooks = ctx.hooks()
+    reanudar = False
     if modo == "auto":
         hecha = state.storage.get_settings()["sync_inicial_hecha"]
         modo = "incremental" if hecha else "completo"
+        reanudar = not hecha
     limpiar_autoevaluaciones(state.storage)
-    acum = {"tareas": 0, "detalles_leidos": 0, "nuevas": 0, "errores": []}
+    acum: dict = {
+        "tareas": 0,
+        "detalles_leidos": 0,
+        "nuevas": 0,
+        "errores": [],
+        "contadas": set(),
+        "leidas": set(),
+        "fracciones": {},
+    }
     fallidas = 0
     async with state.browser.lock:
         await ctx.update("Iniciando sesión", 0.0)
@@ -247,32 +264,35 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
         for m in materias:
             state.storage.upsert_materia(m.id, m.nombre, m.orden)
         n = len(materias)
-        for i, m in enumerate(materias):
-            await ctx.update(f"Materia {i + 1}/{n}: {m.nombre}", 0.08 + 0.9 * i / n)
-            for intento in range(2):
-                try:
-                    page = await _sync_materia(state, ctx, page, modo, i, n, m, acum)
-                    break
-                except Exception as exc:
-                    causa: Exception = exc
-                    page = state.nexus_page or page
-                    if intento == 0 and await _sesion_caida(page):
-                        await ctx.log("La sesión de NEXUS se cerró; iniciando sesión de nuevo")
-                        try:
-                            page = await _reconectar(state, hooks)
-                            continue
-                        except Exception as exc2:
-                            causa = exc2
-                    fallidas += 1
-                    mensaje = f"{m.nombre}: {_resumen_error(causa)}"
-                    acum["errores"].append(mensaje)
-                    await ctx.log(f"Error en la materia {mensaje}", "error")
-                    await guardar_snapshot(state, page, f"sync-materia-{m.id}")
+        semaforo = asyncio.Semaphore(config.SYNC_PESTANAS)
+        login_lock = asyncio.Lock()
+
+        async def trabajar(i: int, m) -> bool:
+            async with semaforo:
+                for intento in range(2):
+                    tab = None
                     try:
-                        await nexus.volver_a_lista(page)
-                    except Exception as exc3:
-                        await ctx.log(f"No se pudo volver a la lista: {exc3}", "error")
-                    break
+                        tab = await _abrir_pestana(state, hooks, login_lock)
+                        await _sync_materia(state, ctx, tab, modo, reanudar, i, n, m, acum)
+                        return True
+                    except Exception as exc:
+                        caida = isinstance(exc, SesionCaida) or tab is None
+                        if intento == 0 and caida:
+                            await ctx.log(f"Sesión de NEXUS perdida en {m.nombre}; reintentando")
+                            continue
+                        acum["errores"].append(f"{m.nombre}: {_resumen_error(exc)}")
+                        await ctx.log(f"Error en la materia {m.nombre}: {exc}", "error")
+                        if tab is not None:
+                            await guardar_snapshot(state, tab, f"sync-materia-{m.id}")
+                        return False
+                    finally:
+                        if tab is not None:
+                            with contextlib.suppress(Exception):
+                                await tab.close()
+                return False
+
+        resultados = await asyncio.gather(*(trabajar(i, m) for i, m in enumerate(materias)))
+        fallidas = resultados.count(False)
         if fallidas == n:
             raise ApiError(
                 502, "sync_fallido", "No se pudo leer ninguna materia: " + acum["errores"][0]
@@ -281,7 +301,13 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
     if modo == "completo":
         valores["sync_inicial_hecha"] = True
     state.storage.set_settings(valores)
-    return {"materias": n - fallidas, **acum}
+    return {
+        "materias": n - fallidas,
+        "tareas": acum["tareas"],
+        "detalles_leidos": acum["detalles_leidos"],
+        "nuevas": acum["nuevas"],
+        "errores": acum["errores"],
+    }
 
 
 async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):

@@ -81,6 +81,9 @@ class _PaginaSync:
     def is_closed(self):
         return False
 
+    async def close(self):
+        return None
+
     async def content(self):
         return "<html/>"
 
@@ -108,7 +111,11 @@ def _sync(state, monkeypatch, fallan):
     async def fake_volver(page):
         return None
 
+    async def fake_pestana(st, hooks, lock):
+        return _PaginaSync()
+
     monkeypatch.setattr(services, "ensure_nexus", fake_ensure)
+    monkeypatch.setattr(services, "_abrir_pestana", fake_pestana)
     monkeypatch.setattr(nexus, "leer_materias", fake_leer)
     monkeypatch.setattr(nexus, "abrir_materia", fake_abrir)
     monkeypatch.setattr(nexus, "abrir_estructura", fake_estructura)
