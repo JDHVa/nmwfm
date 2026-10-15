@@ -13,9 +13,12 @@ App de escritorio 100% local que automatiza: SIASE (login) → NEXUS → materia
 - Referencia del DOM: `htmls/siase/SIASE.txt`, `htmls/nexus/NEXUS.txt`.
 
 ## Correr en DEV
-- Backend: `.venv/Scripts/python -m backend`
-- UI: `cd app && npm run tauri dev` (el hook `pretauri` crea un sidecar de relleno si falta) · Sidecar real: `cd app && npm run build:sidecar` · Instalador: `npm run tauri:build`
-- Tests: `.venv/Scripts/python -m pytest` · Lint: `.venv/Scripts/ruff check backend`, `cd app && npm run lint`
+Todo desde la raíz del repo (`npm install` instala también `app/`):
+- `npm run dev`: backend + `tauri dev` a la vez (el hook `pretauri` crea un sidecar de relleno si falta)
+- `npm run dev:ui`: solo la interfaz en el navegador con backend simulado (`app/.env.mock`)
+- `npm run backend`: solo el backend
+- `npm test`: pytest + vitest · `npm run lint`: ruff + eslint
+- `npm run build`: sidecar real con PyInstaller + instalador de Tauri
 
 ## Reglas
 - Sin comentarios en el código salvo que sean estrictamente necesarios (un porqué no obvio o un workaround del sitio). Nunca comentarios que repitan lo que el código ya dice.

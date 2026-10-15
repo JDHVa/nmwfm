@@ -1,0 +1,17 @@
+{
+  "name": "nmwfm",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "postinstall": "npm --prefix app install",
+    "dev": "concurrently -k --kill-others-on-fail -n backend,app -c blue,green \".venv\\Scripts\\python -m backend\" \"npm --prefix app run tauri dev\"",
+    "dev:ui": "npm --prefix app run dev:mock",
+    "backend": ".venv\\Scripts\\python -m backend",
+    "test": ".venv\\Scripts\\python -m pytest && npm --prefix app test",
+    "lint": ".venv\\Scripts\\ruff check backend && npm --prefix app run lint",
+    "build": "npm --prefix app run tauri:build"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
