@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+data/
+node_modules/
+app/dist/
+app/src-tauri/target/
+app/src-tauri/binaries/
+build/
+dist/
+*.spec

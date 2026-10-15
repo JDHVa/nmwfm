@@ -1,0 +1,695 @@
+AAL ENTRAR A NEXUS SALE TODO ESTO
+<app-cursos-card _ngcontent-c17="" _nghost-c25="" ng-reflect--cursos="[object Object],[object Object" class="ng-star-inserted"><div _ngcontent-c25="" class="nx-cursos-cards d-flex flex-wrap"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor746214"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-3" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Algoritmos Bio Inspirados"><div _ngcontent-c25="" class="text-ellipsis line-2">Algoritmos Bio Inspirados</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor747686"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-5" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Comunicación Integral en Inglé"><div _ngcontent-c25="" class="text-ellipsis line-2">Comunicación Integral en Inglés Técnico I</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor757928"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-6" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Desarrollo de Aplicaciones Móv"><div _ngcontent-c25="" class="text-ellipsis line-2">Desarrollo de Aplicaciones Móviles</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor747638"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-7" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Elección Vocacional"><div _ngcontent-c25="" class="text-ellipsis line-2">Elección Vocacional</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor745683"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-8" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Introducción a las Ciencias So"><div _ngcontent-c25="" class="text-ellipsis line-2">Introducción a las Ciencias Sociales</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor747893"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-9" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="La Mecánica y el Entorno"><div _ngcontent-c25="" class="text-ellipsis line-2">La Mecánica y el Entorno</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor751304"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-10" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="La Naturaleza de la Vida"><div _ngcontent-c25="" class="text-ellipsis line-2">La Naturaleza de la Vida</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor748099"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-11" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Lógica"><div _ngcontent-c25="" class="text-ellipsis line-2">Lógica</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor747689"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-12" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Redes Neuronales y Aprendizaje"><div _ngcontent-c25="" class="text-ellipsis line-2">Redes Neuronales y Aprendizaje Profundo</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div><!----><div _ngcontent-c25="" class="mb-3 pr-3 pr-md-4 mb-md-4 relative w-300px ng-star-inserted"><button _ngcontent-c25="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" id="btnColor747925"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><mat-card _ngcontent-c25="" class="nx-mat-card-curso h-100 w-100 p-0 animated zoomIn relative mat-card"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25="" class="image-with-overlay absolute h-100px w-100" style="z-index:2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c25="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c25="" class="overlay-content text-center align-self-center animated fadeIn"><div _ngcontent-c25="" class="d-flex justify-content-around"><div _ngcontent-c25=""></div><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c25="" color="" mat-mini-fab="" mattooltip="Cambiar Color" class="mat-mini-fab" ng-reflect-color="" aria-describedby="cdk-describedby-message-4" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c25="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c25=""></div></div></div></div></div><a _ngcontent-c25="" class="color-2 text-decoration-none"><div _ngcontent-c25="" class="relative"><img _ngcontent-c25="" alt="Imagen del Curso" class="mat-card-image" mat-card-image="" src="assets/img/cursos/UANL/uanl2.jpg"><div _ngcontent-c25="" class="mat-card-image-overlay"></div></div><mat-card-content _ngcontent-c25="" class="mb-0 px-3 pt-1 h-70px mat-card-content"><div _ngcontent-c25="" class="bold-600 line-height-initial pt-1"><div _ngcontent-c25="" class="w-100 text-left" mattooltipposition="below" aria-describedby="cdk-describedby-message-13" cdk-describedby-host="" ng-reflect-position="below" ng-reflect-message="Sistemas de Calidad"><div _ngcontent-c25="" class="text-ellipsis line-2">Sistemas de Calidad</div></div></div></mat-card-content></a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card></div></div></app-cursos-card>
+
+AHI ESTAN TODAS LAS MATERIAS SE LES PUEDE DAR CLICK
+
+AL DARLE CLICK SALDRA TODO ESTO 
+
+<mat-sidenav-container class="mat-drawer-container mat-sidenav-container" style="position: absolute; inset: 0px; margin-top: 64px;" ng-reflect-ng-style="[object Object]"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div class="mat-drawer-backdrop ng-star-inserted"></div><div tabindex="-1" class="cdk-visually-hidden cdk-focus-trap-anchor"></div><mat-sidenav class="mat-elevation-z2 w-150px mat-drawer mat-sidenav ng-tns-c9-12 ng-trigger ng-trigger-transform mat-drawer-side ng-star-inserted" tabindex="-1" ng-reflect-mode="side" ng-reflect-opened="true" style="transform: none; visibility: visible;"><mat-nav-list class="p-0 mat-nav-list" role="navigation"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted active" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Portada" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Portada" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Portada</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Programa" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Programa" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Programa</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Estructura" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Estructura" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Estructura</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Calificaciones" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Calificaciones" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Calificaciones</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Encuestas" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Encuestas" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Encuestas</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Foro" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Foro" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Foro</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Glosario" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Glosario" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Glosario</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Recursos" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Recursos" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Recursos</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Comunicacion" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Comunicacion" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Comunicación</div></div></a><!----></mat-nav-list></mat-sidenav><div tabindex="-1" class="cdk-visually-hidden cdk-focus-trap-anchor"></div><mat-sidenav-content class="p-3 mat-drawer-content mat-sidenav-content" style="margin-left: 150px;"><!--bindings={
+  "ng-reflect-ng-if": "[object Object]"
+}--><!----><div class="d-md-flex justify-content-between align-items-center ng-star-inserted"><h5 class="color-2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div class="font-size-12 color-2 italic bold-400 mb-1 ng-star-inserted">REF#261014746214</div><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i class="fa fa-graduation-cap ng-star-inserted"></i><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><span class="ml-2">Algoritmos Bio Inspirados</span></h5><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><!----><mat-divider class="relative mb-3 mat-divider mat-divider-horizontal" role="separator" aria-orientation="horizontal"></mat-divider><!--bindings={
+  "ng-reflect-ng-if": "true",
+  "ng-reflect-ng-if-else": "[object Object]"
+}--><!----><router-outlet class="ng-star-inserted"></router-outlet><app-curso-portada _nghost-c30="" class="ng-star-inserted"><div _ngcontent-c30="" class="nexus-curso-portada"><div _ngcontent-c30="" class="row px-lg-5 mx-lg-5"><div _ngcontent-c30="" class="col-12"><mat-card _ngcontent-c30="" class="mb-4 p-0 mat-card"><div _ngcontent-c30="" class="relative image-with-overlay"><button _ngcontent-c30="" class="absolute mat-icon-button" mat-icon-button="" style="width: 0px;left: 60px;top: 50px;" type="hidden" ng-reflect-ng-style="[object Object]" ng-reflect-color-picker="" ng-reflect-cp-fallback-color="#ffffff" ng-reflect-cp-output-format="hex" ng-reflect-cp-alpha-channel="never" ng-reflect-cp-save-click-outside="false" ng-reflect-cp-position="bottom" ng-reflect-cp-position-offset="-400px" ng-reflect-cp-position-relative-to-arrow="true" ng-reflect-cp-o-k-button="true" ng-reflect-cp-o-k-button-text="Guardar" ng-reflect-cp-o-k-button-class="mat-raised-button mat-primary" ng-reflect-cp-add-color-button="false" ng-reflect-cp-remove-color-button-class="mat-raised-button mat-primary" id="btnColor746214"><span class="mat-button-wrapper"></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><div _ngcontent-c30="" class="mat-card-image-overlay h-100 w-100" style="position:absolute; opacity: 0.5"></div><img _ngcontent-c30="" class="w-100" style="object-fit:cover;object-position:center" src="./assets/img/cursos/UANL/uanl2.jpg"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c30="" class="overlay align-items-center ng-star-inserted"><div _ngcontent-c30="" class="overlay-content text-center align-self-center animated fadeIn"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": ""
+}--><button _ngcontent-c30="" class="mr-3 mat-mini-fab ng-star-inserted" color="" mat-mini-fab="" mattooltip="Cambiar Color" ng-reflect-color="" aria-describedby="cdk-describedby-message-18" cdk-describedby-host="" ng-reflect-message="Cambiar Color"><span class="mat-button-wrapper"><i _ngcontent-c30="" class="fa fa-tint font-size-20"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></div></div><div _ngcontent-c30="" class="p-2 relative"><div _ngcontent-c30="" class="d-md-flex"><div _ngcontent-c30="" class="w-100"><!--bindings={
+  "ng-reflect-ng-template-outlet": "[object Object]"
+}--><table _ngcontent-c30="" class="mt-md-0 ng-star-inserted"><tbody _ngcontent-c30=""><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><tr _ngcontent-c30="" class="ng-star-inserted"><td _ngcontent-c30="" class="pr-2 text-center"><i _ngcontent-c30="" class="fa fa-user-tie font-size-15 color-2"></i></td><td _ngcontent-c30=""><!--bindings={
+  "ng-reflect-ng-if": "[object Object]"
+}--><span _ngcontent-c30="" class="ng-star-inserted">CAVAZOS MARTÍNEZ RAFAEL ALFREDO</span><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></td></tr><tr _ngcontent-c30=""><td _ngcontent-c30="" class="pr-2 text-center"><i _ngcontent-c30="" class="far fa-calendar font-size-15 color-2"></i></td><td _ngcontent-c30=""><span _ngcontent-c30="">Del 03/AGOSTO/2026  al 18/DICIEMBRE/2026 </span><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></td></tr><tr _ngcontent-c30=""><td _ngcontent-c30="" class="pr-2 text-center"><i _ngcontent-c30="" class="fa fa-users-class font-size-15 color-2"></i></td><td _ngcontent-c30="">Competencias/Escolarizada</td></tr></tbody></table></div><div _ngcontent-c30="" class="justify-self-end"><!--bindings={
+  "ng-reflect-ng-template-outlet": "[object Object]"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----></div></div><div _ngcontent-c30="" class="absolute right-0 bottom-0"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----></div><div _ngcontent-c30="" class="d-flex justify-content-start my-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></div></mat-card><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c30="" class="row d-none ng-star-inserted"><div _ngcontent-c30="" class="col-md-6"><mat-card _ngcontent-c30="" class="p-0 mat-card"><div _ngcontent-c30="" class="d-flex justify-content-between align-items-center p-2"><i _ngcontent-c30="" class="fa fa-check-circle color-3 font-size-25"></i><span _ngcontent-c30="" class="font-size-20">-/- pts</span></div><div _ngcontent-c30="" class="bg-main text-center border-top font-size-15">Calificación</div></mat-card></div><div _ngcontent-c30="" class="col-md-6"><mat-card _ngcontent-c30="" class="p-0 mat-card"><div _ngcontent-c30="" class="d-flex justify-content-between align-items-center p-2"><i _ngcontent-c30="" class="far fa-calendar color-3 font-size-25"></i><span _ngcontent-c30="" class="font-size-20">-/-</span></div><div _ngcontent-c30="" class="bg-main text-center border-top font-size-15">Evaluados</div></mat-card></div></div></div><div _ngcontent-c30="" class="col-12"><div _ngcontent-c30="" class="relative"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><mat-card _ngcontent-c30="" class="mat-card ng-star-inserted"><div _ngcontent-c30="" class="fr-view"><pre style="text-align: justify;"><span style="font-family: Arial,Helvetica,sans-serif;">La Universidad Autónoma de Nuevo León te da la más cordial bienvenida a la Unidad de Aprendizaje <strong>Algoritmos Bioinspirados</strong>, la cual forma parte de tu formación en el Nivel Medio Superior. Este curso ha sido diseñado por la Dirección del Sistema de Estudios del Nivel Medio Superior de la UANL y se apoya en la Plataforma de Enseñanza y Aprendizaje <strong>Nexus</strong> como herramienta de apoyo académico.  
+
+En Nexus podrás acceder a recursos, entregar tus evidencias de aprendizaje, conocer los criterios de evaluación y consultar tus calificaciones. Cada actividad que realices quedará registrada en tu portafolio académico, reflejando tu avance y fortaleciendo tu perfil de egreso. 
+
+Este perfil integra las competencias generales de la UANL (y las profesionales en el caso de los Programas Técnicos), fundamentales para tu desarrollo integral. Dichas competencias te preparan para desenvolverte con éxito en los ámbitos académico, personal, laboral y social, fortaleciendo tu formación y tu capacidad para enfrentar los retos del presente y del futuro.</span>
+<span style="font-family: Arial,Helvetica,sans-serif;">
+Estamos seguros de que este curso será de gran utilidad y contribuirá a que logres aprendizajes significativos.
+
+<strong>¡Bienvenido/a!  </strong></span></pre></div></mat-card><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></div></div></div><!----><!----></app-curso-portada><!----></mat-sidenav-content><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-sidenav-container>
+
+
+LO IMPORTANTE ES:
+NOMBRE DEL PROFE: <span _ngcontent-c30="" class="ng-star-inserted">CAVAZOS MARTÍNEZ RAFAEL ALFREDO</span>
+
+OPCIONES PARA ELEGIR 
+<mat-nav-list class="p-0 mat-nav-list" role="navigation"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted active" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Portada" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Portada" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Portada</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Programa" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Programa" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Programa</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Estructura" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Estructura" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Estructura</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Calificaciones" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Calificaciones" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Calificaciones</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Encuestas" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Encuestas" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Encuestas</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Foro" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Foro" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Foro</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Glosario" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Glosario" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Glosario</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Recursos" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Recursos" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Recursos</div></div></a><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a class="font-size-13 h-initial py-0 menu-option mat-list-item ng-star-inserted" mat-list-item="" routerlinkactive="active" ng-reflect-router-link="Comunicacion" ng-reflect-router-link-active="active" href="#/App/UnidadesAprendizaje/UA/Comunicacion" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Comunicación</div></div></a><!----></mat-nav-list>
+
+NOS CENTRAREMOS EN ESTA
+<div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="https://plataformanexus.uanl.m"></div><div class="mat-list-text"></div><div class="py-2 label">Estructura</div></div>
+
+AL DARLE CLCIK SE MUESTRA ESO:
+<app-estructura-competencias _ngcontent-c31="" _nghost-c32="" ng-reflect--estructura="[object Object]" class="ng-star-inserted"><div _ngcontent-c32="" class="relative"><div _ngcontent-c32="" class="row"><div _ngcontent-c32="" class="col-md-8 col-lg-9"><mat-accordion _ngcontent-c32="" class="mat-accordion" multi="true" ng-reflect-multi="true"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><div _ngcontent-c32="" class="relative ng-star-inserted"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-3 mt-1 ng-star-inserted"><button _ngcontent-c32="" class="mat-box-30 mat-icon-button" mat-icon-button=""><span class="mat-button-wrapper"><i _ngcontent-c32="" class="fa fa-info-circle font-size-20 primary"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button></div><div _ngcontent-c32="" class="show-hover absolute right-3 mt-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><mat-expansion-panel _ngcontent-c32="" class="nx-expansion-panel box-shadow-none border mat-expansion-panel ng-tns-c34-16 mat-expanded mat-expansion-panel-spacing" ng-reflect-expanded="true"><mat-expansion-panel-header _ngcontent-c32="" class="h-initial py-2 mat-expansion-panel-header ng-tns-c35-17 mat-expanded ng-trigger ng-trigger-expansionHeight ng-star-inserted" role="button" ng-reflect-klass="h-initial py-2" ng-reflect-ng-class="[object Object]" ng-reflect-expanded-height="initial" ng-reflect-collapsed-height="initial" id="mat-expansion-panel-header-0" tabindex="0" aria-controls="cdk-accordion-child-0" aria-expanded="true" aria-disabled="false" style="height: initial;"><span class="mat-content"><mat-panel-title _ngcontent-c32="" class="pr-4 mat-expansion-panel-header-title"><div _ngcontent-c32=""><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c32="" class="relative" ng-reflect-klass="relative" ng-reflect-ng-class="[object Object]"><i _ngcontent-c32="" class="fa fa-bookmark mt-1 font-size-15"></i><span _ngcontent-c32="" class="bold-500 ml-2 pr-120">Etapa 1:&nbsp;Algoritmos Evolutivos</span><div _ngcontent-c32="" class="font-size-13 color-3 text-ellipsis line-1 pl-3 d-none d-md-block"><div _ngcontent-c32="">Identifica los algoritmos evolutivos y técnicas metaheurísticas, con el propósito de implementar mecanismos de optimización natural, a través del análisis de fundamentos biológicos y estrategias evolutivas.</div></div></div></div></mat-panel-title></span><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><span class="mat-expansion-indicator ng-tns-c35-17 ng-trigger ng-trigger-indicatorRotate ng-star-inserted" style="transform: rotate(180deg);"></span></mat-expansion-panel-header><div class="mat-expansion-panel-content ng-trigger ng-trigger-bodyExpansion mat-expanded" role="region" aria-labelledby="mat-expansion-panel-header-0" id="cdk-accordion-child-0" style="visibility: visible;"><div class="mat-expansion-panel-body"><div _ngcontent-c32=""><mat-nav-list _ngcontent-c32="" class="p-0 mat-nav-list" role="navigation"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "822515"
+}--><div _ngcontent-c32="" class="ng-star-inserted"><i _ngcontent-c32="" class="fa fa-clipboard mr-2 color-3"></i><span _ngcontent-c32="">1.1 Dimensión 1 - Recuperación - Autoevaluación E1</span></div></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">0pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">1.2</span><span _ngcontent-c32="" class="ml-1">Dimensión 2 - Comprensión - Ficha Técnica</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">1.3</span><span _ngcontent-c32="" class="ml-1">Dimensión 3 - Análisis - Mapa mental</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">1.4</span><span _ngcontent-c32="" class="ml-1">Evidencia de Aprendizaje - Informe </span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item></mat-nav-list></div><!--bindings={}--></div></div></mat-expansion-panel></div><div _ngcontent-c32="" class="relative ng-star-inserted"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-3 mt-1 ng-star-inserted"><button _ngcontent-c32="" class="mat-box-30 mat-icon-button" mat-icon-button=""><span class="mat-button-wrapper"><i _ngcontent-c32="" class="fa fa-info-circle font-size-20 primary"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button></div><div _ngcontent-c32="" class="show-hover absolute right-3 mt-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><mat-expansion-panel _ngcontent-c32="" class="nx-expansion-panel box-shadow-none border mat-expansion-panel ng-tns-c34-18 mat-expanded mat-expansion-panel-spacing" ng-reflect-expanded="true"><mat-expansion-panel-header _ngcontent-c32="" class="h-initial py-2 mat-expansion-panel-header ng-tns-c35-19 mat-expanded ng-trigger ng-trigger-expansionHeight ng-star-inserted" role="button" ng-reflect-klass="h-initial py-2" ng-reflect-ng-class="[object Object]" ng-reflect-expanded-height="initial" ng-reflect-collapsed-height="initial" id="mat-expansion-panel-header-1" tabindex="0" aria-controls="cdk-accordion-child-1" aria-expanded="true" aria-disabled="false" style="height: initial;"><span class="mat-content"><mat-panel-title _ngcontent-c32="" class="pr-4 mat-expansion-panel-header-title"><div _ngcontent-c32=""><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c32="" class="relative" ng-reflect-klass="relative" ng-reflect-ng-class="[object Object]"><i _ngcontent-c32="" class="fa fa-bookmark mt-1 font-size-15"></i><span _ngcontent-c32="" class="bold-500 ml-2 pr-120">Etapa 2:&nbsp;Algoritmos Genéticos</span><div _ngcontent-c32="" class="font-size-13 color-3 text-ellipsis line-1 pl-3 d-none d-md-block"><div _ngcontent-c32="">Diseña estructuras de algoritmos genéticos, con el propósito de optimizar la búsqueda de soluciones en espacios complejos, a través de la configuración de operadores de selección, cruza y mutación.</div></div></div></div></mat-panel-title></span><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><span class="mat-expansion-indicator ng-tns-c35-19 ng-trigger ng-trigger-indicatorRotate ng-star-inserted" style="transform: rotate(180deg);"></span></mat-expansion-panel-header><div class="mat-expansion-panel-content ng-trigger ng-trigger-bodyExpansion mat-expanded" role="region" aria-labelledby="mat-expansion-panel-header-1" id="cdk-accordion-child-1" style="visibility: visible;"><div class="mat-expansion-panel-body"><div _ngcontent-c32=""><mat-nav-list _ngcontent-c32="" class="p-0 mat-nav-list" role="navigation"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "822516"
+}--><div _ngcontent-c32="" class="ng-star-inserted"><i _ngcontent-c32="" class="fa fa-clipboard mr-2 color-3"></i><span _ngcontent-c32="">2.1 Dimensión 1 - Recuperación - Autoevaluación E2</span></div></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">0pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">2.2</span><span _ngcontent-c32="" class="ml-1">Dimensión 2 - Comprensión - Cuadro sinóptico</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">2.3</span><span _ngcontent-c32="" class="ml-1">Dimensión 3 - Análisis - Matriz de análisis </span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">2.4</span><span _ngcontent-c32="" class="ml-1">Evidencia de Aprendizaje - Reporte de práctica</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item></mat-nav-list></div><!--bindings={}--></div></div></mat-expansion-panel></div><div _ngcontent-c32="" class="relative ng-star-inserted"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-3 mt-1 ng-star-inserted"><button _ngcontent-c32="" class="mat-box-30 mat-icon-button" mat-icon-button=""><span class="mat-button-wrapper"><i _ngcontent-c32="" class="fa fa-info-circle font-size-20 primary"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button></div><div _ngcontent-c32="" class="show-hover absolute right-3 mt-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><mat-expansion-panel _ngcontent-c32="" class="nx-expansion-panel box-shadow-none border mat-expansion-panel ng-tns-c34-20 mat-expanded mat-expansion-panel-spacing" ng-reflect-expanded="true"><mat-expansion-panel-header _ngcontent-c32="" class="h-initial py-2 mat-expansion-panel-header ng-tns-c35-21 mat-expanded ng-trigger ng-trigger-expansionHeight ng-star-inserted" role="button" ng-reflect-klass="h-initial py-2" ng-reflect-ng-class="[object Object]" ng-reflect-expanded-height="initial" ng-reflect-collapsed-height="initial" id="mat-expansion-panel-header-2" tabindex="0" aria-controls="cdk-accordion-child-2" aria-expanded="true" aria-disabled="false" style="height: initial;"><span class="mat-content"><mat-panel-title _ngcontent-c32="" class="pr-4 mat-expansion-panel-header-title"><div _ngcontent-c32=""><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c32="" class="relative" ng-reflect-klass="relative" ng-reflect-ng-class="[object Object]"><i _ngcontent-c32="" class="fa fa-bookmark mt-1 font-size-15"></i><span _ngcontent-c32="" class="bold-500 ml-2 pr-120">Etapa 3:&nbsp;Inteligencia de Enjambre</span><div _ngcontent-c32="" class="font-size-13 color-3 text-ellipsis line-1 pl-3 d-none d-md-block"><div _ngcontent-c32="">Utiliza modelos de inteligencia colectiva y comportamientos emergentes, con el propósito de resolver problemas de optimización estocástica, a través de la implementación de algoritmos de partículas y colonias de abejas.</div></div></div></div></mat-panel-title></span><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><span class="mat-expansion-indicator ng-tns-c35-21 ng-trigger ng-trigger-indicatorRotate ng-star-inserted" style="transform: rotate(180deg);"></span></mat-expansion-panel-header><div class="mat-expansion-panel-content ng-trigger ng-trigger-bodyExpansion mat-expanded" role="region" aria-labelledby="mat-expansion-panel-header-2" id="cdk-accordion-child-2" style="visibility: visible;"><div class="mat-expansion-panel-body"><div _ngcontent-c32=""><mat-nav-list _ngcontent-c32="" class="p-0 mat-nav-list" role="navigation"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "822517"
+}--><div _ngcontent-c32="" class="ng-star-inserted"><i _ngcontent-c32="" class="fa fa-clipboard mr-2 color-3"></i><span _ngcontent-c32="">3.1 Dimensión 1 - Recuperación - Autoevaluación E3</span></div></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">0pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">3.2</span><span _ngcontent-c32="" class="ml-1">Dimensión 2 - Comprensión - Diagrama de flujo</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">3.3</span><span _ngcontent-c32="" class="ml-1">Dimensión 3 - Análisis - Matriz de análisis</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">3.4</span><span _ngcontent-c32="" class="ml-1">Evidencia de Aprendizaje - Reporte de práctica</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-users font-size-18 ng-star-inserted" mattooltip="En Equipo" aria-describedby="cdk-describedby-message-20" cdk-describedby-host="" ng-reflect-message="En Equipo"></i><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item></mat-nav-list></div><!--bindings={}--></div></div></mat-expansion-panel></div><div _ngcontent-c32="" class="relative ng-star-inserted"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-3 mt-1 ng-star-inserted"><button _ngcontent-c32="" class="mat-box-30 mat-icon-button" mat-icon-button=""><span class="mat-button-wrapper"><i _ngcontent-c32="" class="fa fa-info-circle font-size-20 primary"></i></span><div class="mat-button-ripple mat-ripple mat-button-ripple-round" matripple="" ng-reflect-centered="true" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button></div><div _ngcontent-c32="" class="show-hover absolute right-3 mt-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><mat-expansion-panel _ngcontent-c32="" class="nx-expansion-panel box-shadow-none border mat-expansion-panel ng-tns-c34-22 mat-expanded mat-expansion-panel-spacing" ng-reflect-expanded="true"><mat-expansion-panel-header _ngcontent-c32="" class="h-initial py-2 mat-expansion-panel-header ng-tns-c35-23 mat-expanded ng-trigger ng-trigger-expansionHeight ng-star-inserted" role="button" ng-reflect-klass="h-initial py-2" ng-reflect-ng-class="[object Object]" ng-reflect-expanded-height="initial" ng-reflect-collapsed-height="initial" id="mat-expansion-panel-header-3" tabindex="0" aria-controls="cdk-accordion-child-3" aria-expanded="true" aria-disabled="false" style="height: initial;"><span class="mat-content"><mat-panel-title _ngcontent-c32="" class="pr-4 mat-expansion-panel-header-title"><div _ngcontent-c32=""><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c32="" class="relative" ng-reflect-klass="relative" ng-reflect-ng-class="[object Object]"><i _ngcontent-c32="" class="fa fa-bookmark mt-1 font-size-15"></i><span _ngcontent-c32="" class="bold-500 ml-2 pr-120">Etapa 4:&nbsp;Colonia de Hormigas</span><div _ngcontent-c32="" class="font-size-13 color-3 text-ellipsis line-1 pl-3 d-none d-md-block"><div _ngcontent-c32="">Desarrolla sistemas de optimización basados en grafos, con el propósito de determinar trayectorias y soluciones eficientes en redes, a través del modelado de feromonas y el algoritmo de colonia de hormigas.</div></div></div></div></mat-panel-title></span><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><span class="mat-expansion-indicator ng-tns-c35-23 ng-trigger ng-trigger-indicatorRotate ng-star-inserted" style="transform: rotate(180deg);"></span></mat-expansion-panel-header><div class="mat-expansion-panel-content ng-trigger ng-trigger-bodyExpansion mat-expanded" role="region" aria-labelledby="mat-expansion-panel-header-3" id="cdk-accordion-child-3" style="visibility: visible;"><div class="mat-expansion-panel-body"><div _ngcontent-c32=""><mat-nav-list _ngcontent-c32="" class="p-0 mat-nav-list" role="navigation"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "822518"
+}--><div _ngcontent-c32="" class="ng-star-inserted"><i _ngcontent-c32="" class="fa fa-clipboard mr-2 color-3"></i><span _ngcontent-c32="">4.1 Dimensión 1 - Recuperación - Autoevaluación E4</span></div></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">0pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">4.2</span><span _ngcontent-c32="" class="ml-1">Dimensión 2 - Comprensión - Cuadro sinóptico</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">4.3</span><span _ngcontent-c32="" class="ml-1">Dimensión 3 - Análisis - Matriz de análisis</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">2.5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-user mr-1 ng-star-inserted" mattooltip="Individual" aria-describedby="cdk-describedby-message-19" cdk-describedby-host="" ng-reflect-message="Individual"></i><!----></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item><!----><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item ng-star-inserted" style=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">4.4</span><span _ngcontent-c32="" class="ml-1">Evidencia de Aprendizaje - Reporte de práctica</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex ng-star-inserted"><span _ngcontent-c32="">5pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-users font-size-18 ng-star-inserted" mattooltip="En Equipo" aria-describedby="cdk-describedby-message-20" cdk-describedby-host="" ng-reflect-message="En Equipo"></i><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item></mat-nav-list></div><!--bindings={}--></div></div></mat-expansion-panel></div><!----><!--bindings={
+  "ng-reflect-ng-if": "[object Object]"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><mat-expansion-panel _ngcontent-c32="" class="nx-expansion-panel box-shadow-none border mat-expansion-panel ng-tns-c34-24 mat-expanded mat-expansion-panel-spacing ng-star-inserted" ng-reflect-expanded="true"><mat-expansion-panel-header _ngcontent-c32="" class="h-initial py-2 mat-expansion-panel-header ng-tns-c35-25 mat-expanded ng-trigger ng-trigger-expansionHeight ng-star-inserted" role="button" ng-reflect-klass="h-initial py-2" ng-reflect-ng-class="[object Object]" ng-reflect-expanded-height="initial" ng-reflect-collapsed-height="initial" id="mat-expansion-panel-header-4" tabindex="0" aria-controls="cdk-accordion-child-4" aria-expanded="true" aria-disabled="false" style="height: initial;"><span class="mat-content"><mat-panel-title _ngcontent-c32="" class="pr-4 mat-expansion-panel-header-title"><div _ngcontent-c32=""><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><div _ngcontent-c32="" class="relative" ng-reflect-klass="relative" ng-reflect-ng-class="[object Object]"><i _ngcontent-c32="" class="fa fa-bookmark mt-1 font-size-15"></i><span _ngcontent-c32="" class="bold-500 ml-2 pr-120">Producto Integrador de Aprendizaje</span></div></div></mat-panel-title></span><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><span class="mat-expansion-indicator ng-tns-c35-25 ng-trigger ng-trigger-indicatorRotate ng-star-inserted" style="transform: rotate(180deg);"></span></mat-expansion-panel-header><div class="mat-expansion-panel-content ng-trigger ng-trigger-bodyExpansion mat-expanded" role="region" aria-labelledby="mat-expansion-panel-header-4" id="cdk-accordion-child-4" style="visibility: visible;"><div class="mat-expansion-panel-body"><div _ngcontent-c32=""><mat-nav-list _ngcontent-c32="" class="p-0 mat-nav-list" role="navigation"><mat-list-item _ngcontent-c32="" class="border-top h-initial mat-list-item"><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLElement]"></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="show-hover absolute right-1 z-index-1"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 pl"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">PIA - Informe</span></div></a><span _ngcontent-c32="" class="absolute right-2 mr-1 font-size-15 color-3 d-flex"><span _ngcontent-c32="">10pts</span><span _ngcontent-c32="" class="mx-2"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><i _ngcontent-c32="" class="fa fa-users font-size-18 ng-star-inserted" mattooltip="En Equipo" aria-describedby="cdk-describedby-message-20" cdk-describedby-host="" ng-reflect-message="En Equipo" style=""></i><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></span></span><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></mat-list-item></mat-nav-list></div><!--bindings={}--></div></div></mat-expansion-panel><!----><!----></mat-accordion><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><div _ngcontent-c32="" class="col-md-4 col-lg-3"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><mat-card _ngcontent-c32="" class="p-0 mat-card ng-star-inserted"><mat-card-title _ngcontent-c32="" class="m-0 px-3 py-2 mat-card-title">Hoy</mat-card-title><mat-card-content _ngcontent-c32="" class="mat-card-content"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><div _ngcontent-c32="" class="color-3 text-center font-size-13 px-4 py-2 ng-star-inserted">No se encontraron Tareas programadas para el día de hoy</div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card-content></mat-card><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><mat-card _ngcontent-c32="" class="p-0 mt-4 mat-card ng-star-inserted"><mat-card-title _ngcontent-c32="" class="m-0 px-3 py-2 mat-card-title">Esta Semana</mat-card-title><mat-card-content _ngcontent-c32="" class="mat-card-content"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><mat-nav-list _ngcontent-c32="" class="p-0 border-top mat-nav-list ng-star-inserted" role="navigation"><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object]"
+}--><a _ngcontent-c32="" class="border-bottom h-initial relative mat-list-item ng-star-inserted" mat-list-item=""><div class="mat-list-item-content"><div class="mat-list-item-ripple mat-ripple" mat-ripple="" ng-reflect-disabled="false" ng-reflect-trigger=""></div><div class="mat-list-text"></div><div _ngcontent-c32="" class="py-1 font-size-13 bold-500">3.2 - Dimensión 2 - Comprensión - Diagrama de flujo</div></div></a></mat-nav-list></mat-card-content></mat-card><!----><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></div></div><mat-menu _ngcontent-c32="" class="" xposition="before" ng-reflect-x-position="before" ng-reflect-overlap-trigger="true" ng-reflect-has-backdrop="true" ng-reflect-panel-class="nx-menu absolute right-0 top-0"><!----></mat-menu><mat-menu _ngcontent-c32="" class="" xposition="before" ng-reflect-x-position="before" ng-reflect-overlap-trigger="true" ng-reflect-has-backdrop="true" ng-reflect-panel-class="nx-menu absolute right-0 top-0"><!----></mat-menu><!----></app-estructura-competencias>
+
+LO IMPORTANTE ES:
+
+NOMBRE DE LA ETAPA: <div _ngcontent-c32="" class="relative" ng-reflect-klass="relative" ng-reflect-ng-class="[object Object]"><i _ngcontent-c32="" class="fa fa-bookmark mt-1 font-size-15"></i><span _ngcontent-c32="" class="bold-500 ml-2 pr-120">Etapa 1:&nbsp;Algoritmos Evolutivos</span><div _ngcontent-c32="" class="font-size-13 color-3 text-ellipsis line-1 pl-3 d-none d-md-block"><div _ngcontent-c32="">Identifica los algoritmos evolutivos y técnicas metaheurísticas, con el propósito de implementar mecanismos de optimización natural, a través del análisis de fundamentos biológicos y estrategias evolutivas.</div></div></div>
+
+LAS DIMENSIONES:
+
+<a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">1.2</span><span _ngcontent-c32="" class="ml-1">Dimensión 2 - Comprensión - Ficha Técnica</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a>
+
+
+<a _ngcontent-c32="" class="w-100 font-size-14 py-2 pl-4 mr-100"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c32="" class="w-100 text-ellipsis line-1 ng-star-inserted"><i _ngcontent-c32="" class="far fa-calendar mr-2 color-3"></i><span _ngcontent-c32="">1.3</span><span _ngcontent-c32="" class="ml-1">Dimensión 3 - Análisis - Mapa mental</span></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></a>
+
+AL DARLES CLICK
+SE DESPLIEGA TODO ESTO
+
+<div _ngcontent-c36="" class="ng-star-inserted"><div _ngcontent-c36="" class="mb-4"><div _ngcontent-c36="" class="bold-500 mt-3 mb-1 font-size-20"><!--bindings={
+  "ng-reflect-ng-if": "[object Object]"
+}--><span _ngcontent-c36="" class="ng-star-inserted">1.2 - </span><span _ngcontent-c36="">Dimensión 2 - Comprensión - Ficha Técnica</span></div><div _ngcontent-c36="" class="d-md-flex justify-content-between"><div _ngcontent-c36="" class="font-size-15 color-3"><div _ngcontent-c36=""><div _ngcontent-c36="" class="my-2"><i _ngcontent-c36="" class="far fa-calendar w-25px text-center"></i>Desde 2026/AGO/10 12:00 A. M. hasta 2026/SEP/21 11:59 P. M.</div><div _ngcontent-c36="" class="d-flex justify-content-between align-items-start"><div _ngcontent-c36="" class="d-flex align-items-center"><div _ngcontent-c36="" class="mr-4"><i _ngcontent-c36="" class="far fa-trophy w-25px text-center"></i>2.5 pts </div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c36="" class="mr-4 ng-star-inserted"><i _ngcontent-c36="" class="fa fa-user w-25px text-center"></i>Individual </div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></div></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><div _ngcontent-c36="" class="d-flex d-md-block justify-content-center mt-2 mt-md-0"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><button _ngcontent-c36="" class="w-100 mat-raised-button mat-primary ng-star-inserted" color="primary" mat-raised-button="" ng-reflect-color="primary"><span class="mat-button-wrapper"><i _ngcontent-c36="" class="fa fa-vote-yea mr-2 font-size-20"></i>Entregar</span><div class="mat-button-ripple mat-ripple" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!----></div></div></div><nav _ngcontent-c36="" class="mat-tab-nav-bar mat-primary" mat-tab-nav-bar=""><div class="mat-tab-links"><a _ngcontent-c36="" class="no-underline mat-tab-link mat-tab-label-active" mat-tab-link="" routerlink="Contenidos" routerlinkactive="" ng-reflect-active="true" ng-reflect-router-link="Contenidos" ng-reflect-router-link-active="" aria-current="true" aria-disabled="false" tabindex="0" href="#/App/UnidadesAprendizaje/UA/Estructura/Evidencia/Contenidos">Contenidos</a><a _ngcontent-c36="" class="no-underline mat-tab-link" mat-tab-link="" routerlink="Recursos" routerlinkactive="" ng-reflect-active="false" ng-reflect-router-link="Recursos" ng-reflect-router-link-active="" aria-current="false" aria-disabled="false" tabindex="0" href="#/App/UnidadesAprendizaje/UA/Estructura/Evidencia/Recursos">Recursos</a><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><a _ngcontent-c36="" class="no-underline mat-tab-link ng-star-inserted" mat-tab-link="" routerlink="Entregas" routerlinkactive="" ng-reflect-active="false" ng-reflect-router-link="Entregas" ng-reflect-router-link-active="" aria-current="false" aria-disabled="false" tabindex="0" href="#/App/UnidadesAprendizaje/UA/Estructura/Evidencia/Entregas">Entregas</a><mat-ink-bar class="mat-ink-bar" style="visibility: visible; left: 0px; width: 160px;"></mat-ink-bar></div></nav><div _ngcontent-c36="" class="pb-3"><div _ngcontent-c36="" class="row"><div _ngcontent-c36="" class="col-md-12"><router-outlet _ngcontent-c36=""></router-outlet><app-estructura-elemento-contenido _nghost-c38="" class="ng-star-inserted"><div _ngcontent-c38=""><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><div _ngcontent-c38="" class="ng-star-inserted"><div _ngcontent-c38="" class="relative pt-3 d-flex justify-content-end"><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><!----><mat-card _ngcontent-c38="" class="p-0 relative mt-3 mat-card ng-star-inserted"><!----><mat-card-header _ngcontent-c38="" class="relative p-2 mat-card-header"><div class="mat-card-header-text"><mat-card-title _ngcontent-c38="" class="font-size-20 mb-0 bold-500 pr-50 mat-card-title">Actividades de Aprendizaje</mat-card-title></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card-header><mat-card-content _ngcontent-c38="" class="px-3 py-2 relative mat-card-content"><div _ngcontent-c38="" class="fr-view line-pre-wrap"><p>Explora diferentes funciones matemáticas utilizando herramientas computacionales para generar representaciones gráficas. A partir de la observación e interpretación de las gráficas, identifica el espacio de búsqueda, los máximos y mínimos locales y globales, así como los elementos que caracterizan un problema de optimización. Finalmente, organiza y explica los conceptos adquiridos mediante la elaboración de una <strong>ficha técnica</strong> del espacio de búsqueda y optimización, integrando definiciones construidas con sus propias palabras, representaciones gráficas e interpretaciones que evidencien la comprensión de los fundamentos de la optimización en el contexto de los algoritmos evolutivos.</p></div></mat-card-content></mat-card><!----><mat-card _ngcontent-c38="" class="p-0 relative mt-3 mat-card ng-star-inserted"><!----><mat-card-header _ngcontent-c38="" class="relative p-2 mat-card-header"><div class="mat-card-header-text"><mat-card-title _ngcontent-c38="" class="font-size-20 mb-0 bold-500 pr-50 mat-card-title">Contenido</mat-card-title></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card-header><mat-card-content _ngcontent-c38="" class="px-3 py-2 relative mat-card-content"><div _ngcontent-c38="" class="fr-view line-pre-wrap"><p><strong>Contenido Conceptual:</strong></p><ul><li>Introducción a Algoritmos Evolutivos<ul><li>Historia&nbsp;</li><li>Aplicaciones</li><li>Algoritmos evolutivos y biología.</li></ul></li><li>Programación Evolutiva<ul><li>Técnicas metaheurísticas</li></ul></li><li>Estrategias Evolutivas</li></ul><p><strong>Contenido Procedimental:</strong></p><ul><li>Analizar los antecedentes y fundamentos biológicos de la computación evolutiva para comprender su origen y aplicaciones.</li><li>Identificar las características de las técnicas metaheurísticas para diferenciar su uso en problemas de búsqueda y optimización.</li><li>Comparar la programación evolutiva con las estrategias evolutivas para seleccionar la técnica adecuada según el entorno del problema.</li></ul><p><strong>Contenido Actitudinal:<br></strong></p><ul><li>Demuestra responsabilidad.</li><li>Trabaja en equipo.</li><li>Acepta las ideas de sus compañeros.</li><li>Muestra la capacidad de trabajo autónomo.</li></ul></div></mat-card-content></mat-card><!----><mat-card _ngcontent-c38="" class="p-0 relative mt-3 mat-card ng-star-inserted"><!----><mat-card-header _ngcontent-c38="" class="relative p-2 mat-card-header"><div class="mat-card-header-text"><mat-card-title _ngcontent-c38="" class="font-size-20 mb-0 bold-500 pr-50 mat-card-title">Criterios de Desempeño</mat-card-title></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card-header><mat-card-content _ngcontent-c38="" class="px-3 py-2 relative mat-card-content"><div _ngcontent-c38="" class="fr-view line-pre-wrap"><ul><li>Identifica los fundamentos evolutivos, mediante el análisis de su historia y bases biológicas.</li><li>Distingue diversas técnicas metaheurísticas, a través de la comparación de sus mecanismos de búsqueda.</li><li>Relaciona la programación y estrategias evolutivas, por medio del estudio de sus diferencias conceptuales.</li></ul></div></mat-card-content></mat-card></div><!----><!----></div></app-estructura-elemento-contenido></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></div></div></div>
+
+
+LO IMPORTANTE ES LA DESCRIPCION DE LA TAREA: 
+<mat-card _ngcontent-c38="" class="p-0 relative mt-3 mat-card ng-star-inserted"><!----><mat-card-header _ngcontent-c38="" class="relative p-2 mat-card-header"><div class="mat-card-header-text"><mat-card-title _ngcontent-c38="" class="font-size-20 mb-0 bold-500 pr-50 mat-card-title">Actividades de Aprendizaje</mat-card-title></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card-header><mat-card-content _ngcontent-c38="" class="px-3 py-2 relative mat-card-content"><div _ngcontent-c38="" class="fr-view line-pre-wrap"><p>Explora diferentes funciones matemáticas utilizando herramientas computacionales para generar representaciones gráficas. A partir de la observación e interpretación de las gráficas, identifica el espacio de búsqueda, los máximos y mínimos locales y globales, así como los elementos que caracterizan un problema de optimización. Finalmente, organiza y explica los conceptos adquiridos mediante la elaboración de una <strong>ficha técnica</strong> del espacio de búsqueda y optimización, integrando definiciones construidas con sus propias palabras, representaciones gráficas e interpretaciones que evidencien la comprensión de los fundamentos de la optimización en el contexto de los algoritmos evolutivos.</p></div></mat-card-content></mat-card>
+
+Y QUE DEBE DE TENER
+
+<mat-card _ngcontent-c38="" class="p-0 relative mt-3 mat-card ng-star-inserted"><!----><mat-card-header _ngcontent-c38="" class="relative p-2 mat-card-header"><div class="mat-card-header-text"><mat-card-title _ngcontent-c38="" class="font-size-20 mb-0 bold-500 pr-50 mat-card-title">Contenido</mat-card-title></div><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--></mat-card-header><mat-card-content _ngcontent-c38="" class="px-3 py-2 relative mat-card-content"><div _ngcontent-c38="" class="fr-view line-pre-wrap"><p><strong>Contenido Conceptual:</strong></p><ul><li>Introducción a Algoritmos Evolutivos<ul><li>Historia&nbsp;</li><li>Aplicaciones</li><li>Algoritmos evolutivos y biología.</li></ul></li><li>Programación Evolutiva<ul><li>Técnicas metaheurísticas</li></ul></li><li>Estrategias Evolutivas</li></ul><p><strong>Contenido Procedimental:</strong></p><ul><li>Analizar los antecedentes y fundamentos biológicos de la computación evolutiva para comprender su origen y aplicaciones.</li><li>Identificar las características de las técnicas metaheurísticas para diferenciar su uso en problemas de búsqueda y optimización.</li><li>Comparar la programación evolutiva con las estrategias evolutivas para seleccionar la técnica adecuada según el entorno del problema.</li></ul><p><strong>Contenido Actitudinal:<br></strong></p><ul><li>Demuestra responsabilidad.</li><li>Trabaja en equipo.</li><li>Acepta las ideas de sus compañeros.</li><li>Muestra la capacidad de trabajo autónomo.</li></ul></div></mat-card-content></mat-card>
+
+ASI MISMO LOS CRITERERIOS DE DESEMPEÑO
+<mat-card-content _ngcontent-c38="" class="px-3 py-2 relative mat-card-content"><div _ngcontent-c38="" class="fr-view line-pre-wrap"><ul><li>Identifica los fundamentos evolutivos, mediante el análisis de su historia y bases biológicas.</li><li>Distingue diversas técnicas metaheurísticas, a través de la comparación de sus mecanismos de búsqueda.</li><li>Relaciona la programación y estrategias evolutivas, por medio del estudio de sus diferencias conceptuales.</li></ul></div></mat-card-content>
+
+ASI MISMO AQUI ESTA EL BOTON DE ENTREGAR
+
+<div _ngcontent-c36="" class="d-flex d-md-block justify-content-center mt-2 mt-md-0"><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><!--bindings={
+  "ng-reflect-ng-if": "false"
+}--><!--bindings={
+  "ng-reflect-ng-if": "true"
+}--><!----><button _ngcontent-c36="" class="w-100 mat-raised-button mat-primary ng-star-inserted" color="primary" mat-raised-button="" ng-reflect-color="primary"><span class="mat-button-wrapper"><i _ngcontent-c36="" class="fa fa-vote-yea mr-2 font-size-20"></i>Entregar</span><div class="mat-button-ripple mat-ripple" matripple="" ng-reflect-centered="false" ng-reflect-disabled="false" ng-reflect-trigger="[object HTMLButtonElement]"></div><div class="mat-button-focus-overlay"></div></button><!----></div>
+
+ESTO ES UNICAMENTE CON DIMENSIONES
+
+
+
+
+
+
+PASAREMOS A LO QUE SE VE EN EVIDENCIAS DE APRENDIZAJE
+
+SE VE COMPLETAMENTE IGUAL CONTENDIO, DESCRIPCION Y CRITERISO DE DESEMPEÑO, PERO SE AGREGA OTRA SECCION QUE ES RUBRICA
+
+
+<div _ngcontent-c44="" class="mt-1 relative animated fadeIn ng-star-inserted"><table _ngcontent-c44="" class="nx-table-rubrica bg-white mat-elevation-z2 editable w-100 font-size-14"><tbody _ngcontent-c44=""><tr _ngcontent-c44="" class="font-size-20 bold-500 text-center"><td _ngcontent-c44="">Criterios</td><td _ngcontent-c44="" colspan="4">Niveles de Dominio</td></tr><tr _ngcontent-c44=""><td _ngcontent-c44=""></td><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><td _ngcontent-c44="" class="v-align-middle p-2 text-center bg-color-1 relative ng-star-inserted" style="background: rgb(2, 189, 0);"><div _ngcontent-c44="" class="p-1">Evidencia Completa</div></td><td _ngcontent-c44="" class="v-align-middle p-2 text-center bg-color-1 relative ng-star-inserted" style="background: rgb(253, 255, 0);"><div _ngcontent-c44="" class="p-1">Evidencia Suficiente</div></td><td _ngcontent-c44="" class="v-align-middle p-2 text-center bg-color-1 relative ng-star-inserted" style="background: rgb(255, 24, 0);"><div _ngcontent-c44="" class="p-1">Evidencia Débil</div></td><td _ngcontent-c44="" class="v-align-middle p-2 text-center bg-color-1 relative ng-star-inserted" style="background: rgb(255, 24, 0);"><div _ngcontent-c44="" class="p-1">Sin Evidencia</div></td></tr><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><tr _ngcontent-c44="" class="ng-star-inserted"><td _ngcontent-c44="" class="v-align-middle p-1"><div _ngcontent-c44="" class="font-size-12"></div><div _ngcontent-c44="">Demuestra y relaciona correctamente los conceptos clave en la representación del problema.</div></td><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">3</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Demuestra un dominio de los conceptos de optimización, espacio de búsqueda, funciones matemáticas y teoría de grafos, estableciendo correctamente la relación entre ellos para representar el problema planteado.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">2</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Demuestra comprensión de la mayoría de los conceptos fundamentales, aunque presenta algunas imprecisiones menores en la relación entre los elementos del problema y su representación.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">1</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">El informe evidencia conocimientos parciales o presenta errores conceptuales que dificultan la comprensión del modelo propuesto.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">0</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Sin Evidencia</div></td></tr><tr _ngcontent-c44="" class="ng-star-inserted"><td _ngcontent-c44="" class="v-align-middle p-1"><div _ngcontent-c44="" class="font-size-12"></div><div _ngcontent-c44="">Estructura correctamente el problema de optimización y justifica con coherencia su modelado matemático y gráfico.</div></td><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">5</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Formaliza correctamente el problema de optimización identificando objetivo, variables, restricciones y espacio de búsqueda. La representación mediante funciones matemáticas y teoría de grafos es adecuada, coherente y está debidamente justificada.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">4</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Formaliza el problema e integra la mayoría de los elementos requeridos; la representación presenta pequeñas inconsistencias, pero permite comprender el modelo propuesto.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">3</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">La formalización del problema es incompleta o presenta errores importantes en la representación mediante funciones o grafos, afectando la interpretación del modelo.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">0</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Sin Evidencia</div></td></tr><tr _ngcontent-c44="" class="ng-star-inserted"><td _ngcontent-c44="" class="v-align-middle p-1"><div _ngcontent-c44="" class="font-size-12"></div><div _ngcontent-c44="">Muestra compromiso y responsabilidad en la realización del trabajo.</div></td><!--bindings={
+  "ng-reflect-ng-for-of": "[object Object],[object Object"
+}--><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">2</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Entrega el informe en el tiempo establecido, con excelente organización, redacción, presentación y formato, incluyendo todos los apartados solicitados.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">1</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Entrega el informe con ligeros detalles de organización, presentación o formato, sin afectar significativamente su comprensión.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">0</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">El informe presenta deficiencias importantes de organización, formato o redacción, o es entregado fuera del tiempo establecido.</div></td><td _ngcontent-c44="" class="p-1 ng-star-inserted"><div _ngcontent-c44="" class="text-center puntos bold-500">0</div><div _ngcontent-c44="" class="text-center font-size-13 desc d-none d-md-block">Sin Evidencia</div></td></tr></tbody></table></div>
+
+
+SE DEBE DE CUMPLIR CON TODAS ESTAS CASI SIEMPRE ES LO MISMO PERO SE DEBE DE CUMPLIR, EL PUNTO DE RESPONSABILIDAD ESTA DE MAS
+
+
+CUALQUIER DUDA HAZMELA SABER PARA CAMBIAR ESTO

@@ -1,0 +1,129 @@
+SIASE: INICIO PARA PONER LAS CREDENCIALES: https://www.uanl.mx/enlinea/
+
+<div class="box">
+                <div class="titulo">
+                        <h3>¡ Ingresa con una sola cuenta!</h3>
+                </div>
+                <div class="logos">
+                        <div class="logo correo-universitario">
+                                <img src="https://deimos.dgi.uanl.mx/uanlimg/ws/img_index/correouniversitario_logo.png">
+                        </div>
+                        <div class="logo siase">
+                                <img src="https://deimos.dgi.uanl.mx/uanlimg/ws/img_index/siase_logo.png">
+                        </div>
+                        <div class="logo codice">
+                                <img src="https://deimos.dgi.uanl.mx/uanlimg/ws/img_index/codice_logo.png">
+                        </div>
+                        <div class="logo nexus">
+                                <img src="https://deimos.dgi.uanl.mx/uanlimg/ws/img_index/nexus_logo.png">
+                        </div>
+                </div>
+                <div class="horario">
+                        <div>
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>14-10-2026</span>
+                        </div>
+                        <div>
+                                <i class="fas fa-clock"></i>
+                                <span>22:30</span>
+                        </div>
+                </div>
+                <form name="inicio" action="https://deimos.dgi.uanl.mx/cgi-bin/wspd_cgi.sh/eselcarrera.htm" method="post" target="_parent">
+                        <fieldset>
+                                <div class="form-group">
+                                        <label>Tipo:</label>
+                                        <select id="tipo" name="HTMLTipCve">
+                                                <option value="01">Alumno</option>
+                        <option value="02">Empleado</option>
+                                        </select>
+                                </div>
+                                <div class="form-group">
+                                        <label for="cuenta">Cuenta:</label>
+                                        <input id="cuenta" name="HTMLUsuCve" type="text" value="">
+                                        <a href="javascript:void(0)" onclick="apprise('Si olvidaste tu cuenta y contraseña, puedes solicitarla al departamento de Escolar y Archivo de tu Dependencia.')" class="info"><i class="fas fa-info-circle"></i></a>
+                                </div>
+                                <div class="form-group">
+                                        <label for="pass">Contraseña:</label>
+                                        <input id="pass" name="HTMLPassword" type="password" value="">
+                </div>
+                                <div>
+                                        <button type="submit" onclick="javascript:accesar();">
+                                                Entrar
+                                        </button>
+                                        <a class="consulta-matricula" href="https://deimos.dgi.uanl.mx/cgi-bin/wspd_cgi.sh/loginaspirante03.htm" target="_blank">Consulta de matricula para
+                                        alumnos de primer ingreso</a>
+                                        <a class="preguntas-frecuentes" href="http://deimos.dgi.uanl.mx/uanlimg/Preguntas-frecuentes.pdf" target="_blank">
+                                                Sección de preguntas frecuentes
+                                        </a>
+                                </div>  
+                        </fieldset>
+            <input type="hidden" name="HTMLPrograma" value="">
+                        <input type="hidden" name="HTMLToken" value="y8EXQBh8Fi7MFKAfCKp2Vfe/0J4=">         
+                </form>
+        </div>
+
+
+AQUI ESTAN LOS IMPORTANTES
+<fieldset>
+                                <div class="form-group">
+                                        <label>Tipo:</label>
+                                        <select id="tipo" name="HTMLTipCve">
+                                                <option value="01">Alumno</option>
+                        <option value="02">Empleado</option>
+                                        </select>
+                                </div>
+                                <div class="form-group">
+                                        <label for="cuenta">Cuenta:</label>
+                                        <input id="cuenta" name="HTMLUsuCve" type="text" value="">
+                                        <a href="javascript:void(0)" onclick="apprise('Si olvidaste tu cuenta y contraseña, puedes solicitarla al departamento de Escolar y Archivo de tu Dependencia.')" class="info"><i class="fas fa-info-circle"></i></a>
+                                </div>
+                                <div class="form-group">
+                                        <label for="pass">Contraseña:</label>
+                                        <input id="pass" name="HTMLPassword" type="password" value="">
+                </div>
+                                <div>
+                                        <button type="submit" onclick="javascript:accesar();">
+                                                Entrar
+                                        </button>
+                                        <a class="consulta-matricula" href="https://deimos.dgi.uanl.mx/cgi-bin/wspd_cgi.sh/loginaspirante03.htm" target="_blank">Consulta de matricula para
+                                        alumnos de primer ingreso</a>
+                                        <a class="preguntas-frecuentes" href="http://deimos.dgi.uanl.mx/uanlimg/Preguntas-frecuentes.pdf" target="_blank">
+                                                Sección de preguntas frecuentes
+                                        </a>
+                                </div>  
+                        </fieldset>
+
+SIEMPRE ALUMNO
+
+
+
+
+
+Para entrar a nexus se necesita navegar hasta aquí
+
+<a href="#" onmouseover="muestra('nexus')"><img src="https://deimos.dgi.uanl.mx/uanlimg/ws/logos-sistemas-nexus.png" border="0" width="150" height="50"></a>
+
+ESTO ES PONER EL CURSOR SOBRE AHI, DESPUES SE DESPLEGARA ESTO
+
+<div class="margen">
+                    <p align="justify">
+                    <strong>Nexus</strong><br>Es una plataforma que facilita la colaboración entre alumnos y maestros en el proceso de enseñanza y aprendizaje, en sus modalidades presencial, a distancia y mixto.
+                    </p>
+                    <br><br>
+                    <div align="center">
+                    <form name="frNexus" id="idfrNexus" method="GET" target="_new">
+                        <input type="button" name="btnNexus" id="linkNexus" value="Ingresar">
+                    </form>
+                    </div><br>
+                    <center>
+                    <div style="width:400px; background:#F69709;  padding:10px; text-align:center;"><p><font color="#FFFFFF"><strong>Carga Moderada</strong></font></p></div>
+                    </center>
+                    <p align="justify">
+                    </p>
+              </div>
+
+ACCEDE CON ESTE BOTON
+
+<input type="button" name="btnNexus" id="linkNexus" value="Ingresar">
+
+TE ACCEDERA AQUI: https://plataformanexus.uanl.mx/#/App/UnidadesAprendizaje
