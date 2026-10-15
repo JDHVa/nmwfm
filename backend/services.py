@@ -221,13 +221,61 @@ async def _abrir_materia_y_estructura(
     state.storage.set_portada(materia.id, portada.profesor, portada.periodo)
     etapas = await nexus.abrir_estructura(page)
     antes = state.storage.ids_tareas(materia.id)
+    titulos_antes = state.storage.titulos_tareas(materia.id)
     state.storage.replace_estructura(materia.id, etapas)
     filas = state.storage.tareas_con_posicion(materia.id)
+    if acum.get("novedades"):
+        _novedades_estructura(state, filas, antes, titulos_antes)
     if i not in acum["contadas"]:
         acum["contadas"].add(i)
         acum["tareas"] += len(filas)
         acum["nuevas"] += sum(1 for f in filas if f["id"] not in antes)
     return filas, antes
+
+
+def _novedades_estructura(state: AppState, filas: list[dict], antes: set, titulos: dict) -> None:
+    for fila in filas:
+        if fila["id"] not in antes:
+            state.storage.add_novedad(fila["id"], "nueva", f"Tarea nueva: {fila['titulo']}")
+        elif titulos.get(fila["id"]) not in (None, fila["titulo"]):
+            state.storage.add_novedad(
+                fila["id"], "modificada", f"Título: {titulos[fila['id']]} → {fila['titulo']}"
+            )
+
+
+CAMPOS_DETALLE = (
+    ("actividades", "Actividades actualizadas"),
+    ("contenido", "Contenido actualizado"),
+    ("criterios_desempeno", "Criterios de desempeño actualizados"),
+)
+
+
+def cambios_detalle(previo: dict | None, tarea_previa: dict, nuevo, tarea_nueva: dict) -> list[str]:
+    if previo is None:
+        return []
+    cambios = []
+    for campo, nombre in (("desde", "Fecha de inicio"), ("hasta", "Fecha de entrega")):
+        if tarea_previa.get(campo) != tarea_nueva.get(campo):
+            cambios.append(f"{nombre}: {tarea_previa.get(campo)} → {tarea_nueva.get(campo)}")
+    if tarea_previa.get("puntos") != tarea_nueva.get("puntos"):
+        cambios.append(f"Puntos: {tarea_previa.get('puntos')} → {tarea_nueva.get('puntos')}")
+    for campo, nombre in CAMPOS_DETALLE:
+        if (previo.get(campo) or "") != (getattr(nuevo, campo, "") or ""):
+            cambios.append(nombre)
+    rubrica_nueva = nuevo.rubrica.to_dict() if nuevo.rubrica else None
+    if previo.get("rubrica") != rubrica_nueva:
+        cambios.append("Rúbrica actualizada")
+    return cambios
+
+
+def _guardar_detalle_con_novedades(state: AppState, tarea_id: str, detalle, acum: dict) -> None:
+    previo = state.storage.get_detalle(tarea_id) if acum.get("novedades") else None
+    tarea_previa = state.storage.get_tarea(tarea_id)
+    state.storage.set_detalle(tarea_id, detalle)
+    if previo is not None:
+        cambios = cambios_detalle(previo, tarea_previa, detalle, state.storage.get_tarea(tarea_id))
+        if cambios:
+            state.storage.add_novedad(tarea_id, "modificada", "; ".join(cambios))
 
 
 def _registrar_entregas(state: AppState, tarea_id: str, entregas, acum: dict) -> None:
@@ -310,7 +358,7 @@ async def _sync_materia(
             fila["numero"],
             entregas=modo == "completo",
         )
-        state.storage.set_detalle(fila["id"], detalle)
+        _guardar_detalle_con_novedades(state, fila["id"], detalle, acum)
         leidas.add(fila["id"])
         acum["detalles_leidos"] += 1
         _registrar_entregas(state, fila["id"], detalle.entregas, acum)
@@ -436,12 +484,13 @@ def _acumulador() -> dict:
 
 async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict:
     reanudar = False
+    hecha = state.storage.get_settings()["sync_inicial_hecha"]
     if modo == "auto":
-        hecha = state.storage.get_settings()["sync_inicial_hecha"]
         modo = "incremental" if hecha else "completo"
         reanudar = not hecha
     limpiar_autoevaluaciones(state.storage)
     acum = _acumulador()
+    acum["novedades"] = hecha
     async with state.browser.lock:
         n, fallidas = await _secuencial(state, ctx, _sync_materia, modo, reanudar, acum)
     valores: dict = {"ultima_sync": now_iso()}
@@ -492,6 +541,21 @@ def tareas_proximas(state: AppState, ahora: datetime | None = None) -> list[dict
     tareas = [con_vencida(t, ahora) for t in state.storage.tareas_no_entregadas()]
     tareas.sort(key=lambda t: (t["vencida"], t["hasta"] is None, t["hasta"] or ""))
     return tareas
+
+
+def tareas_alertas(state: AppState, ahora: datetime | None = None) -> list[dict]:
+    ahora = ahora or ahora_monterrey()
+    alertas = []
+    for tarea in state.storage.tareas_no_entregadas():
+        if not tarea.get("hasta"):
+            continue
+        with contextlib.suppress(ValueError):
+            limite = datetime.fromisoformat(tarea["hasta"])
+            dias = (limite.date() - ahora.date()).days
+            if limite >= ahora and dias in (0, 1):
+                alertas.append({**con_vencida(tarea, ahora), "dias": dias})
+    alertas.sort(key=lambda t: t["hasta"])
+    return alertas
 
 
 def tarea_materia_nombre(state: AppState, tarea: dict) -> str | None:

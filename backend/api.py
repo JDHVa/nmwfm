@@ -17,6 +17,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import config, services
 from .core import images
+from .scheduler import Programador
 from .services import ApiError, AppState
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
@@ -40,6 +41,10 @@ class GenerarBody(BaseModel):
 
 class SyncBody(BaseModel):
     modo: Literal["auto", "completo", "incremental"] = "auto"
+
+
+class LeidasBody(BaseModel):
+    ids: list[int] | None = None
 
 
 class EntregarBody(BaseModel):
@@ -73,7 +78,10 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(_: FastAPI):
+        programador = Programador(state)
+        programador.iniciar()
         yield
+        await programador.detener()
         await state.close()
 
     app = FastAPI(title="nmwfm", version=config.VERSION, lifespan=lifespan)
@@ -147,6 +155,11 @@ def create_app(
                 if not isinstance(body[key], bool):
                     raise ApiError(422, "validacion", f"{key} debe ser booleano.")
                 values[key] = body[key]
+        if "sync_cada_horas" in body:
+            horas = body["sync_cada_horas"]
+            if isinstance(horas, bool) or not isinstance(horas, int) or horas < 0:
+                raise ApiError(422, "validacion", "sync_cada_horas debe ser un entero >= 0.")
+            values["sync_cada_horas"] = horas
         state.storage.set_settings(values)
         if password:
             cuenta = state.storage.get_settings()["cuenta"]
@@ -177,6 +190,20 @@ def create_app(
         services.require_credentials(state)
         modo = body.modo if body else "auto"
         return state.jobs.start("sync", lambda ctx: services.run_sync(state, ctx, modo)).to_dict()
+
+    @router.get("/novedades")
+    async def novedades(no_leidas: int = 0):
+        filas = state.storage.list_novedades(bool(no_leidas))
+        return [{**f, "leida": bool(f["leida"])} for f in filas]
+
+    @router.post("/novedades/leidas")
+    async def novedades_leidas(body: LeidasBody | None = None):
+        ids = body.ids if body else None
+        return {"marcadas": state.storage.marcar_novedades_leidas(ids)}
+
+    @router.get("/alertas")
+    async def alertas():
+        return services.tareas_alertas(state)
 
     @router.get("/materias")
     async def materias():

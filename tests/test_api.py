@@ -57,6 +57,7 @@ def test_settings_roundtrip(client, state):
         "reducir_animaciones": False,
         "sync_inicial_hecha": False,
         "ultima_sync": None,
+        "sync_cada_horas": 0,
     }
     r = client.put(
         "/settings",

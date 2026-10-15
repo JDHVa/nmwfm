@@ -70,6 +70,14 @@ CREATE TABLE IF NOT EXISTS recursos (
     ruta TEXT,
     usado INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS novedades (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
+    tipo TEXT NOT NULL,
+    detalle TEXT NOT NULL,
+    creada_en TEXT NOT NULL,
+    leida INTEGER NOT NULL DEFAULT 0
+);
 CREATE TABLE IF NOT EXISTS generaciones (
     tarea_id TEXT PRIMARY KEY REFERENCES tareas(id) ON DELETE CASCADE,
     markdown TEXT NOT NULL,
@@ -108,7 +116,9 @@ SETTING_DEFAULTS = {
     "reducir_animaciones": False,
     "sync_inicial_hecha": False,
     "ultima_sync": None,
+    "sync_cada_horas": 0,
 }
+INT_SETTINGS = {"sync_cada_horas"}
 BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}
 
 
@@ -187,6 +197,11 @@ class Storage:
                 out[key] = default
             elif key in BOOL_SETTINGS:
                 out[key] = rows[key] == "1"
+            elif key in INT_SETTINGS:
+                try:
+                    out[key] = int(rows[key])
+                except ValueError:
+                    out[key] = default
             else:
                 out[key] = rows[key]
         return out
@@ -546,3 +561,44 @@ class Storage:
             "m.nombre AS materia_nombre FROM tareas t JOIN materias m ON m.id = t.materia_id "
             "WHERE t.estado != 'entregada'"
         )
+
+    def titulos_tareas(self, materia_id: str) -> dict[str, str]:
+        return {
+            r["id"]: r["titulo"]
+            for r in self._all("SELECT id, titulo FROM tareas WHERE materia_id = ?", (materia_id,))
+        }
+
+    def add_novedad(self, tarea_id: str, tipo: str, detalle: str) -> bool:
+        existe = self._one(
+            "SELECT id FROM novedades WHERE tarea_id = ? AND tipo = ? AND detalle = ? "
+            "AND leida = 0",
+            (tarea_id, tipo, detalle),
+        )
+        if existe:
+            return False
+        self._run(
+            "INSERT INTO novedades(tarea_id, tipo, detalle, creada_en) VALUES(?, ?, ?, ?)",
+            (tarea_id, tipo, detalle, now_iso()),
+        )
+        return True
+
+    def list_novedades(self, solo_no_leidas: bool = False) -> list[dict]:
+        filtro = "WHERE n.leida = 0 " if solo_no_leidas else ""
+        return self._all(
+            "SELECT n.id, n.tarea_id, t.materia_id, m.nombre AS materia_nombre, t.numero, "
+            "t.titulo, n.tipo, n.detalle, n.creada_en, n.leida FROM novedades n "
+            "JOIN tareas t ON t.id = n.tarea_id JOIN materias m ON m.id = t.materia_id "
+            f"{filtro}ORDER BY n.id DESC"
+        )
+
+    def marcar_novedades_leidas(self, ids: list[int] | None = None) -> int:
+        with self._lock:
+            if ids is None:
+                cursor = self._db.execute("UPDATE novedades SET leida = 1 WHERE leida = 0")
+            else:
+                marcas = ",".join("?" for _ in ids) or "NULL"
+                cursor = self._db.execute(
+                    f"UPDATE novedades SET leida = 1 WHERE leida = 0 AND id IN ({marcas})", ids
+                )
+            self._db.commit()
+            return cursor.rowcount
