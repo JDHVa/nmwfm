@@ -8,13 +8,14 @@ from .asgi_client import MiniClient, multipart
 from .test_images import synthetic_photo
 
 
-def test_health_requires_token(app):
+def test_health_sin_token_y_resto_protegido(app):
     anon = MiniClient(app)
-    r = anon.get("/health")
+    assert anon.get("/health").status_code == 200
+    r = anon.get("/settings")
     assert r.status_code == 401
     assert r.json()["error"]["code"] == "no_autorizado"
     bad = MiniClient(app, headers={"X-Token": "otro"})
-    assert bad.get("/health").status_code == 401
+    assert bad.get("/settings").status_code == 401
 
 
 def test_health_ok(client):

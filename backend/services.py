@@ -216,14 +216,19 @@ async def run_generar(
             tiene_insumos=pdf_insumos is not None,
         )
     )
-    await ctx.update("Preparando Gemini", 0.45)
+    await ctx.update("generando", 0.45)
     async with state.browser.lock:
         markdown = await state.gemini.generar(prompt, pdf_insumos, ctx.hooks())
 
     await ctx.update("Creando el documento Word", 0.88)
     gen = await asyncio.to_thread(_construir_documentos, state, tarea, materia, settings, markdown)
     state.storage.set_estado(tarea_id, "generada")
-    return state.generacion_public(gen)
+    resultado = state.generacion_public(gen)
+    if settings["entregar_sin_revisar"]:
+        await ctx.update("entregando", 0.95)
+        await run_entregar(state, ctx, tarea_id)
+        resultado["entregada"] = True
+    return resultado
 
 
 def _construir_documentos(
@@ -255,7 +260,7 @@ async def run_entregar(state: AppState, ctx: JobContext, tarea_id: str) -> dict:
     gen = state.storage.get_generacion(tarea_id)
     if gen is None:
         raise ApiError(400, "sin_generacion", "Genera el documento antes de entregar.")
-    await ctx.update("Entregando en NEXUS", 0.1)
+    await ctx.update("entregando", 0.95)
     await nexus.entregar(None, Path(gen["pdf_path"]))
     state.storage.set_estado(tarea_id, "entregada")
     return {"entregada": True}

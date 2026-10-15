@@ -1,6 +1,5 @@
 """Selectores centralizados. Los de SIASE/NEXUS salen de htmls/; los de GEMINI son suposiciones."""
 
-# --- SIASE (htmls/siase/SIASE.txt) ---
 SIASE_TIPO_SELECT = "#tipo"
 SIASE_TIPO_ALUMNO = "01"
 SIASE_CUENTA = "#cuenta"
@@ -9,14 +8,12 @@ SIASE_ENTRAR = "form[name='inicio'] button[type='submit']"
 SIASE_NEXUS_LOGO = "a[onmouseover*=\"muestra('nexus')\"]"
 SIASE_NEXUS_LINK = "#linkNexus"
 
-# --- NEXUS: lista de materias ---
 NX_CARDS_ROOT = "app-cursos-card"
 NX_CARD = "app-cursos-card mat-card.nx-mat-card-curso"
 NX_CARD_CLICK = "a.color-2"
 NX_CARD_NAME = "mat-card-content .text-ellipsis"
 NX_CARD_ID_BUTTON = "button[id^='btnColor']"
 
-# --- NEXUS: curso (menu lateral y portada) ---
 NX_MENU_OPTION = "mat-nav-list a.menu-option"
 NX_MENU_LABEL = ".label"
 NX_MENU_ESTRUCTURA = "Estructura"
@@ -26,7 +23,6 @@ NX_ICON_PROFESOR = "fa-user-tie"
 NX_ICON_PERIODO = "fa-calendar"
 NX_ICON_MODALIDAD = "fa-users-class"
 
-# --- NEXUS: estructura ---
 NX_ESTRUCTURA = "app-estructura-competencias"
 NX_PANEL = "app-estructura-competencias mat-expansion-panel"
 NX_PANEL_TITLE = "mat-expansion-panel-header span.bold-500"
@@ -37,7 +33,6 @@ NX_ITEM_LABEL_DIV = "a div"
 NX_ITEM_POINTS_BOX = "div.absolute"
 NX_ITEM_MODALITY_ICON = "i[mattooltip]"
 
-# --- NEXUS: detalle de tarea ---
 NX_DETALLE_ROOT = "app-estructura-elemento-contenido"
 NX_DETALLE_HEADER = "div.mb-4"
 NX_DETALLE_TITLE = "div.bold-500.font-size-20"
@@ -53,7 +48,6 @@ NX_SECCION_CRITERIOS = "criterios de desempeno"
 NX_ENTREGAR_BUTTON = "button.mat-raised-button.mat-primary"
 NX_ENTREGAR_TEXT = "Entregar"
 
-# --- NEXUS: rubrica ---
 NX_RUBRICA = "table.nx-table-rubrica"
 NX_RUBRICA_ROWS = "tr"
 NX_RUBRICA_PUNTOS = "div.puntos"

@@ -121,7 +121,7 @@ def create_app(
             raise ApiError(404, "insumo_no_encontrado", "El insumo no existe.")
         return row
 
-    @router.get("/health")
+    @app.get("/health")
     async def health():
         return {"ok": True, "version": config.VERSION}
 
