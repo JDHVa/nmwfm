@@ -6,7 +6,8 @@ import RotatingText from "@/components/RotatingText";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { JobProgress } from "@/components/JobProgress";
-import { api, type Job } from "@/lib/api";
+import { api, type Job, type PortadaOverrides } from "@/lib/api";
+import { PortadaEditor } from "@/views/tarea/PortadaEditor";
 import { useReducedMotion } from "@/lib/app-context";
 import { keys, useInsumos, type useJobRunner } from "@/lib/queries";
 
@@ -34,10 +35,11 @@ export function GenerarStep({
   const reducido = useReducedMotion();
   const { data: insumos = [] } = useInsumos(tareaId);
   const [extra, setExtra] = useState("");
+  const [portada, setPortada] = useState<PortadaOverrides>({});
   const { job, running } = runner;
 
   async function generar() {
-    const j = await runner.start(() => api.generar(tareaId, extra.trim() || undefined));
+    const j = await runner.start(() => api.generar(tareaId, extra.trim() || undefined, portada));
     if (j) {
       qc.invalidateQueries({ queryKey: keys.generacion(tareaId) });
       qc.invalidateQueries({ queryKey: keys.etapas(materiaId) });
@@ -63,6 +65,8 @@ export function GenerarStep({
           enviar.
         </p>
       </div>
+
+      <PortadaEditor tareaId={tareaId} valor={portada} onChange={setPortada} disabled={running} />
 
       {running && (
         <div className="flex flex-col items-center gap-3 rounded-xl border bg-card/60 p-8 text-center">

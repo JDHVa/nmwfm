@@ -70,6 +70,15 @@ export type Job = {
   mensaje: string | null;
   resultado: unknown;
 };
+export type PortadaPreview = {
+  imagen_url: string;
+  profesor: string;
+  titulo: string;
+  alumno: string;
+  matricula: string;
+  fecha: string;
+};
+export type PortadaOverrides = { profesor?: string; titulo?: string };
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
   materias: number;
@@ -187,8 +196,19 @@ export const api = {
     request<Insumo>("POST", `/tareas/${tareaId}/insumos/texto`, { texto }),
   patchInsumo: (id: string, patch: InsumoPatch) => request<Insumo>("PATCH", `/insumos/${id}`, patch),
   borrarInsumo: (id: string) => request<void>("DELETE", `/insumos/${id}`),
-  generar: (tareaId: string, instruccionesExtra?: string) =>
-    request<Job>("POST", `/tareas/${tareaId}/generar`, { instrucciones_extra: instruccionesExtra }),
+  generar: (tareaId: string, instruccionesExtra?: string, portada?: PortadaOverrides) =>
+    request<Job>("POST", `/tareas/${tareaId}/generar`, {
+      instrucciones_extra: instruccionesExtra,
+      ...(portada?.profesor ? { profesor: portada.profesor } : {}),
+      ...(portada?.titulo ? { titulo: portada.titulo } : {}),
+    }),
+  portadaPreview: (tareaId: string, o: PortadaOverrides = {}) => {
+    const q = new URLSearchParams();
+    if (o.profesor) q.set("profesor", o.profesor);
+    if (o.titulo) q.set("titulo", o.titulo);
+    const qs = q.toString();
+    return request<PortadaPreview>("GET", `/tareas/${tareaId}/portada-preview${qs ? `?${qs}` : ""}`);
+  },
   generacion: (tareaId: string) => request<Generacion | null>("GET", `/tareas/${tareaId}/generacion`),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),

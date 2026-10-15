@@ -20,6 +20,27 @@ function svgDataUrl(label: string, hue: number, w = 420, h = 560): string {
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
+function esc(s: string) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function portadaSvg(d: {
+  profesor: string;
+  titulo: string;
+  alumno: string;
+  matricula: string;
+  fecha: string;
+}) {
+  const lineas = [
+    ["Alumno", d.alumno],
+    ["Matrícula", d.matricula],
+    ["Profesor", d.profesor],
+    ["Fecha", d.fecha],
+  ];
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="560" viewBox="0 0 420 560"><rect width="100%" height="100%" fill="white"/><rect x="0" y="0" width="420" height="8" fill="#2563eb"/><text x="210" y="90" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold" fill="#0f172a">UNIVERSIDAD AUTÓNOMA DE NUEVO LEÓN</text><text x="210" y="240" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#0f172a">${esc(d.titulo)}</text>${lineas.map(([k, v], i) => `<text x="48" y="${360 + i * 28}" font-family="sans-serif" font-size="14" fill="#334155"><tspan font-weight="bold">${k}: </tspan>${esc(v)}</text>`).join("")}</svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 function minimalPdf(lines: string[]): Uint8Array {
   const esc = (s: string) => s.replace(/[\\()]/g, "\\$&").replace(/[^\x20-\x7e]/g, "?");
   const content = `BT /F1 14 Tf 56 760 Td 18 TL ${lines.map((l) => `(${esc(l)}) '`).join(" ")} ET`;
@@ -351,6 +372,20 @@ export function createMockBackend(options: MockOptions = {}) {
         return json(lista.find((x) => x.id === m![1]));
       }
       return fallo(404, "no_encontrado", "Insumo no encontrado");
+    }
+    if ((m = path.match(/^\/tareas\/([^/]+)\/portada-preview$/))) {
+      const t = buscarTarea(m[1]);
+      if (!t) return fallo(404, "no_encontrada", "Tarea no encontrada");
+      const q = new URL(url).searchParams;
+      const materia = materias.find((x) => x.id === t.materia_id);
+      const datos = {
+        profesor: q.get("profesor") || materia?.profesor || "",
+        titulo: q.get("titulo") || t.titulo,
+        alumno: settings.nombre,
+        matricula: settings.matricula,
+        fecha: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }),
+      };
+      return json({ ...datos, imagen_url: portadaSvg(datos) });
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/generar$/))) {
       const t = buscarTarea(m[1]);
