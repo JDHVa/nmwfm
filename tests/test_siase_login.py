@@ -94,11 +94,6 @@ class _Ctx:
 
 
 def _correr(monkeypatch, evaluate_falla=False):
-    async def sin_pausa(*a, **kw):
-        return None
-
-    monkeypatch.setattr(siase, "pausa", sin_pausa)
-    monkeypatch.setattr(siase, "pausa_larga", sin_pausa)
     eventos = []
     ctx = _Ctx(_Frame(eventos, evaluate_falla))
     page = asyncio.run(siase.login(ctx, "c", "p"))

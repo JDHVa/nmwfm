@@ -7,7 +7,7 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from .. import config
 from . import selectors as S
-from .browser import clic_robusto, pausa, pausa_larga
+from .browser import clic_robusto
 from .types import Hooks
 
 
@@ -24,35 +24,31 @@ class SiaseSinRespuesta(SiaseError):
 
 
 async def _buscar_scope(page: Page, selector: str, timeout: float) -> Frame | None:
+    encontrado = await _buscar_alguno(page, [selector], timeout)
+    return encontrado[0] if encontrado else None
+
+
+async def _buscar_alguno(
+    page: Page, selectores: list[str], timeout: float
+) -> tuple[Frame, str] | None:
     fin = time.monotonic() + timeout
-    while time.monotonic() < fin:
+    while True:
         for frame in page.frames:
-            try:
-                if await frame.locator(selector).count():
-                    return frame
-            except Exception:
-                continue
-        await asyncio.sleep(0.5)
-    return None
-
-
-async def _ya_en_nexus_link(page: Page) -> Frame | None:
-    return await _buscar_scope(page, S.SIASE_NEXUS_LOGO, 4)
+            for selector in selectores:
+                try:
+                    if await frame.locator(selector).count():
+                        return frame, selector
+                except Exception:
+                    continue
+        if time.monotonic() >= fin:
+            return None
+        await asyncio.sleep(0.15)
 
 
 async def _llenar_formulario(scope: Frame, cuenta: str, password: str) -> None:
     await scope.locator(S.SIASE_TIPO_SELECT).select_option(S.SIASE_TIPO_ALUMNO)
-    await pausa()
-    campo = scope.locator(S.SIASE_CUENTA)
-    await campo.click()
-    await campo.fill("")
-    await campo.press_sequentially(cuenta, delay=70)
-    await pausa()
-    campo = scope.locator(S.SIASE_PASSWORD)
-    await campo.click()
-    await campo.fill("")
-    await campo.press_sequentially(password, delay=70)
-    await pausa()
+    await scope.locator(S.SIASE_CUENTA).fill(cuenta)
+    await scope.locator(S.SIASE_PASSWORD).fill(password)
     await clic_robusto(scope.locator(S.SIASE_ENTRAR))
 
 
@@ -72,11 +68,14 @@ async def login(
     await hooks.paso("Abriendo SIASE", 0.02)
     await page.goto(config.SIASE_URL, wait_until="domcontentloaded")
 
-    logo_scope = await _ya_en_nexus_link(page)
+    logo_scope = None
+    encontrado = await _buscar_alguno(page, [S.SIASE_NEXUS_LOGO, S.SIASE_CUENTA], 25)
+    if encontrado is not None and encontrado[1] == S.SIASE_NEXUS_LOGO:
+        logo_scope = encontrado[0]
     if logo_scope is None:
-        scope = await _buscar_scope(page, S.SIASE_CUENTA, 25)
-        if scope is None:
+        if encontrado is None:
             raise SiaseError("No se encontro el formulario de acceso de SIASE.")
+        scope = encontrado[0]
         await hooks.paso("Iniciando sesion en SIASE", 0.05)
         await _llenar_formulario(scope, cuenta, password)
         await page.wait_for_load_state("domcontentloaded")
@@ -91,16 +90,13 @@ async def login(
             raise SiaseError("No se pudo llegar al acceso a NEXUS desde SIASE.")
 
     await hooks.paso("Entrando a NEXUS", 0.1)
-    await pausa()
     await _mostrar_panel_nexus(logo_scope)
-    await pausa_larga()
     link = logo_scope.locator(S.SIASE_NEXUS_LINK)
     await link.wait_for(state="visible", timeout=15000)
     async with ctx.expect_page() as nueva:
         await clic_robusto(link)
     nexus = await nueva.value
     await nexus.wait_for_selector(S.NX_CARD, timeout=60000)
-    await pausa()
     return nexus
 
 
@@ -126,11 +122,12 @@ async def validar(
         except PlaywrightTimeoutError as exc:
             raise SiaseSinRespuesta("SIASE no responde") from exc
 
-        if await _buscar_scope(page, S.SIASE_NEXUS_LOGO, 4) is not None:
-            return
-        scope = await _buscar_scope(page, S.SIASE_CUENTA, 25)
-        if scope is None:
+        encontrado = await _buscar_alguno(page, [S.SIASE_NEXUS_LOGO, S.SIASE_CUENTA], 25)
+        if encontrado is None:
             raise SiaseSinRespuesta("SIASE no responde")
+        if encontrado[1] == S.SIASE_NEXUS_LOGO:
+            return
+        scope = encontrado[0]
         await hooks.paso("Validando credenciales", 0.4)
         await _llenar_formulario(scope, cuenta, password)
 
@@ -140,7 +137,7 @@ async def validar(
                 return
             if await _presente(page, S.SIASE_ERROR_LOGIN):
                 raise CredencialesInvalidas("Cuenta o contraseña incorrecta")
-            await asyncio.sleep(0.5)
+            await asyncio.sleep(0.2)
         if await _presente(page, S.SIASE_CUENTA):
             raise CredencialesInvalidas("Cuenta o contraseña incorrecta")
         raise SiaseSinRespuesta("SIASE no responde")

@@ -6,6 +6,29 @@ from pathlib import Path
 from playwright.async_api import BrowserContext, Locator, Page, Playwright, async_playwright
 
 VIEWPORT = {"width": 1366, "height": 900}
+RECURSOS_BLOQUEADOS = {"image", "font", "media"}
+TIMEOUT_POR_DEFECTO_MS = 10_000
+TIMEOUT_NAVEGACION_MS = 30_000
+
+
+def bloquear_recurso(resource_type: str, page_url: str) -> bool:
+    if resource_type not in RECURSOS_BLOQUEADOS:
+        return False
+    if not page_url or page_url.startswith("about:"):
+        return False
+    return "gemini.google.com" not in page_url
+
+
+async def _filtrar_recursos(route) -> None:
+    request = route.request
+    try:
+        url_pagina = request.frame.url
+    except Exception:
+        url_pagina = ""
+    if bloquear_recurso(request.resource_type, url_pagina):
+        await route.abort()
+    else:
+        await route.continue_()
 
 
 async def pausa(minimo: float = 0.4, maximo: float = 1.4) -> None:
@@ -83,6 +106,9 @@ class BrowserManager:
             ignore_default_args=["--enable-automation"],
             args=["--disable-blink-features=AutomationControlled"],
         )
+        ctx.set_default_timeout(TIMEOUT_POR_DEFECTO_MS)
+        ctx.set_default_navigation_timeout(TIMEOUT_NAVEGACION_MS)
+        await ctx.route("**/*", _filtrar_recursos)
         self._ctx = ctx
         self._headless = objetivo
         ctx.on("close", lambda _: self._olvidar(ctx))
