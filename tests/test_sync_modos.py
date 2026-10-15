@@ -33,6 +33,9 @@ class _Pagina:
     def is_closed(self):
         return False
 
+    def on(self, evento, manejador):
+        return None
+
     def locator(self, sel):
         return _Contador(sel)
 

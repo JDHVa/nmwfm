@@ -7,7 +7,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from playwright.async_api import Page
 
 from . import config
-from .core import documents, images, nexus, selectors, siase
+from .core import documents, images, metricas, nexus, selectors, siase
+from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
 from .core.prompt_builder import PromptData, build_prompt
@@ -51,6 +52,7 @@ class AppState:
         self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
+        self.catalogo = Catalogo(self.paths.debug / "api" if dev else None)
         limpiar_autoevaluaciones(self.storage)
 
     def file_url(self, path: str | Path | None) -> str | None:
@@ -128,6 +130,7 @@ async def ensure_nexus(state: AppState, hooks: Hooks, headless: bool | None = No
     cuenta, password = require_credentials(state)
     state.nexus_page = await siase.login(ctx, cuenta, password, hooks)
     state.sesion_muerta_registrada = False
+    state.catalogo.adjuntar(state.nexus_page)
     return state.nexus_page
 
 
@@ -194,6 +197,9 @@ class SesionCaida(Exception):
 
 
 async def _a_estructura(page: Page, indice: int, nombre: str) -> None:
+    with contextlib.suppress(Exception):
+        if await page.locator(selectors.NX_PANEL_ITEM_LINK).count() > 0:
+            return
     try:
         await nexus.volver_a_estructura(page)
     except Exception:
@@ -251,7 +257,8 @@ async def _recorrer_tareas(
             0.08 + 0.9 * sum(acum["fracciones"].values()) / n,
         )
         try:
-            await leer(page, fila)
+            async with metricas.medir("tarea"):
+                await leer(page, fila)
         except Exception as exc:
             if await _sesion_caida(page):
                 raise SesionCaida() from exc
@@ -339,9 +346,23 @@ async def _en_lista(page: Page) -> None:
 
 
 async def _secuencial(state: AppState, ctx: JobContext, procesar, modo, reanudar, acum):
+    medidor = metricas.Metricas()
+    token = metricas.actual.set(medidor)
+    try:
+        n, fallidas = await _recorrer_materias(state, ctx, procesar, modo, reanudar, acum)
+    finally:
+        metricas.actual.reset(token)
+        await ctx.log(medidor.texto())
+        state.catalogo.guardar()
+    acum["tiempos"] = medidor.resumen()
+    return n, fallidas
+
+
+async def _recorrer_materias(state: AppState, ctx: JobContext, procesar, modo, reanudar, acum):
     hooks = ctx.hooks()
     await ctx.update("Iniciando sesión", 0.0)
-    page = await ensure_nexus(state, hooks, headless=True)
+    async with metricas.medir("login"):
+        page = await ensure_nexus(state, hooks, headless=True)
     await ctx.update("Leyendo materias", 0.05)
     try:
         await _en_lista(page)
@@ -363,7 +384,8 @@ async def _secuencial(state: AppState, ctx: JobContext, procesar, modo, reanudar
     for i, m in enumerate(materias):
         for intento in range(2):
             try:
-                await procesar(state, ctx, page, modo, reanudar, i, n, m, acum)
+                async with metricas.medir("materia"):
+                    await procesar(state, ctx, page, modo, reanudar, i, n, m, acum)
                 break
             except Exception as exc:
                 page = state.nexus_page or page
@@ -402,6 +424,7 @@ def _acumulador() -> dict:
         "revisadas": 0,
         "entregadas": 0,
         "pendientes": 0,
+        "tiempos": {},
     }
 
 
@@ -425,6 +448,7 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
         "detalles_leidos": acum["detalles_leidos"],
         "nuevas": acum["nuevas"],
         "errores": acum["errores"],
+        "tiempos": acum["tiempos"],
     }
 
 

@@ -5,6 +5,7 @@ import re
 import unicodedata
 from typing import TYPE_CHECKING
 
+from . import metricas
 from . import selectors as S
 from .browser import ElementoNoEncontrado
 from .browser import clic_robusto as _clic
@@ -504,6 +505,11 @@ async def _volver_a_contenidos(page: "Page") -> None:
 
 
 async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
+    async with metricas.medir("rubrica"):
+        return await _leer_rubrica(page)
+
+
+async def _leer_rubrica(page: "Page") -> Rubrica | None:
     await _clic_pestana(page, S.NX_TAB_RUBRICA_CSS, S.NX_TAB_RUBRICA_TEXT)
     try:
 
@@ -518,6 +524,11 @@ async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
 
 
 async def leer_entregas(page: "Page") -> list[Entrega]:
+    async with metricas.medir("entregas"):
+        return await _leer_entregas(page)
+
+
+async def _leer_entregas(page: "Page") -> list[Entrega]:
     await _clic_pestana(page, S.NX_TAB_ENTREGAS_CSS, S.NX_TAB_ENTREGAS_TEXT)
     try:
 
