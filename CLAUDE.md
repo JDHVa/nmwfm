@@ -25,7 +25,8 @@ Todo desde la raíz del repo (`npm install` instala también `app/`):
 - Si surge una duda, se interrumpe el flujo y se le pregunta al usuario antes de asumir.
 - Roles de desarrollo: **Sonnet 5.5 (`claude-sonnet-5-5`) escribe el código; Opus 5.5 (`claude-opus-5-5`) solo revisa e integra.** Hay un agente para la UI y otro para el backend, cada uno en su worktree. Opus define el contrato de API y los criterios de aceptación, revisa cada entrega y devuelve correcciones al mismo agente. Nada se integra sin la aprobación de Opus ni con lint/tests en rojo. Las plantillas de prompts están en `.claude/prompts/`.
 - Instalaciones de herramientas o dependencias del sistema: se delegan a agentes con modelo **Haiku**.
-- No automatizar el login de Google; Gemini solo a través del perfil persistente y a ritmo humano (pausas aleatorias, escritura no instantánea). Ante captcha o aviso, pausar y pedir intervención.
+- Velocidad: SIASE/NEXUS al máximo (`fill` directo, sin pausas humanas, esperas por selector y no por tiempo, bloquear imágenes/fuentes/media; sync con hasta 5 pestañas en paralelo). Gemini semi-rápido: el prompt se pega de golpe (como Ctrl+V), con solo un par de pausas cortas.
+- No automatizar el login de Google; Gemini solo a través del perfil persistente. Ante captcha o aviso, pausar y pedir intervención.
 - Credenciales solo en keyring; nada sensible en el repo, logs ni SQLite.
 - Nunca entregar en NEXUS sin revisión, salvo que el flag "entregar sin revisar" esté activo.
 - Selectores de SIASE/NEXUS centralizados en `backend/core/selectors.py`.
