@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { PageHeader } from "@/components/PageHeader";
 import { useNav } from "@/lib/app-context";
+import { token } from "@/lib/tokens";
 import { keys, useGeneracion, useJobRunner, useSettings, useTarea } from "@/lib/queries";
 import { DetalleTarea } from "@/views/tarea/DetalleTarea";
 import { EntregarStep } from "@/views/tarea/EntregarStep";
@@ -58,7 +59,8 @@ export function TareaView({ id, materiaId }: { id: string; materiaId: string }) 
             transition="fade"
             frame={false}
             width="100%"
-            accentColor="#8b7bff"
+            accentColor={token("--primary")}
+            theme="light"
           >
             <Step title="Insumos">
               <div className="space-y-6 pt-6">

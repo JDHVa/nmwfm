@@ -14,6 +14,7 @@ import {
 import { JobProgress } from "@/components/JobProgress";
 import { api, type TareaDetalle } from "@/lib/api";
 import { useReducedMotion } from "@/lib/app-context";
+import { token } from "@/lib/tokens";
 import { keys, useGeneracion, useJobRunner, useSettings } from "@/lib/queries";
 
 export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras: () => void }) {
@@ -44,7 +45,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
 
   return (
     <ClickSpark
-      sparkColor={["#a78bfa", "#38bdf8", "#34d399"]}
+      sparkColor={[token("--primary"), token("--mint"), token("--grad-to")]}
       sparkCount={14}
       sparkRadius={60}
       disabled={reducido}
@@ -55,7 +56,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
         <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-8 text-center backdrop-blur">
           {entregada ? (
             <>
-              <PartyPopper className="size-10 text-emerald-400" />
+              <PartyPopper className="size-10 text-success" />
               <h2 className="text-xl font-semibold">Tarea entregada</h2>
               <p className="text-sm text-muted-foreground">El PDF ya se subió a NEXUS.</p>
             </>
@@ -69,7 +70,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
                 Se subirá el PDF de «{tarea.titulo}». Esta acción no se puede deshacer desde la aplicación.
               </p>
               {settings?.entregar_sin_revisar && (
-                <p className="text-xs text-amber-300">«Entregar sin revisar» está activo.</p>
+                <p className="text-xs text-warning">«Entregar sin revisar» está activo.</p>
               )}
               {!gen && <p className="text-sm text-destructive">Primero genera el documento.</p>}
               <Button size="lg" disabled={!gen || runner.running} onClick={() => setAbierto(true)}>
@@ -82,7 +83,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
         {entregada && (
           <div
             role="status"
-            className="fixed bottom-14 right-6 z-50 rounded-lg border border-emerald-400/40 bg-popover px-4 py-3 text-sm shadow-2xl"
+            className="fixed bottom-14 right-6 z-50 rounded-lg border border-success/40 bg-popover px-4 py-3 text-sm shadow-2xl"
           >
             {mensajeOk}
           </div>
@@ -103,7 +104,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
             {reemplazo && (
               <p
                 role="alert"
-                className="rounded-md border border-amber-400/50 bg-amber-400/10 px-3 py-2 text-sm font-medium text-amber-300"
+                className="rounded-md border border-warning/50 bg-warning/10 px-3 py-2 text-sm font-medium text-warning"
               >
                 Ya entregaste esta tarea. Se reemplazará la entrega anterior.
               </p>

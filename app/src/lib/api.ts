@@ -54,7 +54,7 @@ export type Insumo = {
   usar_recorte: boolean;
 };
 export type InsumoPatch = Partial<Pick<Insumo, "orden" | "rotacion" | "usar_recorte" | "texto">>;
-export type JobTipo = "sync" | "generar" | "entregar" | "login_gemini";
+export type JobTipo = "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase";
 export type JobEstado = "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error";
 export type Job = {
   id: string;
@@ -151,6 +151,7 @@ export const api = {
   getSettings: () => request<Settings>("GET", "/settings"),
   putSettings: (data: SettingsUpdate) => request<Settings>("PUT", "/settings", data),
   loginGemini: () => request<Job>("POST", "/gemini/login"),
+  validarSiase: () => request<Job>("POST", "/siase/validar"),
   sync: () => request<Job>("POST", "/sync"),
   materias: () => request<Materia[]>("GET", "/materias"),
   etapas: (materiaId: string) => request<EtapaConTareas[]>("GET", `/materias/${materiaId}/etapas`),
@@ -290,16 +291,19 @@ export function useJobUpdates(jobId: string | null | undefined, onJob: (job: Job
     const unsub = subscribeWs((m) => {
       if (m.type === "job" && m.job.id === jobId) cb.current(m.job);
     });
-    const poll = setInterval(async () => {
+    const check = async () => {
       try {
         const j = await api.job(jobId);
         if (alive) cb.current(j);
       } catch {
         return;
       }
-    }, 2500);
+    };
+    const first = setTimeout(check, 300);
+    const poll = setInterval(check, 2500);
     return () => {
       alive = false;
+      clearTimeout(first);
       clearInterval(poll);
       unsub();
     };

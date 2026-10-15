@@ -23,7 +23,7 @@ export function JobProgress({
     >
       <div className="flex items-center gap-3 text-sm">
         {job && jobActivo(job) && <Loader2 className="size-4 animate-spin text-primary" />}
-        {estado === "ok" && <CheckCircle2 className="size-4 text-emerald-400" />}
+        {estado === "ok" && <CheckCircle2 className="size-4 text-success" />}
         {(estado === "error" || error) && <AlertTriangle className="size-4 text-destructive" />}
         <span className="font-medium">{error ?? job?.paso}</span>
         {job && jobActivo(job) && (

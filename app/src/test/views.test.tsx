@@ -30,18 +30,18 @@ describe("vistas con backend simulado", () => {
 
   afterEach(() => cleanup());
 
-  it("muestra la configuración en el primer arranque", async () => {
+  it("muestra el login en el primer arranque", async () => {
     montar();
-    expect(await screen.findByRole("heading", { name: "Bienvenido a nmwfm" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Iniciar sesión/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Cuenta")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Iniciar sesión en Gemini/ })).toBeInTheDocument();
-    expect(screen.getByRole("switch", { name: "Entregar sin revisar" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeInTheDocument();
   });
 
   it("recorre materias, etapas y tarea cuando ya hay cuenta", async () => {
     await api.putSettings({ cuenta: "a1234567", nombre: "Ana", matricula: "1234567", password: "x" });
     const user = userEvent.setup();
     montar();
+    await user.click(await screen.findByRole("button", { name: /Hola/ }));
 
     expect(await screen.findByRole("heading", { name: "Materias" })).toBeInTheDocument();
     expect(await screen.findByText("Algoritmos Bio Inspirados")).toBeInTheDocument();
@@ -62,6 +62,7 @@ describe("vistas con backend simulado", () => {
     await api.putSettings({ cuenta: "a1234567", nombre: "Ana", matricula: "1234567", password: "x" });
     const user = userEvent.setup();
     montar();
+    await user.click(await screen.findByRole("button", { name: /Hola/ }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     const filas = await screen.findAllByText("Evidencia de Aprendizaje - Informe");
     await user.click(filas[0]);
@@ -74,6 +75,7 @@ describe("vistas con backend simulado", () => {
     await api.putSettings({ cuenta: "a1234567", nombre: "Ana", matricula: "1234567", password: "x" });
     const user = userEvent.setup();
     montar();
+    await user.click(await screen.findByRole("button", { name: /Hola/ }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     await user.click(await screen.findByText("Dimensión 2 - Comprensión - Ficha Técnica"));
     const input = await screen.findByTestId("input-archivos");

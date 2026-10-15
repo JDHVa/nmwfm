@@ -228,7 +228,7 @@ function TarjetaInsumo({
         {esImagen && <span>{insumo.usar_recorte ? "Recortada" : "Original"}</span>}
       </div>
 
-      <div className="flex aspect-[3/4] items-center justify-center overflow-hidden bg-black/30 p-2">
+      <div className="flex aspect-[3/4] items-center justify-center overflow-hidden bg-muted p-2">
         {!esImagen && (
           <div className="h-full w-full overflow-hidden text-xs leading-relaxed text-muted-foreground">
             <FileText className="mb-2 size-4 text-primary" />

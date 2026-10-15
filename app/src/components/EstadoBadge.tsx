@@ -3,9 +3,9 @@ import type { EstadoTarea } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 const ESTADOS: Record<EstadoTarea, { texto: string; clase: string }> = {
-  pendiente: { texto: "Pendiente", clase: "border-amber-400/40 bg-amber-400/10 text-amber-300" },
-  generada: { texto: "Generada", clase: "border-sky-400/40 bg-sky-400/10 text-sky-300" },
-  entregada: { texto: "Entregada", clase: "border-emerald-400/40 bg-emerald-400/10 text-emerald-300" },
+  pendiente: { texto: "Pendiente", clase: "border-warning/40 bg-warning/10 text-warning" },
+  generada: { texto: "Generada", clase: "border-info/40 bg-info/10 text-info" },
+  entregada: { texto: "Entregada", clase: "border-success/40 bg-success/10 text-success" },
 };
 
 export function EstadoBadge({ estado }: { estado: EstadoTarea }) {

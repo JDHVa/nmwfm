@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { JobProgress } from "@/components/JobProgress";
 import { PageHeader } from "@/components/PageHeader";
 import { api } from "@/lib/api";
+import { token } from "@/lib/tokens";
 import { useNav } from "@/lib/app-context";
 import { useJobRunner, useMaterias } from "@/lib/queries";
 
@@ -43,7 +44,7 @@ export function MateriasView() {
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {materias?.map((m) => (
           <li key={m.id}>
-            <SpotlightCard theme="dark" spotlightColor="#8b7bff" className="h-full !p-0">
+            <SpotlightCard theme="light" spotlightColor={token("--primary")} className="h-full !p-0">
               <button
                 type="button"
                 onClick={() => go({ name: "materia", id: m.id })}

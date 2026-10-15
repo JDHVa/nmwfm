@@ -78,7 +78,7 @@ export default function PdfViewer({ url }: { url: string }) {
           </Button>
         </div>
       </div>
-      <div ref={caja} className="flex max-h-[70vh] min-h-64 justify-center overflow-auto bg-black/30 p-4">
+      <div ref={caja} className="flex max-h-[70vh] min-h-64 justify-center overflow-auto bg-muted p-4">
         {fallo ? (
           <p className="self-center text-sm text-destructive">{fallo}</p>
         ) : (
