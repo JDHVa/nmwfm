@@ -81,7 +81,6 @@ async def login(
     async with ctx.expect_page() as nueva:
         await link.click()
     nexus = await nueva.value
-    await nexus.wait_for_url(lambda u: config.NEXUS_URL_FRAGMENT in u, timeout=60000)
-    await nexus.wait_for_load_state("domcontentloaded")
+    await nexus.wait_for_selector(S.NX_CARD, timeout=60000)
     await pausa()
     return nexus
