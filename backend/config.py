@@ -42,7 +42,8 @@ class Paths:
         self.browser_profile = self.data / "browser_profile"
         self.insumos = self.data / "insumos"
         self.generaciones = self.data / "generaciones"
+        self.debug = self.data / "debug"
 
     def ensure(self) -> None:
-        for p in (self.data, self.insumos, self.generaciones):
+        for p in (self.data, self.insumos, self.generaciones, self.debug):
             p.mkdir(parents=True, exist_ok=True)

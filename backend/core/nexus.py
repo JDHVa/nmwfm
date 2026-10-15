@@ -239,13 +239,17 @@ def parse_rubrica(markup_or_el) -> Rubrica | None:
     return Rubrica(niveles=niveles, criterios=criterios)
 
 
+async def _html(locator) -> str:
+    return await locator.evaluate("e => e.outerHTML")
+
+
 async def esperar_lista(page: "Page", timeout: float = 30000) -> None:
     await page.wait_for_selector(S.NX_CARD, timeout=timeout)
 
 
 async def leer_materias(page: "Page") -> list[MateriaCard]:
     await esperar_lista(page)
-    return parse_materias(await page.locator(S.NX_CARDS_ROOT).inner_html())
+    return parse_materias(await _html(page.locator(S.NX_CARDS_ROOT)))
 
 
 async def abrir_materia(page: "Page", indice: int) -> Portada:
@@ -257,7 +261,7 @@ async def abrir_materia(page: "Page", indice: int) -> Portada:
     await card.locator(S.NX_CARD_CLICK).first.click()
     await page.wait_for_selector(S.NX_PORTADA, timeout=30000)
     await pausa()
-    return parse_portada(await page.locator(S.NX_PORTADA).inner_html())
+    return parse_portada(await _html(page.locator(S.NX_PORTADA)))
 
 
 async def abrir_estructura(page: "Page") -> list[EtapaItem]:
@@ -267,7 +271,7 @@ async def abrir_estructura(page: "Page") -> list[EtapaItem]:
     await page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA).first.click()
     await page.wait_for_selector(S.NX_PANEL, timeout=30000)
     await pausa()
-    return parse_estructura(await page.locator(S.NX_ESTRUCTURA).inner_html())
+    return parse_estructura(await _html(page.locator(S.NX_ESTRUCTURA)))
 
 
 async def abrir_tarea(page: "Page", etapa_idx: int, tarea_idx: int) -> DetalleTarea:
@@ -278,7 +282,7 @@ async def abrir_tarea(page: "Page", etapa_idx: int, tarea_idx: int) -> DetalleTa
     await panel.locator(S.NX_PANEL_ITEM_LINK).nth(tarea_idx).click()
     await page.wait_for_selector(S.NX_DETALLE_ROOT, timeout=30000)
     await pausa()
-    html = await page.locator("mat-sidenav-content").inner_html()
+    html = await _html(page.locator("mat-sidenav-content"))
     detalle = parse_detalle(html)
     if tiene_pestana_rubrica(html):
         detalle.rubrica = await _leer_rubrica_pestana(page)
@@ -299,7 +303,7 @@ async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
     await _clic_pestana(page, S.NX_TAB_RUBRICA_CSS, S.NX_TAB_RUBRICA_TEXT)
     try:
         await page.wait_for_selector(S.NX_RUBRICA, timeout=10000)
-        rubrica = parse_rubrica(await page.locator("mat-sidenav-content").inner_html())
+        rubrica = parse_rubrica(await _html(page.locator("mat-sidenav-content")))
     finally:
         await pausa()
         with contextlib.suppress(Exception):
@@ -352,7 +356,7 @@ async def _esperar_snackbar(page: "Page", timeout: float = 60.0) -> Snackbar:
     while loop.time() < limite:
         bars = page.locator(S.NX_SNACKBAR)
         if await bars.count():
-            snack = parse_snackbar(await bars.last.evaluate("el => el.outerHTML"))
+            snack = parse_snackbar(await _html(bars.last))
             if snack is not None and snack.texto:
                 return snack
         await asyncio.sleep(0.5)
