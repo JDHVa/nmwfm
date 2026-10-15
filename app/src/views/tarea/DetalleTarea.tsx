@@ -68,7 +68,7 @@ export function TablaRubrica({ rubrica }: { rubrica: Rubrica }) {
 
 export function DetalleTarea({ tarea }: { tarea: TareaDetalle }) {
   return (
-    <div className="space-y-5 rounded-xl border bg-card p-6 backdrop-blur">
+    <div className="space-y-5 rounded-xl border bg-card p-6">
       <div className="flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
         <span>{fechaRango(tarea.desde, tarea.hasta)}</span>
         {tarea.puntos !== null && <span>{tarea.puntos} pts</span>}

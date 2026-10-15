@@ -46,7 +46,7 @@ export function GenerarStep({
 
   return (
     <div className="space-y-5">
-      <div className="space-y-2 rounded-xl border bg-card p-4 backdrop-blur">
+      <div className="space-y-2 rounded-xl border bg-card p-4">
         <label htmlFor="instrucciones-extra" className="text-sm font-medium">
           Instrucciones extra (opcional)
         </label>
@@ -65,7 +65,7 @@ export function GenerarStep({
       </div>
 
       {running && (
-        <div className="flex flex-col items-center gap-3 rounded-xl border bg-card/60 p-8 text-center backdrop-blur">
+        <div className="flex flex-col items-center gap-3 rounded-xl border bg-card/60 p-8 text-center">
           <Sparkles className="size-6 text-primary" />
           {reducido ? (
             <p className="text-lg font-semibold">{job?.paso}</p>

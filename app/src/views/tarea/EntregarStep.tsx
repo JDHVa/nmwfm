@@ -53,7 +53,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
       glow={0.4}
     >
       <div ref={caja} className="space-y-5">
-        <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-8 text-center backdrop-blur">
+        <div className="flex flex-col items-center gap-3 rounded-xl border bg-card p-8 text-center">
           {entregada ? (
             <>
               <PartyPopper className="size-10 text-success" />

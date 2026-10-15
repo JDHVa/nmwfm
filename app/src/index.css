@@ -39,7 +39,7 @@
 [data-theme="dark"] {
   --background: #070b1a;
   --foreground: #f1f5f9;
-  --card: rgb(255 255 255 / 0.07);
+  --card: #111833;
   --card-foreground: #f1f5f9;
   --popover: #111836;
   --popover-foreground: #f1f5f9;
@@ -59,11 +59,11 @@
   --info: #38bdf8;
   --danger: #f87171;
   --destructive: #dc2626;
-  --border: rgb(255 255 255 / 0.1);
+  --border: rgb(255 255 255 / 0.08);
   --input: rgb(255 255 255 / 0.4);
   --ring: #818cf8;
   --scroll: rgb(255 255 255 / 0.18);
-  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 10px 28px -10px rgb(0 0 0 / 0.5);
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.35);
   --shadow-pop: 0 4px 12px rgb(0 0 0 / 0.4), 0 24px 48px -12px rgb(0 0 0 / 0.6);
 }
 
@@ -142,11 +142,6 @@
   transition-duration: 0.001ms !important;
 }
 
-[data-theme="dark"] .bg-card {
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
-
 html.theme-anim,
 html.theme-anim *,
 html.theme-anim *::before,
@@ -157,4 +152,117 @@ html.theme-anim *::after {
     border-color 0.35s ease,
     fill 0.35s ease,
     stroke 0.35s ease !important;
+}
+
+.sky,
+.sky-stars {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+.sky {
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 0%, rgb(99 102 241 / 0.24), transparent 70%),
+    radial-gradient(ellipse 60% 50% at 95% 100%, rgb(139 92 246 / 0.18), transparent 70%),
+    linear-gradient(180deg, #070b1a, #0b1230);
+}
+
+.sky-stars {
+  background-repeat: repeat;
+}
+
+.sky-stars-a {
+  background-size: 520px 520px;
+  background-image:
+    radial-gradient(1px 1px at 331px 154px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 49px 74px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 374px 59px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 38px 88px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 428px 71px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 92px 434px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 126px 228px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 406px 50px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 47px 136px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 429px 147px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 315px 185px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 192px 381px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 64px 61px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 508px 437px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 476px 464px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 306px 254px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 249px 83px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 506px 351px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 294px 74px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 428px 168px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 155px 500px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 40px 79px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 348px 358px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 467px 70px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 276px 485px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 62px 317px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 291px 395px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 23px 472px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 172px 119px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 60px 223px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 132px 253px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 400px 508px, rgb(255 255 255 / 0.85), transparent),
+    radial-gradient(1px 1px at 170px 459px, rgb(199 210 254 / 0.8), transparent),
+    radial-gradient(1px 1px at 284px 140px, rgb(199 210 254 / 0.8), transparent);
+}
+
+.sky-stars-b {
+  background-size: 760px 760px;
+  background-image:
+    radial-gradient(2px 2px at 563px 285px, rgb(221 214 254 / 0.8), transparent),
+    radial-gradient(2px 2px at 425px 367px, rgb(221 214 254 / 0.8), transparent),
+    radial-gradient(2px 2px at 389px 236px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(2px 2px at 84px 180px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(2px 2px at 237px 674px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(2px 2px at 12px 496px, rgb(221 214 254 / 0.8), transparent),
+    radial-gradient(2px 2px at 186px 269px, rgb(165 243 252 / 0.8), transparent),
+    radial-gradient(2px 2px at 4px 149px, rgb(165 243 252 / 0.8), transparent),
+    radial-gradient(2px 2px at 547px 378px, rgb(221 214 254 / 0.8), transparent),
+    radial-gradient(2px 2px at 579px 326px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(2px 2px at 707px 527px, rgb(221 214 254 / 0.8), transparent),
+    radial-gradient(2px 2px at 670px 692px, rgb(221 214 254 / 0.8), transparent),
+    radial-gradient(2px 2px at 55px 467px, rgb(221 214 254 / 0.8), transparent),
+    radial-gradient(2px 2px at 572px 401px, rgb(165 243 252 / 0.8), transparent),
+    radial-gradient(2px 2px at 408px 403px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(2px 2px at 493px 649px, rgb(165 243 252 / 0.8), transparent),
+    radial-gradient(2px 2px at 63px 195px, rgb(255 255 255 / 0.9), transparent),
+    radial-gradient(2px 2px at 213px 451px, rgb(255 255 255 / 0.9), transparent);
+}
+
+.sky-stars-c {
+  background-size: 940px 940px;
+  background-image:
+    radial-gradient(2px 2px at 112px 348px, rgb(255 255 255 / 0.95), transparent),
+    radial-gradient(2px 2px at 104px 0px, rgb(255 255 255 / 0.95), transparent),
+    radial-gradient(2px 2px at 549px 103px, rgb(199 210 254 / 0.9), transparent),
+    radial-gradient(2px 2px at 628px 26px, rgb(255 255 255 / 0.95), transparent),
+    radial-gradient(2px 2px at 895px 212px, rgb(199 210 254 / 0.9), transparent),
+    radial-gradient(2px 2px at 152px 649px, rgb(199 210 254 / 0.9), transparent),
+    radial-gradient(2px 2px at 355px 616px, rgb(199 210 254 / 0.9), transparent),
+    radial-gradient(2px 2px at 485px 125px, rgb(255 255 255 / 0.95), transparent),
+    radial-gradient(2px 2px at 869px 499px, rgb(199 210 254 / 0.9), transparent),
+    radial-gradient(2px 2px at 491px 495px, rgb(199 210 254 / 0.9), transparent),
+    radial-gradient(2px 2px at 87px 147px, rgb(255 255 255 / 0.95), transparent),
+    radial-gradient(2px 2px at 767px 350px, rgb(199 210 254 / 0.9), transparent);
+  will-change: opacity;
+  animation: twinkle 8s ease-in-out infinite alternate;
+}
+
+.sky-static .sky-stars-c {
+  animation: none;
+  will-change: auto;
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.25;
+  }
+  to {
+    opacity: 1;
+  }
 }
