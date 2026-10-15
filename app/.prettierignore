@@ -11,3 +11,4 @@ src/components/ui
 package-lock.json
 src/components/Silk.tsx
 src/components/BlurText.tsx
+src/components/Galaxy.tsx

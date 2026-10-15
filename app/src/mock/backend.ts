@@ -77,6 +77,8 @@ export function createMockBackend(options: MockOptions = {}) {
     dev: true,
     entregar_sin_revisar: false,
     reducir_animaciones: false,
+    sync_inicial_hecha: false,
+    ultima_sync: null,
   };
   const materias = MATERIAS.map((m) => ({ ...m }));
   const etapas = crearEtapas();
@@ -85,6 +87,7 @@ export function createMockBackend(options: MockOptions = {}) {
   const jobs = new Map<string, Job>();
   const emitters = new Set<Emitter>();
   let password = "";
+  let syncActivo: string | null = null;
   let seq = 0;
   let hue = 200;
 
@@ -106,6 +109,7 @@ export function createMockBackend(options: MockOptions = {}) {
     pasos: string[],
     alTerminar?: () => unknown,
     rechazo?: () => string | null,
+    ritmo = 1,
   ): Job {
     const job: Job = {
       id: `job-${++seq}`,
@@ -126,7 +130,7 @@ export function createMockBackend(options: MockOptions = {}) {
         log("info", pasos[i]);
         emit({ type: "job", job: { ...job } });
         i += 1;
-        setTimeout(tick, stepMs);
+        setTimeout(tick, stepMs * ritmo);
       } else {
         const motivo = rechazo?.() ?? null;
         if (motivo) {
@@ -199,17 +203,43 @@ export function createMockBackend(options: MockOptions = {}) {
       if (!settings.cuenta || !settings.tiene_password) {
         return fallo(400, "sin_credenciales", "Configura tu cuenta y contraseña antes de sincronizar");
       }
-      return json(
-        lanzarJob(
-          "sync",
-          ["Iniciando sesión en SIASE", "Entrando a NEXUS", "Leyendo materias", "Leyendo etapas y tareas"],
-          () => {
-            const ahora = new Date().toISOString();
-            materias.forEach((x) => (x.sincronizada_en = ahora));
-            return { materias: materias.length };
-          },
-        ),
+      const activo = syncActivo && jobs.get(syncActivo);
+      if (activo && (activo.estado === "en_cola" || activo.estado === "corriendo")) return json(activo);
+      const pedido = (body as { modo?: string } | undefined)?.modo ?? "auto";
+      const completo = pedido === "completo" || (pedido === "auto" && !settings.sync_inicial_hecha);
+      const pasos = completo
+        ? [
+            "Iniciando sesión en SIASE",
+            "Entrando a NEXUS",
+            "Leyendo materias",
+            ...materias.map(
+              (m, i) => `Leyendo detalle de tareas · ${i + 1} de ${materias.length}: ${m.nombre}`,
+            ),
+          ]
+        : ["Iniciando sesión en SIASE", "Revisando cambios en NEXUS"];
+      const job = lanzarJob(
+        "sync",
+        pasos,
+        () => {
+          const ahora = new Date().toISOString();
+          materias.forEach((x) => (x.sincronizada_en = ahora));
+          settings = { ...settings, sync_inicial_hecha: true, ultima_sync: ahora };
+          const tareas = Object.values(etapas)
+            .flat()
+            .reduce((n, e) => n + e.tareas.length, 0);
+          return {
+            materias: materias.length,
+            tareas,
+            detalles_leidos: completo ? tareas : 0,
+            nuevas: 0,
+            errores: [],
+          };
+        },
+        undefined,
+        completo ? 1 : 0.3,
       );
+      syncActivo = job.id;
+      return json(job);
     }
     if (path === "/materias") return json(materias);
     if ((m = path.match(/^\/materias\/([^/]+)\/etapas$/))) {

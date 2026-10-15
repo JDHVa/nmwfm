@@ -1,13 +1,14 @@
-import { BookOpen, CalendarRange, RefreshCw, UserRound } from "lucide-react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { BookOpen, CalendarRange, ChevronDown, RefreshCw, UserRound } from "lucide-react";
 import SpotlightCard from "@/components/SpotlightCard";
 import { Button } from "@/components/ui/button";
 import { JobProgress } from "@/components/JobProgress";
 import { PageHeader } from "@/components/PageHeader";
-import { api } from "@/lib/api";
 import { token } from "@/lib/tokens";
 import { useNav } from "@/lib/app-context";
-import { useJobRunner, useMaterias } from "@/lib/queries";
+import { useMaterias } from "@/lib/queries";
+import { useSync } from "@/lib/sync";
+import { useTheme } from "@/lib/theme";
 
 function fechaCorta(iso: string | null): string {
   if (!iso) return "Sin sincronizar";
@@ -16,9 +17,10 @@ function fechaCorta(iso: string | null): string {
 
 export function MateriasView() {
   const { data: materias, isLoading, error } = useMaterias();
-  const qc = useQueryClient();
   const { go } = useNav();
-  const sync = useJobRunner(() => qc.invalidateQueries());
+  const sync = useSync();
+  const { resuelto } = useTheme();
+  const [menu, setMenu] = useState(false);
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-8">
@@ -26,12 +28,41 @@ export function MateriasView() {
         titulo="Materias"
         descripcion="Elige una materia para ver sus etapas y tareas."
         acciones={
-          <Button onClick={() => sync.start(api.sync)} disabled={sync.running}>
-            <RefreshCw className={sync.running ? "animate-spin" : ""} /> Sincronizar
-          </Button>
+          <div className="relative flex">
+            <Button
+              className="rounded-r-none"
+              onClick={() => sync.iniciar("incremental")}
+              disabled={sync.running}
+            >
+              <RefreshCw className={sync.running ? "animate-spin" : ""} /> Sincronizar
+            </Button>
+            <Button
+              className="rounded-l-none border-l border-primary-foreground/30 px-2"
+              aria-label="Más opciones de sincronización"
+              aria-expanded={menu}
+              disabled={sync.running}
+              onClick={() => setMenu((v) => !v)}
+            >
+              <ChevronDown />
+            </Button>
+            {menu && (
+              <div className="absolute right-0 top-full z-20 mt-2 w-56 rounded-xl border bg-popover p-1 shadow-pop">
+                <button
+                  type="button"
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-accent"
+                  onClick={() => {
+                    setMenu(false);
+                    sync.iniciar("completo");
+                  }}
+                >
+                  Sincronizar todo de nuevo
+                </button>
+              </div>
+            )}
+          </div>
         }
       />
-      <JobProgress job={sync.job} error={sync.error} />
+      {sync.running && <JobProgress job={sync.job} error={sync.error} />}
 
       {isLoading && <p className="text-muted-foreground">Cargando materias…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
@@ -44,7 +75,11 @@ export function MateriasView() {
       <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {materias?.map((m) => (
           <li key={m.id}>
-            <SpotlightCard theme="light" spotlightColor={token("--primary")} className="h-full !p-0">
+            <SpotlightCard
+              theme={resuelto === "oscuro" ? "dark" : "light"}
+              spotlightColor={token("--primary")}
+              className="h-full !p-0"
+            >
               <button
                 type="button"
                 onClick={() => go({ name: "materia", id: m.id })}

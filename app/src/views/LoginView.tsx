@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { Loader2, RefreshCw, Rocket, Send, Sparkles } from "lucide-react";
 import { Logo } from "@/components/Logo";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { PasswordInput } from "@/components/PasswordInput";
 import RotatingText from "@/components/RotatingText";
 import { Button } from "@/components/ui/button";
@@ -81,7 +82,8 @@ export function LoginView({ settings, onEntrar }: { settings: Settings; onEntrar
   const mensajeError = fallo ?? verificacion.error;
 
   return (
-    <div className="grid min-h-full overflow-y-auto lg:grid-cols-[55fr_45fr]">
+    <div className="relative grid min-h-full overflow-y-auto lg:grid-cols-[55fr_45fr]">
+      <ThemeToggle className="absolute right-4 top-4 z-10" />
       <section className="relative flex flex-col justify-center gap-8 px-8 py-12 lg:px-16">
         <div className="flex items-center gap-3">
           <Logo className="size-12" />

@@ -8,6 +8,8 @@ export type Settings = {
   dev: boolean;
   entregar_sin_revisar: boolean;
   reducir_animaciones: boolean;
+  sync_inicial_hecha: boolean;
+  ultima_sync: string | null;
 };
 export type SettingsUpdate = Partial<Settings> & { password?: string };
 export type Materia = {
@@ -64,6 +66,14 @@ export type Job = {
   progreso: number;
   mensaje: string | null;
   resultado: unknown;
+};
+export type SyncModo = "auto" | "completo" | "incremental";
+export type SyncResultado = {
+  materias: number;
+  tareas: number;
+  detalles_leidos: number;
+  nuevas: number;
+  errores: string[];
 };
 export type Generacion = {
   tarea_id: string;
@@ -152,7 +162,7 @@ export const api = {
   putSettings: (data: SettingsUpdate) => request<Settings>("PUT", "/settings", data),
   loginGemini: () => request<Job>("POST", "/gemini/login"),
   validarSiase: () => request<Job>("POST", "/siase/validar"),
-  sync: () => request<Job>("POST", "/sync"),
+  sync: (modo: SyncModo = "auto") => request<Job>("POST", "/sync", { modo }),
   materias: () => request<Materia[]>("GET", "/materias"),
   etapas: (materiaId: string) => request<EtapaConTareas[]>("GET", `/materias/${materiaId}/etapas`),
   tarea: (id: string) => request<TareaDetalle>("GET", `/tareas/${id}`),
@@ -229,6 +239,10 @@ function openSocket() {
       }, 1500);
     }
   };
+}
+
+export function emitLocalLog(level: string, message: string) {
+  listeners.forEach((l) => l({ type: "log", level, message }));
 }
 
 export function subscribeWs(listener: Listener): () => void {

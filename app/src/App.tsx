@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
-import { BookOpen, LogOut, Settings as SettingsIcon } from "lucide-react";
+import { BookOpen, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun } from "lucide-react";
 import Dock from "@/components/Dock";
 import { Background } from "@/components/Background";
 import { LogPanel } from "@/components/LogPanel";
+import { SyncIndicator, SyncOverlay } from "@/components/SyncStatus";
+import { siguienteTema } from "@/components/ThemeToggle";
 import { NavProvider, useNav, useReducedMotion } from "@/lib/app-context";
 import type { Settings } from "@/lib/api";
 import { useSettings } from "@/lib/queries";
 import { leerRecordar } from "@/lib/session";
+import { SyncProvider } from "@/lib/sync";
+import { ETIQUETA_TEMA, useTheme } from "@/lib/theme";
 import { token } from "@/lib/tokens";
 import { ConfigView } from "@/views/ConfigView";
 import { LoginView } from "@/views/LoginView";
@@ -17,6 +21,8 @@ import { TareaView } from "@/views/TareaView";
 
 function Shell({ onSalir }: { onSalir: () => void }) {
   const { view, go } = useNav();
+  const { tema, resuelto, setTema } = useTheme();
+  const IconoTema = tema === "sistema" ? Monitor : tema === "claro" ? Sun : Moon;
   const enMaterias = view.name === "materias" || view.name === "materia" || view.name === "tarea";
 
   return (
@@ -25,7 +31,7 @@ function Shell({ onSalir }: { onSalir: () => void }) {
         <nav aria-label="Navegación" className="relative w-24 shrink-0">
           <Dock
             position="left"
-            theme="light"
+            theme={resuelto === "oscuro" ? "dark" : "light"}
             accentColor={token("--primary")}
             showLabels
             items={[
@@ -42,6 +48,11 @@ function Shell({ onSalir }: { onSalir: () => void }) {
                 onClick: () => go({ name: "config" }),
               },
               {
+                label: `Tema: ${ETIQUETA_TEMA[tema]}`,
+                icon: <IconoTema className="size-5" />,
+                onClick: () => setTema(siguienteTema(tema)),
+              },
+              {
                 label: "Cerrar sesión",
                 icon: <LogOut className="size-5" />,
                 onClick: onSalir,
@@ -49,7 +60,8 @@ function Shell({ onSalir }: { onSalir: () => void }) {
             ]}
           />
         </nav>
-        <main className="min-w-0 flex-1 overflow-y-auto">
+        <main className="relative min-w-0 flex-1 overflow-y-auto">
+          <SyncIndicator className="absolute right-6 top-4 z-20" />
           {view.name === "config" && <ConfigView />}
           {view.name === "materias" && <MateriasView />}
           {view.name === "materia" && <MateriaView id={view.id} />}
@@ -81,7 +93,10 @@ function Raiz({ settings }: { settings: Settings }) {
         {fase === "saludo" && <SaludoView nombre={settings.nombre} onTerminar={() => setFase("app")} />}
         {fase === "app" && (
           <NavProvider initial={{ name: "materias" }}>
-            <Shell onSalir={() => setFase("login")} />
+            <SyncProvider>
+              <Shell onSalir={() => setFase("login")} />
+              <SyncOverlay />
+            </SyncProvider>
           </NavProvider>
         )}
       </div>
