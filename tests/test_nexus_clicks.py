@@ -96,6 +96,7 @@ def test_abrir_materia_repite_el_clic_si_no_aparece_la_portada(monkeypatch):
 
 class _PaginaSync:
     url = "https://plataformanexus.uanl.mx/"
+    page = property(lambda self: self)
 
     def is_closed(self):
         return False
@@ -119,7 +120,7 @@ def _sync(state, monkeypatch, fallan):
     async def fake_leer(page):
         return [MateriaCard("1", "Uno", 0), MateriaCard("2", "Dos", 1)]
 
-    async def fake_abrir(page, i):
+    async def fake_abrir(page, i, nombre=None):
         if i in fallan:
             raise TimeoutError("Timeout 30000ms\nlinea 2")
         return Portada("PROFE", "periodo", None)
@@ -130,11 +131,16 @@ def _sync(state, monkeypatch, fallan):
     async def fake_volver(page):
         return None
 
-    async def fake_pestana(st, hooks, lock):
+    async def fake_pestana(st, hooks, lock, estado=None):
         return _PaginaSync()
 
     monkeypatch.setattr(services, "ensure_nexus", fake_ensure)
     monkeypatch.setattr(services, "_abrir_pestana", fake_pestana)
+
+    async def sin_estado(st):
+        return None
+
+    monkeypatch.setattr(services, "_exportar_sesion", sin_estado)
     monkeypatch.setattr(nexus, "leer_materias", fake_leer)
     monkeypatch.setattr(nexus, "abrir_materia", fake_abrir)
     monkeypatch.setattr(nexus, "abrir_estructura", fake_estructura)
@@ -161,3 +167,82 @@ def test_sync_continua_si_falla_una_materia(state, monkeypatch):
 def test_sync_error_si_fallan_todas(state, monkeypatch):
     job = _sync(state, monkeypatch, {0, 1})
     assert job.estado == "error"
+
+
+class _LocAusente:
+    page = type("P", (), {"url": "https://plataformanexus.uanl.mx/#/Login"})()
+
+    @property
+    def first(self):
+        return self
+
+    def __str__(self):
+        return "Locator@mat-nav-list a.menu-option"
+
+    async def evaluate(self, script):
+        return None
+
+    async def click(self, **kw):
+        raise TimeoutError("no existe")
+
+    async def count(self):
+        return 0
+
+    async def dispatch_event(self, nombre):
+        raise AssertionError("no debe esperar a un elemento inexistente")
+
+
+def test_clic_robusto_falla_rapido_con_url_si_no_existe():
+    import pytest
+
+    from backend.core.browser import ElementoNoEncontrado, clic_robusto
+
+    with pytest.raises(ElementoNoEncontrado) as info:
+        asyncio.run(clic_robusto(_LocAusente()))
+    assert "mat-nav-list a.menu-option" in str(info.value)
+    assert "plataformanexus.uanl.mx/#/Login" in str(info.value)
+
+
+class _Nombres(_Page):
+    url = "https://plataformanexus.uanl.mx/#/App"
+
+    def __init__(self):
+        super().__init__()
+        self.nth_pedidos = []
+
+    def locator(self, sel):
+        loc = _Loc(self, sel)
+        if sel == S.NX_CARD_NOMBRES:
+
+            async def textos():
+                return ["Beta  Materia", "Alfa"]
+
+            loc.all_inner_texts = textos
+        if sel == S.NX_CARD:
+            original = loc.nth
+
+            def nth(i):
+                self.nth_pedidos.append(i)
+                return original(i)
+
+            loc.nth = nth
+        return loc
+
+
+def test_abrir_materia_busca_por_nombre_y_no_por_indice(monkeypatch):
+    _sin_pausa(monkeypatch)
+    page = _Nombres()
+    asyncio.run(nexus.abrir_materia(page, 0, "alfa"))
+    assert page.nth_pedidos[-1] == 1
+
+
+def test_abrir_materia_inexistente_falla_claro(monkeypatch):
+    import pytest
+
+    _sin_pausa(monkeypatch)
+    with pytest.raises(nexus.ElementoNoEncontrado):
+        asyncio.run(nexus.abrir_materia(_Nombres(), 0, "Otra"))
+
+
+def test_hook_tarea_entregada_por_ahora_falso():
+    assert nexus.tarea_entregada("<div/>") is False

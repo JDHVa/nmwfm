@@ -6,6 +6,7 @@ import unicodedata
 from typing import TYPE_CHECKING
 
 from . import selectors as S
+from .browser import ElementoNoEncontrado
 from .browser import clic_robusto as _clic
 from .htmlq import has_class, html_to_markdown, parse, select, select_one, text_of
 from .types import (
@@ -267,6 +268,10 @@ async def _clic_hasta(locator, condicion, descripcion, respaldo=None, intentos=3
                 raise
 
 
+def tarea_entregada(markup: str) -> bool:
+    return False
+
+
 class LecturaIncorrecta(RuntimeError):
     pass
 
@@ -339,8 +344,20 @@ def _portada_lista(page: "Page", nombre: str | None):
     return lista
 
 
-async def abrir_materia(page: "Page", indice: int) -> Portada:
+async def _indice_por_nombre(page: "Page", nombre: str | None, indice: int) -> int:
+    if nombre is None:
+        return indice
+    nombres = await page.locator(S.NX_CARD_NOMBRES).all_inner_texts()
+    buscado = _norm(re.sub(r"\s+", " ", nombre))
+    for i, candidato in enumerate(nombres):
+        if _norm(re.sub(r"\s+", " ", candidato)) == buscado:
+            return i
+    raise ElementoNoEncontrado(f"No se encontró la materia {nombre} en la página {page.url}")
+
+
+async def abrir_materia(page: "Page", indice: int, nombre: str | None = None) -> Portada:
     await esperar_lista(page)
+    indice = await _indice_por_nombre(page, nombre, indice)
     card = page.locator(S.NX_CARD).nth(indice)
     nombre = None
     with contextlib.suppress(Exception):
@@ -554,6 +571,8 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
 
 
 __all__ = [
+    "tarea_entregada",
+    "ElementoNoEncontrado",
     "es_autoevaluacion",
     "abrir_estructura",
     "abrir_materia",
