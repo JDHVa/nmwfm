@@ -19,6 +19,7 @@ from .asgi_client import MiniClient
 
 class _Pagina:
     url = "https://plataformanexus.uanl.mx/#/App"
+    page = property(lambda self: self)
 
     def __init__(self, registro=None):
         self.registro = registro
@@ -67,7 +68,7 @@ class FakeNexus:
         async def leer(page):
             return self.materias
 
-        async def pestana(st, hooks, lock):
+        async def pestana(st, hooks, lock, estado=None):
             self.registro["abiertas"] += 1
             self.registro["max"] = max(self.registro["max"], self.registro["abiertas"])
             if self.paginas:
@@ -76,7 +77,7 @@ class FakeNexus:
                 return pagina
             return _Pagina(self.registro)
 
-        async def abrir_materia(page, i):
+        async def abrir_materia(page, i, nombre=None):
             await asyncio.sleep(0.05)
             return Portada("PROFE", "periodo", None)
 
@@ -97,6 +98,11 @@ class FakeNexus:
 
         monkeypatch.setattr(services, "ensure_nexus", ensure)
         monkeypatch.setattr(services, "_abrir_pestana", pestana)
+
+        async def sin_estado(st):
+            return None
+
+        monkeypatch.setattr(services, "_exportar_sesion", sin_estado)
         monkeypatch.setattr(nexus, "leer_materias", leer)
         monkeypatch.setattr(nexus, "abrir_materia", abrir_materia)
         monkeypatch.setattr(nexus, "abrir_estructura", abrir_estructura)
@@ -406,3 +412,99 @@ def test_route_bloquea_recursos_pesados_solo_fuera_de_gemini(manager):
         "continue",
         "continue",
     ]
+
+
+class _NavegadorFalso:
+    def __init__(self):
+        self.contextos = []
+        self.cerrado = False
+
+    async def new_context(self, **kw):
+        ctx = _FakeCtx(True)
+        ctx.kw = kw
+        self.contextos.append(ctx)
+        return ctx
+
+    async def close(self):
+        self.cerrado = True
+
+
+def test_contexto_aislado_con_storage_state_y_filtros(manager):
+    navegador = _NavegadorFalso()
+
+    async def launch(**kw):
+        return navegador
+
+    manager._pw.launch = launch
+
+    async def scenario():
+        a = await manager.contexto_aislado({"cookies": ["x"]})
+        b = await manager.contexto_aislado({"cookies": ["x"]})
+        await manager.cerrar_aislado()
+        return a, b
+
+    a, b = asyncio.run(scenario())
+    assert a is not b and len(navegador.contextos) == 2
+    assert a.kw["storage_state"] == {"cookies": ["x"]}
+    assert a.kw["viewport"] == {"width": 1366, "height": 900}
+    assert a.rutas and a.timeouts[0] == 10_000
+    assert navegador.cerrado and manager._aislado is None
+    assert manager._pw.lanzados == []
+
+
+def test_tarea_fallida_guarda_snapshot(state, monkeypatch):
+    FakeNexus(monkeypatch, state, tareas_por_materia=1)
+
+    async def abrir_tarea(page, e, t, numero=None):
+        raise TimeoutError("Timeout esperando el detalle de la tarea 1.0")
+
+    monkeypatch.setattr(nexus, "abrir_tarea", abrir_tarea)
+    job = correr(state, "completo")
+    assert job.estado == "ok" and len(job.resultado["errores"]) == 1
+    nombres = [f.name for f in state.paths.debug.iterdir()]
+    assert any(n.startswith("sync-tarea-100-1_0") and n.endswith(".html") for n in nombres)
+
+
+def test_pestana_nueva_sin_lista_hace_login_en_su_contexto(state, monkeypatch):
+    class Pagina:
+        url = "https://plataformanexus.uanl.mx/#/LoginSIASE"
+
+        async def goto(self, *a, **kw):
+            return None
+
+        async def close(self):
+            return None
+
+    class Ctx:
+        def __init__(self):
+            self.cerrado = False
+
+        async def new_page(self):
+            return Pagina()
+
+        async def close(self):
+            self.cerrado = True
+
+    ctx = Ctx()
+    logins = []
+
+    async def aislado(estado=None):
+        return ctx
+
+    async def login(c, cuenta, password, hooks=None):
+        logins.append(c)
+        return _Pagina()
+
+    async def sin_lista(page, timeout=30000):
+        if isinstance(page, Pagina):
+            raise TimeoutError("sin lista")
+
+    state.storage.set_settings({"cuenta": "1"})
+    state.credentials.set("1", "pw")
+    monkeypatch.setattr(state.browser, "contexto_aislado", aislado)
+    monkeypatch.setattr(services.siase, "login", login)
+    monkeypatch.setattr(nexus, "esperar_lista", sin_lista)
+    tab = asyncio.run(services._abrir_pestana(state, services.Hooks(), asyncio.Lock(), {"c": 1}))
+    assert logins == [ctx] and isinstance(tab.page, _Pagina)
+    asyncio.run(tab.close())
+    assert ctx.cerrado

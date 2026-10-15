@@ -131,7 +131,7 @@ async def run_validar_siase(state: AppState, ctx: JobContext) -> dict:
 
 async def guardar_snapshot(state: AppState, page: Page, nombre: str) -> None:
     state.paths.debug.mkdir(parents=True, exist_ok=True)
-    base = state.paths.debug / f"{nombre}-{datetime.now():%Y%m%d-%H%M%S}"
+    base = state.paths.debug / f"{nombre.replace('.', '_')}-{datetime.now():%Y%m%d-%H%M%S}"
     with contextlib.suppress(Exception):
         base.with_suffix(".html").write_text(await page.content(), encoding="utf-8")
     with contextlib.suppress(Exception):
@@ -154,32 +154,61 @@ async def _sesion_caida(page: Page | None) -> bool:
         return True
 
 
-async def _abrir_pestana(state: AppState, hooks: Hooks, login_lock: asyncio.Lock) -> Page:
-    ctx = await state.browser.context(True)
-    page = await ctx.new_page()
-    try:
-        await page.goto(config.NEXUS_LISTA_URL, wait_until="domcontentloaded")
-        await page.wait_for_selector(selectors.NX_CARD, timeout=20000)
-        return page
-    except Exception:
+async def _exportar_sesion(state: AppState):
+    with contextlib.suppress(Exception):
+        return await (await state.browser.context(True)).storage_state()
+    return None
+
+
+class Pestana:
+    def __init__(self, page: Page, ctx):
+        self.page = page
+        self.ctx = ctx
+
+    async def close(self) -> None:
         with contextlib.suppress(Exception):
-            await page.close()
-    # Workaround: si la pestaña nueva no hereda la sesión, se entra por SIASE.
-    async with login_lock:
-        cuenta, password = require_credentials(state)
-        return await siase.login(ctx, cuenta, password, hooks)
+            await self.ctx.close()
+
+
+async def _lista_cargada(page: Page) -> bool:
+    await page.goto(config.NEXUS_LISTA_URL, wait_until="domcontentloaded")
+    await nexus.esperar_lista(page, 20000)
+    return True
+
+
+async def _abrir_pestana(
+    state: AppState, hooks: Hooks, login_lock: asyncio.Lock, storage_state=None
+) -> Pestana:
+    ctx = await state.browser.contexto_aislado(storage_state)
+    try:
+        page = await ctx.new_page()
+        try:
+            await _lista_cargada(page)
+        except Exception:
+            # Workaround: si el estado exportado no basta, cada contexto entra por SIASE.
+            with contextlib.suppress(Exception):
+                await page.close()
+            async with login_lock:
+                cuenta, password = require_credentials(state)
+                page = await siase.login(ctx, cuenta, password, hooks)
+            await nexus.esperar_lista(page, 20000)
+        return Pestana(page, ctx)
+    except BaseException:
+        with contextlib.suppress(Exception):
+            await ctx.close()
+        raise
 
 
 class SesionCaida(Exception):
     pass
 
 
-async def _a_estructura(page: Page, indice: int) -> None:
+async def _a_estructura(page: Page, indice: int, nombre: str) -> None:
     try:
         await nexus.volver_a_estructura(page)
     except Exception:
         await nexus.volver_a_lista(page)
-        await nexus.abrir_materia(page, indice)
+        await nexus.abrir_materia(page, indice, nombre)
         await nexus.abrir_estructura(page)
 
 
@@ -194,7 +223,7 @@ async def _sync_materia(
     materia,
     acum: dict,
 ) -> None:
-    portada = await nexus.abrir_materia(page, i)
+    portada = await nexus.abrir_materia(page, i, materia.nombre)
     state.storage.set_portada(materia.id, portada.profesor, portada.periodo)
     etapas = await nexus.abrir_estructura(page)
     antes = state.storage.ids_tareas(materia.id)
@@ -229,11 +258,12 @@ async def _sync_materia(
             mensaje = f"{materia.nombre} · {fila['numero']}: {_resumen_error(exc)}"
             acum["errores"].append(mensaje)
             await ctx.log(f"Error en la tarea {mensaje}", "error")
+            await guardar_snapshot(state, page, f"sync-tarea-{materia.id}-{fila['numero']}")
         else:
             state.storage.set_detalle(fila["id"], detalle)
             leidas.add(fila["id"])
             acum["detalles_leidos"] += 1
-        await _a_estructura(page, i)
+        await _a_estructura(page, i, materia.nombre)
     acum["fracciones"][i] = 1.0
 
 
@@ -266,6 +296,7 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
         for m in materias:
             state.storage.upsert_materia(m.id, m.nombre, m.orden)
         n = len(materias)
+        estado = await _exportar_sesion(state)
         semaforo = asyncio.Semaphore(config.SYNC_PESTANAS)
         login_lock = asyncio.Lock()
 
@@ -274,8 +305,8 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
                 for intento in range(2):
                     tab = None
                     try:
-                        tab = await _abrir_pestana(state, hooks, login_lock)
-                        await _sync_materia(state, ctx, tab, modo, reanudar, i, n, m, acum)
+                        tab = await _abrir_pestana(state, hooks, login_lock, estado)
+                        await _sync_materia(state, ctx, tab.page, modo, reanudar, i, n, m, acum)
                         return True
                     except Exception as exc:
                         caida = isinstance(exc, SesionCaida) or tab is None
@@ -285,7 +316,7 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
                         acum["errores"].append(f"{m.nombre}: {_resumen_error(exc)}")
                         await ctx.log(f"Error en la materia {m.nombre}: {exc}", "error")
                         if tab is not None:
-                            await guardar_snapshot(state, tab, f"sync-materia-{m.id}")
+                            await guardar_snapshot(state, tab.page, f"sync-materia-{m.id}")
                         return False
                     finally:
                         if tab is not None:
@@ -293,7 +324,10 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
                                 await tab.close()
                 return False
 
-        resultados = await asyncio.gather(*(trabajar(i, m) for i, m in enumerate(materias)))
+        try:
+            resultados = await asyncio.gather(*(trabajar(i, m) for i, m in enumerate(materias)))
+        finally:
+            await state.browser.cerrar_aislado()
         fallidas = resultados.count(False)
         if fallidas == n:
             raise ApiError(
@@ -312,6 +346,11 @@ async def run_sync(state: AppState, ctx: JobContext, modo: str = "auto") -> dict
     }
 
 
+def tarea_materia_nombre(state: AppState, tarea: dict) -> str | None:
+    materia = state.storage.get_materia(tarea["materia_id"])
+    return materia["nombre"] if materia else None
+
+
 async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):
     pos = state.storage.tarea_posicion(tarea_id)
     if pos is None:
@@ -324,7 +363,7 @@ async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):
     indice = next((m.orden for m in materias if m.id == tarea["materia_id"]), None)
     if indice is None:
         raise ApiError(404, "materia_no_encontrada", "La materia ya no aparece en NEXUS.")
-    await nexus.abrir_materia(page, indice)
+    await nexus.abrir_materia(page, indice, tarea_materia_nombre(state, tarea))
     await nexus.abrir_estructura(page)
     return await nexus.abrir_tarea(page, etapa_idx, tarea_idx, tarea["numero"])
 
