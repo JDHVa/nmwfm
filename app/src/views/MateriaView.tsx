@@ -1,11 +1,14 @@
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { useState } from "react";
+import { FiltrosTareas } from "@/components/FiltrosTareas";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge, TipoBadge, VencimientoBadge } from "@/components/EstadoBadge";
 import { PageHeader } from "@/components/PageHeader";
 import type { EtapaConTareas, Tarea } from "@/lib/api";
 import { useNav } from "@/lib/app-context";
 import { fechaRango } from "@/lib/format";
+import { FILTROS_VACIOS, cumpleFiltros, hayFiltros, type Filtros } from "@/lib/filtros";
 import { useEtapas, useMaterias } from "@/lib/queries";
 
 export function MateriaView({ id }: { id: string }) {
@@ -13,6 +16,11 @@ export function MateriaView({ id }: { id: string }) {
   const { data: etapas, isLoading, error } = useEtapas(id);
   const { go } = useNav();
   const materia = materias?.find((m) => m.id === id);
+  const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS);
+  const filtrando = hayFiltros(filtros);
+  const visibles = etapas
+    ?.map((e) => ({ ...e, tareas: e.tareas.filter((t) => cumpleFiltros(t, filtros)) }))
+    .filter((e) => !filtrando || e.tareas.length > 0);
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 p-8">
@@ -27,9 +35,20 @@ export function MateriaView({ id }: { id: string }) {
       />
       {isLoading && <p className="text-muted-foreground">Cargando etapas…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
-      {etapas && (
-        <Accordion type="multiple" defaultValue={etapas.slice(0, 1).map((e) => e.id)} className="space-y-3">
-          {etapas.map((e) => (
+      {etapas && <FiltrosTareas valor={filtros} onChange={setFiltros} />}
+      {visibles && filtrando && visibles.length === 0 && (
+        <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
+          Ninguna tarea coincide con los filtros.
+        </p>
+      )}
+      {visibles && (
+        <Accordion
+          key={filtrando ? "filtrado" : "normal"}
+          type="multiple"
+          defaultValue={filtrando ? visibles.map((e) => e.id) : visibles.slice(0, 1).map((e) => e.id)}
+          className="space-y-3"
+        >
+          {visibles.map((e) => (
             <EtapaItem key={e.id} etapa={e} onOpen={(t) => go({ name: "tarea", materiaId: id, id: t.id })} />
           ))}
         </Accordion>
