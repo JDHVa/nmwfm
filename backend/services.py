@@ -229,14 +229,8 @@ def _registrar_entregas(state: AppState, tarea_id: str, entregas, acum: dict) ->
         acum["pendientes"] += 1
 
 
-TIPOS_SIN_DETALLE = ("examen", "pia")
-
-
-async def _omitir_sin_soporte(ctx: JobContext, filas: list[dict]) -> list[dict]:
-    for fila in filas:
-        if fila["tipo"] == "pia":
-            await ctx.log(f"PIA pendiente de soporte: {fila['titulo']}")
-    return [f for f in filas if f["tipo"] not in TIPOS_SIN_DETALLE]
+def _sin_examenes(filas: list[dict]) -> list[dict]:
+    return [f for f in filas if f["tipo"] != "examen"]
 
 
 async def _recorrer_tareas(
@@ -261,9 +255,12 @@ async def _recorrer_tareas(
         except Exception as exc:
             if await _sesion_caida(page):
                 raise SesionCaida() from exc
-            mensaje = f"{materia.nombre} · {fila['numero']}: {_resumen_error(exc)}"
-            acum["errores"].append(mensaje)
-            await ctx.log(f"Error en la tarea {mensaje}", "error")
+            if fila["tipo"] == "pia":
+                await ctx.log(f"PIA pendiente de soporte: {fila['titulo']}")
+            else:
+                mensaje = f"{materia.nombre} · {fila['numero']}: {_resumen_error(exc)}"
+                acum["errores"].append(mensaje)
+                await ctx.log(f"Error en la tarea {mensaje}", "error")
             await guardar_snapshot(state, page, f"sync-tarea-{materia.id}-{fila['numero']}")
         await _a_estructura(page, i, materia.nombre)
     acum["fracciones"][i] = 1.0
@@ -283,7 +280,7 @@ async def _sync_materia(
     filas, antes = await _abrir_materia_y_estructura(state, page, i, materia, acum)
     leidas = acum["leidas"]
     forzada = modo == "completo" and not reanudar
-    filas = await _omitir_sin_soporte(ctx, filas)
+    filas = _sin_examenes(filas)
     pendientes = [
         f
         for f in filas
@@ -321,7 +318,7 @@ async def _revisar_materia(
     acum: dict,
 ) -> None:
     filas, _ = await _abrir_materia_y_estructura(state, page, i, materia, acum)
-    filas = await _omitir_sin_soporte(ctx, filas)
+    filas = _sin_examenes(filas)
     pendientes = [f for f in filas if f["estado"] != "entregada"]
 
     async def leer(pagina: Page, fila: dict) -> None:

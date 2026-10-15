@@ -77,7 +77,7 @@ class _Pagina:
         return None
 
 
-def test_sync_no_abre_examenes_ni_pia_y_no_son_errores(state, monkeypatch):
+def test_sync_no_abre_examenes_e_intenta_pia_sin_marcarlo_error(state, monkeypatch):
     abiertas = []
 
     async def ensure(st, hooks, **kw):
@@ -104,12 +104,17 @@ def test_sync_no_abre_examenes_ni_pia_y_no_son_errores(state, monkeypatch):
                 "Producto Integrador de Aprendizaje",
                 "d",
                 1,
-                [TareaItem("PIA", "PIA: Video", "pia", None, None, 0)],
+                [
+                    TareaItem("PIA", "PIA - Informe", "pia", None, None, 0),
+                    TareaItem("2", "ILP: Video", "pia", None, None, 1),
+                ],
             ),
         ]
 
     async def abrir_tarea(page, e, t, numero=None, **kw):
         abiertas.append(numero)
+        if numero == "2":
+            raise TimeoutError("sin app-estructura-competencias")
         return DetalleTarea("T", numero, None, None, 1.0, None, "a", "c", "k", None)
 
     async def nada(page):
@@ -134,15 +139,18 @@ def test_sync_no_abre_examenes_ni_pia_y_no_son_errores(state, monkeypatch):
 
     job = asyncio.run(escenario())
     assert job.estado == "ok", job.mensaje
-    assert abiertas == ["1.1"]
-    assert job.resultado["errores"] == [] and job.resultado["detalles_leidos"] == 1
-    assert job.resultado["tareas"] == 3
+    assert abiertas == ["1.1", "PIA", "2"]
+    assert job.resultado["errores"] == [] and job.resultado["detalles_leidos"] == 2
+    assert job.resultado["tareas"] == 4
+    assert state.storage.get_detalle("100-PIA") is not None
+    assert state.storage.get_detalle("100-2") is None
+    assert any(f.name.startswith("sync-tarea-100-2") for f in state.paths.debug.iterdir())
     tareas = {t["numero"]: t for e in state.storage.list_etapas("100") for t in e["tareas"]}
     assert tareas["1.2"]["tipo"] == "examen" and tareas["1.2"]["estado"] == "pendiente"
     assert tareas["PIA"]["tipo"] == "pia"
     mensajes = []
     while not cola.empty():
         mensajes.append(cola.get_nowait())
-    assert any(
-        m.get("type") == "log" and "PIA pendiente de soporte" in m["message"] for m in mensajes
-    )
+    soporte = [m["message"] for m in mensajes if m.get("type") == "log"]
+    assert "PIA pendiente de soporte: ILP: Video" in soporte
+    assert not any("PIA - Informe" in m for m in soporte)
