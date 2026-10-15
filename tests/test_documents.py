@@ -26,7 +26,7 @@ def test_fill_cover_replaces_split_markers(tmp_path):
     for marker in mapping:
         assert marker not in text
     assert "ANA LOPEZ" in text and "1999999" in text and "PROFE UNO" in text
-    assert "A 14 DE octubre DEL 2026" in text
+    assert "A 14 DE OCTUBRE DEL 2026" in text
 
 
 def test_markdown_to_docx_styles(tmp_path):

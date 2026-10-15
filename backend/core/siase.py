@@ -65,7 +65,7 @@ async def login(
         logo_scope = await _buscar_scope(page, S.SIASE_NEXUS_LOGO, 30)
         if logo_scope is None:
             await hooks.esperar_usuario(
-                "SIASE no mostro el acceso a NEXUS (captcha, aviso o seleccion de carrera). "
+                "SIASE no mostro el acceso a NEXUS (captcha o aviso). "
                 "Resuelvelo en la ventana de Chrome y pulsa continuar."
             )
             logo_scope = await _buscar_scope(page, S.SIASE_NEXUS_LOGO, 30)

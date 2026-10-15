@@ -77,3 +77,29 @@ def test_html_to_markdown_basico():
 def test_css_to_xpath():
     xp = css_to_xpath("a.menu-option > div[id^='x'], #y")
     assert "menu-option" in xp and "starts-with" in xp and " | " in xp
+
+
+def _tabs(*nombres, attr="routerlink"):
+    links = "".join(f'<a class="mat-tab-link" {attr}="{n}" href="#/x/{n}">{n}</a>' for n in nombres)
+    return f'<nav class="mat-tab-nav-bar"><div class="mat-tab-links">{links}</div></nav>'
+
+
+TABS_EVIDENCIA = _tabs("Contenidos", "Recursos", "Rubrica", "Entregas")
+
+
+def test_pestanas_evidencia_con_rubrica():
+    assert nexus.parse_pestanas(TABS_EVIDENCIA) == ["contenidos", "recursos", "rubrica", "entregas"]
+    assert nexus.tiene_pestana_rubrica(TABS_EVIDENCIA)
+
+
+def test_pestanas_dimension_sin_rubrica():
+    assert nexus.parse_pestanas(fixtures.detalle_html()) == ["contenidos", "recursos", "entregas"]
+    assert not nexus.tiene_pestana_rubrica(fixtures.detalle_html())
+
+
+def test_pestana_rubrica_por_ng_reflect_y_texto():
+    reflect = _tabs("Contenidos", "Rubrica", attr="ng-reflect-router-link")
+    assert nexus.tiene_pestana_rubrica(reflect)
+    solo_texto = '<nav class="mat-tab-nav-bar"><div class="mat-tab-links">'
+    solo_texto += '<a class="mat-tab-link">Rúbrica</a></div></nav>'
+    assert nexus.tiene_pestana_rubrica(solo_texto)

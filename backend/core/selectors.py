@@ -48,6 +48,17 @@ NX_SECCION_CRITERIOS = "criterios de desempeno"
 NX_ENTREGAR_BUTTON = "button.mat-raised-button.mat-primary"
 NX_ENTREGAR_TEXT = "Entregar"
 
+NX_TABS = "nav.mat-tab-nav-bar .mat-tab-links a.mat-tab-link"
+NX_TAB_RUBRICA_CSS = (
+    "nav.mat-tab-nav-bar a.mat-tab-link[routerlink='Rubrica'], "
+    "nav.mat-tab-nav-bar a.mat-tab-link[ng-reflect-router-link='Rubrica']"
+)
+NX_TAB_CONTENIDOS_CSS = (
+    "nav.mat-tab-nav-bar a.mat-tab-link[routerlink='Contenidos'], "
+    "nav.mat-tab-nav-bar a.mat-tab-link[ng-reflect-router-link='Contenidos']"
+)
+NX_TAB_RUBRICA_TEXT = "Rúbrica"
+NX_TAB_CONTENIDOS_TEXT = "Contenidos"
 NX_RUBRICA = "table.nx-table-rubrica"
 NX_RUBRICA_ROWS = "tr"
 NX_RUBRICA_PUNTOS = "div.puntos"

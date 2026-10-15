@@ -42,7 +42,7 @@ def marcadores(nombre: str, matricula: str, profesor: str, hoy: date) -> dict[st
         "(MATRICULA DE LA PERSONA)": matricula,
         "(NOMBRE DEL PROFE)": profesor,
         "(DIA XX)": str(hoy.day),
-        "(MES)": MESES[hoy.month - 1],
+        "(MES)": MESES[hoy.month - 1].upper(),
         "(AÑO)": str(hoy.year),
     }
 

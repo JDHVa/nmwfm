@@ -191,6 +191,24 @@ def parse_detalle(markup: str) -> DetalleTarea:
     )
 
 
+def _tab_key(a) -> str:
+    raw = (
+        a.get("routerlink")
+        or a.get("ng-reflect-router-link")
+        or a.get("href", "").rsplit("/", 1)[-1]
+    )
+    return _norm(raw or text_of(a))
+
+
+def parse_pestanas(markup: str) -> list[str]:
+    root = parse(markup)
+    return [_tab_key(a) for a in select(root, S.NX_TABS)]
+
+
+def tiene_pestana_rubrica(markup: str) -> bool:
+    return "rubrica" in parse_pestanas(markup)
+
+
 def parse_rubrica(markup_or_el) -> Rubrica | None:
     root = parse(markup_or_el) if isinstance(markup_or_el, str) else markup_or_el
     table = select_one(root, S.NX_RUBRICA)
@@ -256,10 +274,33 @@ async def abrir_tarea(page: "Page", etapa_idx: int, tarea_idx: int) -> DetalleTa
     await panel.locator(S.NX_PANEL_ITEM_LINK).nth(tarea_idx).click()
     await page.wait_for_selector(S.NX_DETALLE_ROOT, timeout=30000)
     await pausa()
-    with contextlib.suppress(Exception):
-        await page.wait_for_selector(S.NX_RUBRICA, timeout=2500)
     html = await page.locator("mat-sidenav-content").inner_html()
-    return parse_detalle(html)
+    detalle = parse_detalle(html)
+    if tiene_pestana_rubrica(html):
+        detalle.rubrica = await _leer_rubrica_pestana(page)
+    return detalle
+
+
+async def _clic_pestana(page: "Page", css: str, texto: str) -> None:
+    tab = page.locator(css)
+    if not await tab.count():
+        tab = page.locator(S.NX_TABS).filter(has_text=texto)
+    await tab.first.click()
+
+
+async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
+    from .browser import pausa
+
+    await pausa()
+    await _clic_pestana(page, S.NX_TAB_RUBRICA_CSS, S.NX_TAB_RUBRICA_TEXT)
+    try:
+        await page.wait_for_selector(S.NX_RUBRICA, timeout=10000)
+        rubrica = parse_rubrica(await page.locator("mat-sidenav-content").inner_html())
+    finally:
+        await pausa()
+        with contextlib.suppress(Exception):
+            await _clic_pestana(page, S.NX_TAB_CONTENIDOS_CSS, S.NX_TAB_CONTENIDOS_TEXT)
+    return rubrica
 
 
 async def volver_a_lista(page: "Page") -> None:
@@ -293,6 +334,8 @@ __all__ = [
     "parse_detalle",
     "parse_estructura",
     "parse_materias",
+    "parse_pestanas",
+    "tiene_pestana_rubrica",
     "parse_portada",
     "parse_rubrica",
     "volver_a_lista",
