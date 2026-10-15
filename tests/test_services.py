@@ -129,3 +129,19 @@ def test_entrega_fallida_no_registra_historial(listo, monkeypatch):
     listo.storage.set_settings({"entregar_sin_revisar": True})
     assert correr(listo).estado == "error"
     assert listo.storage.list_entregas(TID) == []
+
+
+def test_entrega_corre_oculta(listo, monkeypatch):
+    modos = []
+
+    async def fake_ensure(state, hooks, **kw):
+        modos.append(kw.get("headless"))
+
+    async def fake_entregar(page, pdf, hooks=None):
+        return None
+
+    monkeypatch.setattr(services, "ensure_nexus", fake_ensure)
+    monkeypatch.setattr(nexus, "entregar", fake_entregar)
+    listo.storage.set_settings({"entregar_sin_revisar": True})
+    assert correr(listo).estado == "ok"
+    assert modos == [True]
