@@ -1,6 +1,7 @@
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useState } from "react";
+import { CalificacionesTab } from "@/views/CalificacionesTab";
 import { FiltrosTareas } from "@/components/FiltrosTareas";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge, TipoBadge, VencimientoBadge } from "@/components/EstadoBadge";
@@ -16,6 +17,7 @@ export function MateriaView({ id }: { id: string }) {
   const { data: etapas, isLoading, error } = useEtapas(id);
   const { go } = useNav();
   const materia = materias?.find((m) => m.id === id);
+  const [pestana, setPestana] = useState<"tareas" | "calificaciones">("tareas");
   const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS);
   const filtrando = hayFiltros(filtros);
   const visibles = etapas
@@ -33,15 +35,39 @@ export function MateriaView({ id }: { id: string }) {
         titulo={materia?.nombre ?? "Materia"}
         descripcion={materia ? [materia.profesor, materia.periodo].filter(Boolean).join(" · ") : undefined}
       />
-      {isLoading && <p className="text-muted-foreground">Cargando etapas…</p>}
-      {error && <p className="text-destructive">{error.message}</p>}
-      {etapas && <FiltrosTareas valor={filtros} onChange={setFiltros} />}
-      {visibles && filtrando && visibles.length === 0 && (
+      <div
+        role="tablist"
+        aria-label="Vista de la materia"
+        className="inline-flex rounded-lg border bg-muted p-1"
+      >
+        {(["tareas", "calificaciones"] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            role="tab"
+            aria-selected={pestana === p}
+            onClick={() => setPestana(p)}
+            className={
+              "rounded-md px-4 py-1.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+              (pestana === p
+                ? "bg-card text-foreground shadow-card"
+                : "text-muted-foreground hover:text-foreground")
+            }
+          >
+            {p === "tareas" ? "Tareas" : "Calificaciones"}
+          </button>
+        ))}
+      </div>
+      {pestana === "calificaciones" && <CalificacionesTab materiaId={id} />}
+      {pestana === "tareas" && isLoading && <p className="text-muted-foreground">Cargando etapas…</p>}
+      {pestana === "tareas" && error && <p className="text-destructive">{error.message}</p>}
+      {pestana === "tareas" && etapas && <FiltrosTareas valor={filtros} onChange={setFiltros} />}
+      {pestana === "tareas" && visibles && filtrando && visibles.length === 0 && (
         <p className="rounded-xl border border-dashed p-8 text-center text-muted-foreground">
           Ninguna tarea coincide con los filtros.
         </p>
       )}
-      {visibles && (
+      {pestana === "tareas" && visibles && (
         <Accordion
           key={filtrando ? "filtrado" : "normal"}
           type="multiple"

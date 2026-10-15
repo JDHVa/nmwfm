@@ -122,6 +122,15 @@ export type Alerta = {
 export type Respaldo = { id: string; creado_en: string; tamano: number };
 export type PasoDiagnostico = { nombre: string; ok: boolean; detalle: string };
 export type DiagnosticoResultado = { pasos: PasoDiagnostico[] };
+export type ItemCalificacion = {
+  tarea_id: string | null;
+  etapa: string;
+  numero: string;
+  titulo: string;
+  obtenida: number | null;
+  maxima: number | null;
+};
+export type Calificaciones = { items: ItemCalificacion[]; promedio: number | null };
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
   materias: number;
@@ -266,6 +275,8 @@ export const api = {
   crearRespaldo: () => request<Respaldo>("POST", "/respaldos"),
   restaurarRespaldo: (id: string) => request<void>("POST", `/respaldos/${id}/restaurar`),
   diagnostico: () => request<Job>("POST", "/diagnostico"),
+  calificaciones: (materiaId: string) =>
+    request<Calificaciones>("GET", `/materias/${materiaId}/calificaciones`),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),

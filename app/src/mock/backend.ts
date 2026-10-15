@@ -416,6 +416,29 @@ export function createMockBackend(options: MockOptions = {}) {
       return json(job);
     }
     if (path === "/materias") return json(materias);
+    if ((m = path.match(/^\/materias\/([^/]+)\/calificaciones$/))) {
+      const lista = etapas[m[1]];
+      if (!lista) return fallo(404, "no_encontrada", "Materia no encontrada");
+      const items = lista.flatMap((e) =>
+        e.tareas
+          .filter((t) => t.tipo !== "examen")
+          .map((t) => ({
+            tarea_id: t.id,
+            etapa: e.nombre,
+            numero: t.numero,
+            titulo: t.titulo,
+            obtenida: t.estado === "entregada" && t.puntos ? Math.round(t.puntos * 0.9 * 10) / 10 : null,
+            maxima: t.puntos,
+          })),
+      );
+      const con = items.filter((i) => i.obtenida !== null && i.maxima);
+      const promedio = con.length
+        ? Math.round(
+            (con.reduce((a, i) => a + i.obtenida!, 0) / con.reduce((a, i) => a + i.maxima!, 0)) * 100,
+          ) / 10
+        : null;
+      return json({ items, promedio });
+    }
     if ((m = path.match(/^\/materias\/([^/]+)\/etapas$/))) {
       const lista = etapas[m[1]];
       lista?.forEach((e) => e.tareas.forEach(marcarVencida));
