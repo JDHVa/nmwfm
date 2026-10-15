@@ -21,6 +21,18 @@ class _Loc:
     def locator(self, sel, **kw):
         return _Loc(self.page, sel, self.intercepta or sel == S.NX_CARD_NAME)
 
+    async def all_inner_texts(self):
+        return ["Texto"]
+
+    async def inner_text(self):
+        return "Texto"
+
+    async def count(self):
+        return 1
+
+    async def wait_for(self, **kw):
+        return None
+
     async def evaluate(self, script):
         if "outerHTML" in script:
             return fixtures.portada_html()

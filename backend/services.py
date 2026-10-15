@@ -220,7 +220,9 @@ async def _sync_materia(
             0.08 + 0.9 * sum(acum["fracciones"].values()) / n,
         )
         try:
-            detalle = await nexus.abrir_tarea(page, fila["etapa_idx"], fila["tarea_idx"])
+            detalle = await nexus.abrir_tarea(
+                page, fila["etapa_idx"], fila["tarea_idx"], fila["numero"]
+            )
         except Exception as exc:
             if await _sesion_caida(page):
                 raise SesionCaida() from exc
@@ -324,7 +326,7 @@ async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):
         raise ApiError(404, "materia_no_encontrada", "La materia ya no aparece en NEXUS.")
     await nexus.abrir_materia(page, indice)
     await nexus.abrir_estructura(page)
-    return await nexus.abrir_tarea(page, etapa_idx, tarea_idx)
+    return await nexus.abrir_tarea(page, etapa_idx, tarea_idx, tarea["numero"])
 
 
 async def traer_detalle(state: AppState, tarea_id: str) -> dict:
