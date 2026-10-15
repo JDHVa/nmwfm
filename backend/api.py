@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
-from . import config, services
+from . import check, config, services
 from .core import images
 from .scheduler import Programador
 from .services import ApiError, AppState
@@ -174,6 +174,16 @@ def create_app(
     async def siase_validar():
         return state.jobs.start(
             "validar_siase", lambda ctx: services.run_validar_siase(state, ctx)
+        ).to_dict()
+
+    @router.post("/diagnostico")
+    async def diagnostico():
+        activo = state.jobs.activo("diagnostico")
+        if activo is not None:
+            return activo.to_dict()
+        services.require_credentials(state)
+        return state.jobs.start(
+            "diagnostico", lambda ctx: check.run_diagnostico(state, ctx)
         ).to_dict()
 
     @router.post("/gemini/login")
