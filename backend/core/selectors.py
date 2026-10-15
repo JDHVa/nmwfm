@@ -5,6 +5,10 @@ SIASE_TIPO_ALUMNO = "01"
 SIASE_CUENTA = "#cuenta"
 SIASE_PASSWORD = "#pass"
 SIASE_ENTRAR = "form[name='inicio'] button[type='submit']"
+# VALIDAR en vivo: texto de error tipico de SIASE ante credenciales invalidas
+SIASE_ERROR_LOGIN = (
+    "text=/contraseña incorrecta|usuario o contraseña|datos incorrectos|no es válid/i"
+)
 SIASE_NEXUS_LOGO = "a[onmouseover*=\"muestra('nexus')\"]"
 SIASE_NEXUS_LINK = "#linkNexus"
 

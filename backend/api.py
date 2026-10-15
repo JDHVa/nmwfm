@@ -153,6 +153,12 @@ def create_app(
             state.credentials.set(cuenta, str(password))
         return state.settings_public()
 
+    @router.post("/siase/validar")
+    async def siase_validar():
+        return state.jobs.start(
+            "validar_siase", lambda ctx: services.run_validar_siase(state, ctx)
+        ).to_dict()
+
     @router.post("/gemini/login")
     async def gemini_login():
         return state.jobs.start(
