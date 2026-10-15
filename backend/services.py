@@ -111,6 +111,17 @@ async def ensure_nexus(state: AppState, hooks: Hooks) -> Page:
     return state.nexus_page
 
 
+async def run_validar_siase(state: AppState, ctx: JobContext) -> dict:
+    cuenta = state.storage.get_settings()["cuenta"]
+    password = state.credentials.get(cuenta)
+    if not cuenta or not password:
+        raise ApiError(400, "sin_credenciales", "Faltan credenciales")
+    async with state.browser.lock:
+        browser_ctx = await state.browser.context()
+        await siase.validar(browser_ctx, cuenta, password, ctx.hooks())
+    return {"valido": True}
+
+
 async def run_sync(state: AppState, ctx: JobContext) -> dict:
     hooks = ctx.hooks()
     async with state.browser.lock:

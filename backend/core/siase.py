@@ -1,7 +1,9 @@
 import asyncio
+import contextlib
 import time
 
 from playwright.async_api import BrowserContext, Frame, Page
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 
 from .. import config
 from . import selectors as S
@@ -10,6 +12,14 @@ from .types import Hooks
 
 
 class SiaseError(Exception):
+    pass
+
+
+class CredencialesInvalidas(SiaseError):
+    pass
+
+
+class SiaseSinRespuesta(SiaseError):
     pass
 
 
@@ -84,3 +94,48 @@ async def login(
     await nexus.wait_for_selector(S.NX_CARD, timeout=60000)
     await pausa()
     return nexus
+
+
+async def _presente(page: Page, selector: str) -> bool:
+    for frame in page.frames:
+        try:
+            if await frame.locator(selector).count():
+                return True
+        except Exception:
+            continue
+    return False
+
+
+async def validar(
+    ctx: BrowserContext, cuenta: str, password: str, hooks: Hooks | None = None, timeout: float = 30
+) -> None:
+    hooks = hooks or Hooks()
+    page = await ctx.new_page()
+    try:
+        await hooks.paso("Abriendo SIASE", 0.1)
+        try:
+            await page.goto(config.SIASE_URL, wait_until="domcontentloaded", timeout=45000)
+        except PlaywrightTimeoutError as exc:
+            raise SiaseSinRespuesta("SIASE no responde") from exc
+
+        if await _buscar_scope(page, S.SIASE_NEXUS_LOGO, 4) is not None:
+            return
+        scope = await _buscar_scope(page, S.SIASE_CUENTA, 25)
+        if scope is None:
+            raise SiaseSinRespuesta("SIASE no responde")
+        await hooks.paso("Validando credenciales", 0.4)
+        await _llenar_formulario(scope, cuenta, password)
+
+        fin = time.monotonic() + timeout
+        while time.monotonic() < fin:
+            if await _presente(page, S.SIASE_NEXUS_LOGO):
+                return
+            if await _presente(page, S.SIASE_ERROR_LOGIN):
+                raise CredencialesInvalidas("Cuenta o contraseña incorrecta")
+            await asyncio.sleep(0.5)
+        if await _presente(page, S.SIASE_CUENTA):
+            raise CredencialesInvalidas("Cuenta o contraseña incorrecta")
+        raise SiaseSinRespuesta("SIASE no responde")
+    finally:
+        with contextlib.suppress(Exception):
+            await page.close()
