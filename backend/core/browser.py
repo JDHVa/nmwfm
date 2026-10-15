@@ -111,7 +111,6 @@ class BrowserManager:
         self._pw: Playwright | None = None
         self._ctx: BrowserContext | None = None
         self._headless: bool | None = None
-        self._aislado = None
 
     @property
     def abierto(self) -> bool:
@@ -144,26 +143,6 @@ class BrowserManager:
         if self._ctx is ctx:
             self._ctx = None
 
-    async def contexto_aislado(self, storage_state=None) -> BrowserContext:
-        if self._pw is None:
-            self._pw = await async_playwright().start()
-        if self._aislado is None:
-            self._aislado = await self._pw.chromium.launch(
-                channel="chrome",
-                headless=True,
-                ignore_default_args=["--enable-automation"],
-                args=["--disable-blink-features=AutomationControlled"],
-            )
-        ctx = await self._aislado.new_context(viewport=VIEWPORT, storage_state=storage_state)
-        await _configurar_contexto(ctx)
-        return ctx
-
-    async def cerrar_aislado(self) -> None:
-        navegador, self._aislado = self._aislado, None
-        if navegador is not None:
-            with contextlib.suppress(Exception):
-                await navegador.close()
-
     async def _cerrar_contexto(self) -> None:
         ctx, self._ctx = self._ctx, None
         if ctx is not None:
@@ -175,7 +154,6 @@ class BrowserManager:
         return await ctx.new_page()
 
     async def close(self) -> None:
-        await self.cerrar_aislado()
         await self._cerrar_contexto()
         if self._pw is not None:
             with contextlib.suppress(Exception):

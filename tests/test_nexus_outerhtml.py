@@ -98,7 +98,18 @@ def test_abrir_estructura_lee_etapas(monkeypatch):
     assert len(etapas) == 5
 
 
+class _Cuenta:
+    def __init__(self, sel=""):
+        self.sel = sel
+
+    async def count(self):
+        return 0 if self.sel == "text=/sesi[oó]n.{0,20}(cerrada|expir)/i" else 1
+
+
 class _PaginaSync:
+    def locator(self, sel):
+        return _Cuenta(sel)
+
     def __init__(self):
         self.url = "https://plataformanexus.uanl.mx/"
         self.shots = []

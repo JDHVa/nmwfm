@@ -186,7 +186,24 @@ def create_app(
     async def etapas(materia_id: str):
         if state.storage.get_materia(materia_id) is None:
             raise ApiError(404, "materia_no_encontrada", "La materia no existe.")
-        return state.storage.list_etapas(materia_id)
+        etapas = state.storage.list_etapas(materia_id)
+        for etapa in etapas:
+            etapa["tareas"] = [services.con_vencida(t) for t in etapa["tareas"]]
+        return etapas
+
+    @router.post("/entregas/revisar")
+    async def revisar_entregas():
+        activo = state.jobs.activo("revisar_entregas")
+        if activo is not None:
+            return activo.to_dict()
+        services.require_credentials(state)
+        return state.jobs.start(
+            "revisar_entregas", lambda ctx: services.run_revisar_entregas(state, ctx)
+        ).to_dict()
+
+    @router.get("/tareas/proximas")
+    async def proximas():
+        return services.tareas_proximas(state)
 
     @router.get("/tareas/{tarea_id}")
     async def tarea(tarea_id: str):

@@ -52,3 +52,24 @@ SNACKBAR_EXITO = (
     '<span class="mat-button-wrapper">X</span></button></div>'
     "</simple-snack-bar></snack-bar-container>"
 )
+
+
+ENTREGADO_TXT = Path(__file__).resolve().parent.parent / "htmls" / "nexus" / "tareas_entregado.txt"
+
+
+def entregas_tabla_html() -> str:
+    return re.search(
+        r"<table\b[^>]*mat-table.*?</table>", ENTREGADO_TXT.read_text(encoding="utf-8"), re.S
+    ).group(0)
+
+
+def entregas_vacio_html() -> str:
+    return re.search(
+        r"<div[^>]*>(?:(?!<div).)*?No se encontraron Entregas</div></div>",
+        ENTREGADO_TXT.read_text(encoding="utf-8"),
+        re.S,
+    ).group(0)
+
+
+def pestanas_entregas_html() -> str:
+    return re.search(r"<nav\b.*?</nav>", ENTREGADO_TXT.read_text(encoding="utf-8"), re.S).group(0)

@@ -94,9 +94,20 @@ def test_abrir_materia_repite_el_clic_si_no_aparece_la_portada(monkeypatch):
     assert page.eventos.count(("dispatch", S.NX_CARD_CLICK, "click")) >= 2
 
 
+class _Cuenta:
+    def __init__(self, sel=""):
+        self.sel = sel
+
+    async def count(self):
+        return 0 if self.sel == "text=/sesi[oó]n.{0,20}(cerrada|expir)/i" else 1
+
+
 class _PaginaSync:
     url = "https://plataformanexus.uanl.mx/"
     page = property(lambda self: self)
+
+    def locator(self, sel):
+        return _Cuenta(sel)
 
     def is_closed(self):
         return False
@@ -131,16 +142,7 @@ def _sync(state, monkeypatch, fallan):
     async def fake_volver(page):
         return None
 
-    async def fake_pestana(st, hooks, lock, estado=None):
-        return _PaginaSync()
-
     monkeypatch.setattr(services, "ensure_nexus", fake_ensure)
-    monkeypatch.setattr(services, "_abrir_pestana", fake_pestana)
-
-    async def sin_estado(st):
-        return None
-
-    monkeypatch.setattr(services, "_exportar_sesion", sin_estado)
     monkeypatch.setattr(nexus, "leer_materias", fake_leer)
     monkeypatch.setattr(nexus, "abrir_materia", fake_abrir)
     monkeypatch.setattr(nexus, "abrir_estructura", fake_estructura)

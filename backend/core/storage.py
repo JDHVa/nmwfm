@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS tareas (
     puntos REAL,
     modalidad TEXT,
     estado TEXT NOT NULL DEFAULT 'pendiente',
+    entregada_en TEXT,
     orden INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS detalle (
@@ -123,6 +124,9 @@ class Storage:
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA foreign_keys = ON")
         self._db.executescript(SCHEMA)
+        columnas = {r["name"] for r in self._db.execute("PRAGMA table_info(tareas)").fetchall()}
+        if "entregada_en" not in columnas:
+            self._db.execute("ALTER TABLE tareas ADD COLUMN entregada_en TEXT")
         self._db.commit()
 
     def close(self) -> None:
@@ -248,7 +252,7 @@ class Storage:
         for e in etapas:
             e["tareas"] = self._all(
                 "SELECT id, etapa_id, materia_id, numero, titulo, tipo, desde, hasta, puntos, "
-                "modalidad, estado FROM tareas WHERE etapa_id = ? ORDER BY orden",
+                "modalidad, estado, entregada_en FROM tareas WHERE etapa_id = ? ORDER BY orden",
                 (e["id"],),
             )
         return etapas
@@ -256,7 +260,7 @@ class Storage:
     def get_tarea(self, id: str) -> dict | None:
         return self._one(
             "SELECT id, etapa_id, materia_id, numero, titulo, tipo, desde, hasta, puntos, "
-            "modalidad, estado FROM tareas WHERE id = ?",
+            "modalidad, estado, entregada_en FROM tareas WHERE id = ?",
             (id,),
         )
 
@@ -381,7 +385,8 @@ class Storage:
 
     def tareas_con_posicion(self, materia_id: str) -> list[dict]:
         return self._all(
-            "SELECT t.id, t.numero, t.titulo, e.orden AS etapa_idx, t.orden AS tarea_idx, "
+            "SELECT t.id, t.numero, t.titulo, t.estado, e.orden AS etapa_idx, "
+            "t.orden AS tarea_idx, "
             "(d.tarea_id IS NOT NULL) AS tiene_detalle FROM tareas t "
             "JOIN etapas e ON e.id = t.etapa_id "
             "LEFT JOIN detalle d ON d.tarea_id = t.id "
@@ -397,3 +402,25 @@ class Storage:
             for tarea_id in ids:
                 self._db.execute("DELETE FROM tareas WHERE id = ?", (tarea_id,))
             self._db.commit()
+
+    def marcar_entregada(self, tarea_id: str, entregada_en: str | None) -> None:
+        self._run(
+            "UPDATE tareas SET estado = 'entregada', entregada_en = ? WHERE id = ?",
+            (entregada_en, tarea_id),
+        )
+
+    def desmarcar_entregada(self, tarea_id: str) -> None:
+        self._run(
+            "UPDATE tareas SET entregada_en = NULL, estado = CASE WHEN EXISTS "
+            "(SELECT 1 FROM generaciones g WHERE g.tarea_id = tareas.id) "
+            "THEN 'generada' ELSE 'pendiente' END WHERE id = ? AND estado = 'entregada'",
+            (tarea_id,),
+        )
+
+    def tareas_no_entregadas(self) -> list[dict]:
+        return self._all(
+            "SELECT t.id, t.etapa_id, t.materia_id, t.numero, t.titulo, t.tipo, t.desde, "
+            "t.hasta, t.puntos, t.modalidad, t.estado, t.entregada_en, "
+            "m.nombre AS materia_nombre FROM tareas t JOIN materias m ON m.id = t.materia_id "
+            "WHERE t.estado != 'entregada'"
+        )

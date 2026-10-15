@@ -16,20 +16,28 @@ from backend.core.types import (
 
 from .asgi_client import MiniClient
 
+ENSURE_REAL = services.ensure_nexus
+
+
+class _Contador:
+    def __init__(self, sel=""):
+        self.sel = sel
+
+    async def count(self):
+        return 0 if self.sel == "text=/sesi[oó]n.{0,20}(cerrada|expir)/i" else 1
+
 
 class _Pagina:
     url = "https://plataformanexus.uanl.mx/#/App"
-    page = property(lambda self: self)
-
-    def __init__(self, registro=None):
-        self.registro = registro
 
     def is_closed(self):
         return False
 
+    def locator(self, sel):
+        return _Contador(sel)
+
     async def close(self):
-        if self.registro is not None:
-            self.registro["abiertas"] -= 1
+        return None
 
     async def content(self):
         return "<html/>"
@@ -56,26 +64,16 @@ class FakeNexus:
         }
         self.titulo_extra = ""
         self.materias = [MateriaCard("100", "Lógica", 0)]
-        self.registro = {"abiertas": 0, "max": 0}
-        self.paginas = []
+        self.pagina = _Pagina()
         self.headless = []
         self.estructuras = 0
 
         async def ensure(st, hooks, **kw):
             self.headless.append(kw.get("headless"))
-            return _Pagina()
+            return self.pagina
 
         async def leer(page):
             return self.materias
-
-        async def pestana(st, hooks, lock, estado=None):
-            self.registro["abiertas"] += 1
-            self.registro["max"] = max(self.registro["max"], self.registro["abiertas"])
-            if self.paginas:
-                pagina = self.paginas.pop(0)
-                pagina.registro = self.registro
-                return pagina
-            return _Pagina(self.registro)
 
         async def abrir_materia(page, i, nombre=None):
             await asyncio.sleep(0.05)
@@ -89,7 +87,7 @@ class FakeNexus:
                     t.titulo = t.titulo.split(" *")[0] + self.titulo_extra
             return etapas
 
-        async def abrir_tarea(page, e, t, numero=None):
+        async def abrir_tarea(page, e, t, numero=None, **kw):
             self.detalles.append((e, t))
             return DetalleTarea("T", "1", None, None, 1.0, None, "act", "cont", "crit", None)
 
@@ -97,12 +95,6 @@ class FakeNexus:
             return None
 
         monkeypatch.setattr(services, "ensure_nexus", ensure)
-        monkeypatch.setattr(services, "_abrir_pestana", pestana)
-
-        async def sin_estado(st):
-            return None
-
-        monkeypatch.setattr(services, "_exportar_sesion", sin_estado)
         monkeypatch.setattr(nexus, "leer_materias", leer)
         monkeypatch.setattr(nexus, "abrir_materia", abrir_materia)
         monkeypatch.setattr(nexus, "abrir_estructura", abrir_estructura)
@@ -171,7 +163,7 @@ def test_idempotente_y_actualiza_titulos(state, monkeypatch):
 def test_error_en_una_tarea_continua(state, monkeypatch):
     fake = FakeNexus(monkeypatch, state)
 
-    async def abrir_tarea(page, e, t, numero=None):
+    async def abrir_tarea(page, e, t, numero=None, **kw):
         if t == 0:
             raise TimeoutError("boom")
         fake.detalles.append((e, t))
@@ -183,46 +175,11 @@ def test_error_en_una_tarea_continua(state, monkeypatch):
     assert job.resultado["detalles_leidos"] == 1 and len(job.resultado["errores"]) == 1
 
 
-def test_sesion_caida_reintenta_la_materia_en_otra_pestana(state, monkeypatch):
-    fake = FakeNexus(monkeypatch, state, tareas_por_materia=1)
-
-    class Caida(_Pagina):
-        url = "https://plataformanexus.uanl.mx/#/LoginSIASE"
-
-    fake.paginas = [Caida()]
-    intentos = {"n": 0}
-
-    async def abrir_tarea(page, e, t, numero=None):
-        intentos["n"] += 1
-        if isinstance(page, Caida):
-            raise TimeoutError("sesion")
-        return DetalleTarea("T", "1", None, None, 1.0, None, "a", "c", "k", None)
-
-    monkeypatch.setattr(nexus, "abrir_tarea", abrir_tarea)
-    job = correr(state, "completo")
-    assert job.estado == "ok", job.mensaje
-    assert job.resultado["detalles_leidos"] == 1 and job.resultado["errores"] == []
-    assert intentos["n"] == 2
-    assert fake.registro["abiertas"] == 0
-
-
-def test_cinco_pestanas_como_maximo_en_paralelo(state, monkeypatch):
-    fake = FakeNexus(monkeypatch, state, tareas_por_materia=1)
-    fake.materias = [MateriaCard(str(100 + k), f"M{k}", k) for k in range(8)]
-    for k in range(8):
-        state.storage.upsert_materia(str(100 + k), f"M{k}", k)
-    job = correr(state, "completo")
-    assert job.estado == "ok", job.mensaje
-    assert job.resultado["materias"] == 8 and job.resultado["detalles_leidos"] == 8
-    assert fake.registro["max"] == 5
-    assert fake.registro["abiertas"] == 0
-
-
 def test_persistencia_incremental_y_reanudacion(state, monkeypatch):
-    fake = FakeNexus(monkeypatch, state, tareas_por_materia=4)
+    FakeNexus(monkeypatch, state, tareas_por_materia=4)
     leidas = []
 
-    async def abrir_tarea(page, e, t, numero=None):
+    async def abrir_tarea(page, e, t, numero=None, **kw):
         if len(leidas) == 2:
             await asyncio.sleep(30)
         leidas.append(t)
@@ -246,7 +203,7 @@ def test_persistencia_incremental_y_reanudacion(state, monkeypatch):
 
     leidas.clear()
 
-    async def normal(page, e, t, numero=None):
+    async def normal(page, e, t, numero=None, **kw):
         leidas.append(t)
         return DetalleTarea("T", "1", None, None, 1.0, None, "a", "c", "k", None)
 
@@ -255,7 +212,6 @@ def test_persistencia_incremental_y_reanudacion(state, monkeypatch):
     assert job.estado == "ok"
     assert sorted(leidas) == [2, 3]
     assert state.storage.get_settings()["sync_inicial_hecha"] is True
-    assert fake.registro["abiertas"] == 0
 
 
 def test_sync_concurrente_devuelve_el_mismo_job(app, state, monkeypatch):
@@ -414,48 +370,10 @@ def test_route_bloquea_recursos_pesados_solo_fuera_de_gemini(manager):
     ]
 
 
-class _NavegadorFalso:
-    def __init__(self):
-        self.contextos = []
-        self.cerrado = False
-
-    async def new_context(self, **kw):
-        ctx = _FakeCtx(True)
-        ctx.kw = kw
-        self.contextos.append(ctx)
-        return ctx
-
-    async def close(self):
-        self.cerrado = True
-
-
-def test_contexto_aislado_con_storage_state_y_filtros(manager):
-    navegador = _NavegadorFalso()
-
-    async def launch(**kw):
-        return navegador
-
-    manager._pw.launch = launch
-
-    async def scenario():
-        a = await manager.contexto_aislado({"cookies": ["x"]})
-        b = await manager.contexto_aislado({"cookies": ["x"]})
-        await manager.cerrar_aislado()
-        return a, b
-
-    a, b = asyncio.run(scenario())
-    assert a is not b and len(navegador.contextos) == 2
-    assert a.kw["storage_state"] == {"cookies": ["x"]}
-    assert a.kw["viewport"] == {"width": 1366, "height": 900}
-    assert a.rutas and a.timeouts[0] == 10_000
-    assert navegador.cerrado and manager._aislado is None
-    assert manager._pw.lanzados == []
-
-
 def test_tarea_fallida_guarda_snapshot(state, monkeypatch):
     FakeNexus(monkeypatch, state, tareas_por_materia=1)
 
-    async def abrir_tarea(page, e, t, numero=None):
+    async def abrir_tarea(page, e, t, numero=None, **kw):
         raise TimeoutError("Timeout esperando el detalle de la tarea 1.0")
 
     monkeypatch.setattr(nexus, "abrir_tarea", abrir_tarea)
@@ -465,46 +383,112 @@ def test_tarea_fallida_guarda_snapshot(state, monkeypatch):
     assert any(n.startswith("sync-tarea-100-1_0") and n.endswith(".html") for n in nombres)
 
 
-def test_pestana_nueva_sin_lista_hace_login_en_su_contexto(state, monkeypatch):
-    class Pagina:
-        url = "https://plataformanexus.uanl.mx/#/LoginSIASE"
+class _CtxNexus:
+    def __init__(self):
+        self.pages = []
+        self.logins = 0
+        self.max_vivas = 0
 
-        async def goto(self, *a, **kw):
-            return None
+    def abrir(self):
+        pagina = _PaginaNexus(self)
+        self.pages.append(pagina)
+        self.max_vivas = max(self.max_vivas, len(self.pages))
+        return pagina
 
-        async def close(self):
-            return None
 
-    class Ctx:
-        def __init__(self):
-            self.cerrado = False
+class _PaginaNexus(_Pagina):
+    def __init__(self, ctx):
+        self.ctx = ctx
+        self.url = "https://plataformanexus.uanl.mx/#/App/UnidadesAprendizaje"
+        self.cerrada = False
 
-        async def new_page(self):
-            return Pagina()
+    def is_closed(self):
+        return self.cerrada
 
-        async def close(self):
-            self.cerrado = True
+    async def close(self):
+        self.cerrada = True
+        if self in self.ctx.pages:
+            self.ctx.pages.remove(self)
 
-    ctx = Ctx()
-    logins = []
 
-    async def aislado(estado=None):
+def _real_ensure(state, monkeypatch, ctx):
+    async def contexto(headless=None):
         return ctx
 
     async def login(c, cuenta, password, hooks=None):
-        logins.append(c)
-        return _Pagina()
-
-    async def sin_lista(page, timeout=30000):
-        if isinstance(page, Pagina):
-            raise TimeoutError("sin lista")
+        ctx.logins += 1
+        return ctx.abrir()
 
     state.storage.set_settings({"cuenta": "1"})
     state.credentials.set("1", "pw")
-    monkeypatch.setattr(state.browser, "contexto_aislado", aislado)
+    monkeypatch.setattr(services, "ensure_nexus", ENSURE_REAL)
+    monkeypatch.setattr(state.browser, "context", contexto)
     monkeypatch.setattr(services.siase, "login", login)
-    monkeypatch.setattr(nexus, "esperar_lista", sin_lista)
-    tab = asyncio.run(services._abrir_pestana(state, services.Hooks(), asyncio.Lock(), {"c": 1}))
-    assert logins == [ctx] and isinstance(tab.page, _Pagina)
-    asyncio.run(tab.close())
-    assert ctx.cerrado
+
+
+def test_una_sola_pagina_de_nexus_reutilizada_entre_jobs(state, monkeypatch):
+    ctx = _CtxNexus()
+    fake = FakeNexus(monkeypatch, state, tareas_por_materia=1)
+    _real_ensure(state, monkeypatch, ctx)
+    _parchar_nexus(monkeypatch, fake)
+    assert correr(state, "completo").estado == "ok"
+    assert correr(state, "incremental").estado == "ok"
+    assert ctx.logins == 1 and ctx.max_vivas == 1 and len(ctx.pages) == 1
+
+
+def _parchar_nexus(monkeypatch, fake):
+    async def leer(page):
+        return fake.materias
+
+    async def abrir_materia(page, i, nombre=None):
+        return Portada("PROFE", "periodo", None)
+
+    async def abrir_estructura(page):
+        return fake.etapas[0]
+
+    async def abrir_tarea(page, e, t, numero=None, **kw):
+        fake.detalles.append((e, t))
+        return DetalleTarea("T", "1", None, None, 1.0, None, "a", "c", "k", None)
+
+    async def nada(page):
+        return None
+
+    monkeypatch.setattr(nexus, "leer_materias", leer)
+    monkeypatch.setattr(nexus, "abrir_materia", abrir_materia)
+    monkeypatch.setattr(nexus, "abrir_estructura", abrir_estructura)
+    monkeypatch.setattr(nexus, "abrir_tarea", abrir_tarea)
+    monkeypatch.setattr(nexus, "volver_a_estructura", nada)
+    monkeypatch.setattr(nexus, "volver_a_lista", nada)
+
+
+def test_pestana_muerta_cierra_la_vieja_reconecta_y_deja_snapshot(state, monkeypatch):
+    ctx = _CtxNexus()
+    fake = FakeNexus(monkeypatch, state, tareas_por_materia=1)
+    _real_ensure(state, monkeypatch, ctx)
+    _parchar_nexus(monkeypatch, fake)
+    intentos = {"n": 0}
+
+    async def abrir_tarea(page, e, t, numero=None, **kw):
+        intentos["n"] += 1
+        if intentos["n"] == 1:
+            page.url = "https://plataformanexus.uanl.mx/#/LoginSIASE"
+            raise TimeoutError("la sesion murio")
+        return DetalleTarea("T", "1", None, None, 1.0, None, "a", "c", "k", None)
+
+    monkeypatch.setattr(nexus, "abrir_tarea", abrir_tarea)
+    job = correr(state, "completo")
+    assert job.estado == "ok", job.mensaje
+    assert job.resultado["detalles_leidos"] == 1 and job.resultado["errores"] == []
+    assert ctx.logins == 2 and ctx.max_vivas == 1 and len(ctx.pages) == 1
+    assert any(f.name.startswith("sesion-nexus-muerta") for f in state.paths.debug.iterdir())
+
+
+def test_ensure_nexus_cierra_paginas_nexus_ajenas_antes_de_abrir_otra(state, monkeypatch):
+    ctx = _CtxNexus()
+    ajena = ctx.abrir()
+    ajena.url = "https://plataformanexus.uanl.mx/#/LoginSIASE"
+    _real_ensure(state, monkeypatch, ctx)
+    state.nexus_page = ajena
+    page = asyncio.run(services.ensure_nexus(state, services.Hooks(), headless=True))
+    assert page is not ajena and ajena.cerrada
+    assert ctx.pages == [page] and ctx.max_vivas == 1

@@ -84,6 +84,18 @@ NX_ENCABEZADO_MATERIA = "h5 span.ml-2"
 NX_CARD_NOMBRES = "app-cursos-card mat-card.nx-mat-card-curso mat-card-content .text-ellipsis"
 NX_PANEL_HEADER = "mat-expansion-panel-header"
 NX_LOADER = "mat-spinner, mat-progress-spinner, mat-progress-bar"
+NX_TAB_ENTREGAS_CSS = (
+    "nav.mat-tab-nav-bar a.mat-tab-link[routerlink='Entregas'], "
+    "nav.mat-tab-nav-bar a.mat-tab-link[ng-reflect-router-link='Entregas']"
+)
+NX_TAB_ENTREGAS_TEXT = "Entregas"
+NX_ENTREGAS_TABLA = "table.mat-table"
+NX_ENTREGAS_FILA = "tr.mat-row"
+NX_ENTREGAS_NOMBRE = "td.cdk-column-nombre"
+NX_ENTREGAS_FECHA = "td.cdk-column-fecha"
+NX_ENTREGAS_VACIO = "text=/No se encontraron Entregas/i"
+# VALIDAR en vivo: aviso de NEXUS cuando la sesion se cierra en otra ventana
+NX_SESION_CERRADA = "text=/sesi[oó]n.{0,20}(cerrada|expir)/i"
 NX_PALABRA_OCULTA = "autoevaluacion"
 
 NX_TABS = "nav.mat-tab-nav-bar .mat-tab-links a.mat-tab-link"
