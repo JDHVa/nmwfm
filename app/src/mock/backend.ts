@@ -126,6 +126,7 @@ export function createMockBackend(options: MockOptions = {}) {
         job.estado = "ok";
         job.paso = "Terminado";
         job.progreso = 100;
+        if (tipo === "entregar") job.mensaje = "La Tarea ha sido cargada y entregada con éxito";
         log("info", `Trabajo ${tipo} terminado`);
         emit({ type: "job", job: { ...job } });
       }
