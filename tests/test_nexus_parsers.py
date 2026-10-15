@@ -29,13 +29,13 @@ def test_estructura():
     assert len(etapas) == 5
     assert etapas[4].tareas[0].numero == "PIA"
     primera = etapas[0].tareas
-    assert [t.numero for t in primera] == ["1.1", "1.2", "1.3", "1.4"]
-    assert primera[1].titulo == "Dimensión 2 - Comprensión - Ficha Técnica"
-    assert primera[1].tipo == "dimension"
-    assert primera[1].puntos == 2.5
-    assert primera[3].tipo == "evidencia"
-    assert primera[3].modalidad == "Individual"
-    assert etapas[2].tareas[3].modalidad == "En Equipo"
+    assert [t.numero for t in primera] == ["1.2", "1.3", "1.4"]
+    assert primera[0].titulo == "Dimensión 2 - Comprensión - Ficha Técnica"
+    assert primera[0].tipo == "dimension"
+    assert primera[0].puntos == 2.5
+    assert primera[2].tipo == "evidencia"
+    assert primera[2].modalidad == "Individual"
+    assert etapas[2].tareas[2].modalidad == "En Equipo"
 
 
 def test_detalle_dimension():

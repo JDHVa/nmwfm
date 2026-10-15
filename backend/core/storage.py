@@ -388,3 +388,12 @@ class Storage:
             "WHERE t.materia_id = ? ORDER BY e.orden, t.orden",
             (materia_id,),
         )
+
+    def listar_titulos_tareas(self) -> list[tuple[str, str]]:
+        return [(r["id"], r["titulo"]) for r in self._all("SELECT id, titulo FROM tareas")]
+
+    def borrar_tareas(self, ids: list[str]) -> None:
+        with self._lock:
+            for tarea_id in ids:
+                self._db.execute("DELETE FROM tareas WHERE id = ?", (tarea_id,))
+            self._db.commit()
