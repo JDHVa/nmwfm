@@ -88,6 +88,7 @@ def test_generar_encadena_entrega(listo, monkeypatch):
     assert job.estado == "ok" and len(llamadas) == 1 and llamadas[0].endswith("x.pdf")
     assert job.paso == "entregando"
     assert listo.storage.get_tarea(TID)["estado"] == "entregada"
+    assert listo.storage.get_tarea(TID)["entregada_en"]
 
 
 def test_entrega_fallida_deja_generacion(listo, monkeypatch):

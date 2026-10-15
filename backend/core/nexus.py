@@ -12,6 +12,7 @@ from .htmlq import has_class, html_to_markdown, parse, select, select_one, text_
 from .types import (
     DetalleTarea,
     DialogoEntrega,
+    Entrega,
     EtapaItem,
     Hooks,
     MateriaCard,
@@ -268,8 +269,37 @@ async def _clic_hasta(locator, condicion, descripcion, respaldo=None, intentos=3
                 raise
 
 
+_FECHA_ENTREGA_RE = re.compile(
+    r"(\d{1,2})-(\d{1,2})-(\d{4})\s+(\d{1,2}):(\d{2})\s*([AaPp])\.?\s*[Mm]\.?"
+)
+
+
+def parse_fecha_entrega(texto: str) -> str | None:
+    m = _FECHA_ENTREGA_RE.search(texto)
+    if not m:
+        return None
+    dia, mes, anio, hora, minuto, ampm = m.groups()
+    h = int(hora) % 12 + (12 if ampm.lower() == "p" else 0)
+    return f"{int(anio):04d}-{int(mes):02d}-{int(dia):02d}T{h:02d}:{minuto}"
+
+
+def parse_entregas(markup: str) -> list[Entrega]:
+    root = parse(markup)
+    entregas = []
+    for fila in select(root, S.NX_ENTREGAS_FILA):
+        nombre = text_of(select_one(fila, S.NX_ENTREGAS_NOMBRE))
+        fecha = parse_fecha_entrega(text_of(select_one(fila, S.NX_ENTREGAS_FECHA)))
+        entregas.append(Entrega(nombre=nombre, fecha=fecha))
+    return entregas
+
+
 def tarea_entregada(markup: str) -> bool:
-    return False
+    return bool(parse_entregas(markup))
+
+
+def ultima_entrega(entregas: list[Entrega]) -> str | None:
+    fechas = [e.fecha for e in entregas if e.fecha]
+    return max(fechas) if fechas else None
 
 
 class LecturaIncorrecta(RuntimeError):
@@ -406,7 +436,13 @@ async def _preparar_panel(page: "Page", etapa_idx: int):
 
 
 async def abrir_tarea(
-    page: "Page", etapa_idx: int, tarea_idx: int, numero: str | None = None
+    page: "Page",
+    etapa_idx: int,
+    tarea_idx: int,
+    numero: str | None = None,
+    *,
+    entregas: bool = False,
+    solo_entregas: bool = False,
 ) -> DetalleTarea:
     ultimo: Exception | None = None
     for _ in range(2):
@@ -427,8 +463,10 @@ async def abrir_tarea(
             )
             await volver_a_estructura(page)
             continue
-        if tiene_pestana_rubrica(html):
+        if not solo_entregas and tiene_pestana_rubrica(html):
             detalle.rubrica = await _leer_rubrica_pestana(page)
+        if (entregas or solo_entregas) and "entregas" in parse_pestanas(html):
+            detalle.entregas = await leer_entregas(page)
         return detalle
     raise ultimo
 
@@ -438,6 +476,17 @@ async def _clic_pestana(page: "Page", css: str, texto: str) -> None:
     if not await tab.count():
         tab = page.locator(S.NX_TABS).filter(has_text=texto)
     await _clic(tab)
+
+
+async def _volver_a_contenidos(page: "Page") -> None:
+    with contextlib.suppress(Exception):
+        await _clic_pestana(page, S.NX_TAB_CONTENIDOS_CSS, S.NX_TAB_CONTENIDOS_TEXT)
+
+        async def en_contenidos() -> bool:
+            activas = await page.locator(S.NX_TAB_ACTIVA).all_inner_texts()
+            return any(_norm(a) == _norm(S.NX_TAB_CONTENIDOS_TEXT) for a in activas)
+
+        await _esperar(en_contenidos, "la pestaña Contenidos", 10)
 
 
 async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
@@ -450,15 +499,26 @@ async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
         await _esperar(con_criterios, "la rúbrica", 10)
         rubrica = parse_rubrica(await _html(page.locator(S.NX_CONTENIDO_MATERIA)))
     finally:
-        with contextlib.suppress(Exception):
-            await _clic_pestana(page, S.NX_TAB_CONTENIDOS_CSS, S.NX_TAB_CONTENIDOS_TEXT)
-
-            async def en_contenidos() -> bool:
-                activas = await page.locator(S.NX_TAB_ACTIVA).all_inner_texts()
-                return any(_norm(a) == _norm(S.NX_TAB_CONTENIDOS_TEXT) for a in activas)
-
-            await _esperar(en_contenidos, "la pestaña Contenidos", 10)
+        await _volver_a_contenidos(page)
     return rubrica
+
+
+async def leer_entregas(page: "Page") -> list[Entrega]:
+    await _clic_pestana(page, S.NX_TAB_ENTREGAS_CSS, S.NX_TAB_ENTREGAS_TEXT)
+    try:
+
+        async def lista() -> bool:
+            return (
+                await page.locator(S.NX_ENTREGAS_FILA).count() > 0
+                or await page.locator(S.NX_ENTREGAS_VACIO).count() > 0
+            )
+
+        await _esperar(lista, "la pestaña Entregas", 15)
+        if await page.locator(S.NX_ENTREGAS_FILA).count() == 0:
+            return []
+        return parse_entregas(await _html(page.locator(S.NX_ENTREGAS_TABLA)))
+    finally:
+        await _volver_a_contenidos(page)
 
 
 async def volver_a_lista(page: "Page") -> None:
@@ -571,6 +631,10 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
 
 
 __all__ = [
+    "parse_entregas",
+    "parse_fecha_entrega",
+    "ultima_entrega",
+    "leer_entregas",
     "tarea_entregada",
     "ElementoNoEncontrado",
     "es_autoevaluacion",

@@ -107,6 +107,7 @@ class DetalleTarea:
     contenido: str
     criterios_desempeno: str
     rubrica: Rubrica | None
+    entregas: "list[Entrega] | None" = None
 
 
 @dataclass
@@ -121,3 +122,9 @@ class DialogoEntrega:
 class Snackbar:
     texto: str
     exito: bool
+
+
+@dataclass
+class Entrega:
+    nombre: str
+    fecha: str | None
