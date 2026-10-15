@@ -47,27 +47,37 @@ class BrowserManager:
         self.lock = asyncio.Lock()
         self._pw: Playwright | None = None
         self._ctx: BrowserContext | None = None
+        self._headless: bool | None = None
 
     @property
     def abierto(self) -> bool:
         return self._ctx is not None
 
-    async def context(self) -> BrowserContext:
+    async def context(self, headless: bool | None = None) -> BrowserContext:
+        objetivo = (not self.dev) if headless is None else headless
+        if self._ctx is not None and self._headless != objetivo:
+            await self._cerrar_contexto()
         if self._ctx is not None:
             return self._ctx
         if self._pw is None:
             self._pw = await async_playwright().start()
         self.profile_dir.mkdir(parents=True, exist_ok=True)
-        self._ctx = await self._pw.chromium.launch_persistent_context(
+        ctx = await self._pw.chromium.launch_persistent_context(
             user_data_dir=str(self.profile_dir),
             channel="chrome",
-            headless=not self.dev,
+            headless=objetivo,
             no_viewport=True,
             ignore_default_args=["--enable-automation"],
             args=["--disable-blink-features=AutomationControlled"],
         )
-        self._ctx.on("close", lambda _: setattr(self, "_ctx", None))
-        return self._ctx
+        self._ctx = ctx
+        self._headless = objetivo
+        ctx.on("close", lambda _: self._olvidar(ctx))
+        return ctx
+
+    def _olvidar(self, ctx: BrowserContext) -> None:
+        if self._ctx is ctx:
+            self._ctx = None
 
     async def _cerrar_contexto(self) -> None:
         ctx, self._ctx = self._ctx, None

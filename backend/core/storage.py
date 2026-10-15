@@ -85,8 +85,10 @@ SETTING_DEFAULTS = {
     "matricula": "",
     "entregar_sin_revisar": False,
     "reducir_animaciones": False,
+    "sync_inicial_hecha": False,
+    "ultima_sync": None,
 }
-BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones"}
+BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}
 
 
 def now_iso() -> str:
@@ -370,4 +372,19 @@ class Storage:
         return self._all(
             "SELECT pdf_path, entregada_en FROM entregas WHERE tarea_id = ? ORDER BY id",
             (tarea_id,),
+        )
+
+    def ids_tareas(self, materia_id: str) -> set[str]:
+        return {
+            r["id"] for r in self._all("SELECT id FROM tareas WHERE materia_id = ?", (materia_id,))
+        }
+
+    def tareas_con_posicion(self, materia_id: str) -> list[dict]:
+        return self._all(
+            "SELECT t.id, t.numero, t.titulo, e.orden AS etapa_idx, t.orden AS tarea_idx, "
+            "(d.tarea_id IS NOT NULL) AS tiene_detalle FROM tareas t "
+            "JOIN etapas e ON e.id = t.etapa_id "
+            "LEFT JOIN detalle d ON d.tarea_id = t.id "
+            "WHERE t.materia_id = ? ORDER BY e.orden, t.orden",
+            (materia_id,),
         )

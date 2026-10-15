@@ -37,7 +37,7 @@ def listo(seeded, monkeypatch):
 
     monkeypatch.setattr(services, "_construir_documentos", fake_docs)
 
-    async def fake_ensure(state, hooks):
+    async def fake_ensure(state, hooks, **kw):
         return None
 
     async def fake_abrir(state, page, tarea_id):

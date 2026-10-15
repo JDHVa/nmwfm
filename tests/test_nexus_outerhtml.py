@@ -105,7 +105,7 @@ class _PaginaSync:
 def test_sync_sin_materias_es_error_y_guarda_snapshot(state, monkeypatch):
     pagina = _PaginaSync()
 
-    async def fake_ensure(st, hooks):
+    async def fake_ensure(st, hooks, **kw):
         return pagina
 
     async def fake_leer(page):

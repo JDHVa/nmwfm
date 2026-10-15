@@ -55,6 +55,8 @@ def test_settings_roundtrip(client, state):
         "dev": True,
         "entregar_sin_revisar": False,
         "reducir_animaciones": False,
+        "sync_inicial_hecha": False,
+        "ultima_sync": None,
     }
     r = client.put(
         "/settings",

@@ -91,7 +91,7 @@ class _PaginaSync:
 def _sync(state, monkeypatch, fallan):
     from backend.core.types import MateriaCard, Portada
 
-    async def fake_ensure(st, hooks):
+    async def fake_ensure(st, hooks, **kw):
         return _PaginaSync()
 
     async def fake_leer(page):
@@ -127,7 +127,7 @@ def _sync(state, monkeypatch, fallan):
 
 def test_sync_continua_si_falla_una_materia(state, monkeypatch):
     job = _sync(state, monkeypatch, {0})
-    assert job.estado == "ok"
+    assert job.estado == "ok", job.mensaje
     assert job.resultado["materias"] == 1
     assert len(job.resultado["errores"]) == 1 and job.resultado["errores"][0].startswith("Uno")
 
