@@ -38,6 +38,10 @@ class GenerarBody(BaseModel):
     instrucciones_extra: str | None = None
 
 
+class SyncBody(BaseModel):
+    modo: Literal["auto", "completo", "incremental"] = "auto"
+
+
 class EntregarBody(BaseModel):
     confirmar: bool = False
 
@@ -166,9 +170,13 @@ def create_app(
         ).to_dict()
 
     @router.post("/sync")
-    async def sync():
+    async def sync(body: SyncBody | None = None):
+        activo = state.jobs.activo("sync")
+        if activo is not None:
+            return activo.to_dict()
         services.require_credentials(state)
-        return state.jobs.start("sync", lambda ctx: services.run_sync(state, ctx)).to_dict()
+        modo = body.modo if body else "auto"
+        return state.jobs.start("sync", lambda ctx: services.run_sync(state, ctx, modo)).to_dict()
 
     @router.get("/materias")
     async def materias():

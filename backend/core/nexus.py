@@ -239,6 +239,12 @@ def parse_rubrica(markup_or_el) -> Rubrica | None:
     return Rubrica(niveles=niveles, criterios=criterios)
 
 
+async def _pausa(minimo: float = 0.3, maximo: float = 0.9) -> None:
+    from .browser import pausa
+
+    await pausa(minimo, maximo)
+
+
 async def _html(locator) -> str:
     return await locator.evaluate("e => e.outerHTML")
 
@@ -264,11 +270,9 @@ async def leer_materias(page: "Page") -> list[MateriaCard]:
 
 
 async def abrir_materia(page: "Page", indice: int) -> Portada:
-    from .browser import pausa
-
     await esperar_lista(page)
     card = page.locator(S.NX_CARD).nth(indice)
-    await pausa()
+    await _pausa()
     enlace = card.locator(S.NX_CARD_CLICK).first
     await _clic(card.locator(S.NX_CARD_NAME), enlace)
     try:
@@ -276,28 +280,28 @@ async def abrir_materia(page: "Page", indice: int) -> Portada:
     except Exception:
         await enlace.dispatch_event("click")
         await page.wait_for_selector(S.NX_PORTADA, timeout=30000)
-    await pausa()
+    await _pausa()
     return parse_portada(await _html(page.locator(S.NX_PORTADA)))
 
 
-async def abrir_estructura(page: "Page") -> list[EtapaItem]:
-    from .browser import pausa
-
-    await pausa()
+async def volver_a_estructura(page: "Page") -> None:
+    await _pausa()
     await _clic(page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA))
     await page.wait_for_selector(S.NX_PANEL, timeout=30000)
-    await pausa()
+    await _pausa()
+
+
+async def abrir_estructura(page: "Page") -> list[EtapaItem]:
+    await volver_a_estructura(page)
     return parse_estructura(await _html(page.locator(S.NX_ESTRUCTURA)))
 
 
 async def abrir_tarea(page: "Page", etapa_idx: int, tarea_idx: int) -> DetalleTarea:
-    from .browser import pausa
-
-    await pausa()
+    await _pausa()
     panel = page.locator(S.NX_PANEL).nth(etapa_idx)
     await _clic(panel.locator(S.NX_PANEL_ITEM_LINK).nth(tarea_idx))
     await page.wait_for_selector(S.NX_DETALLE_ROOT, timeout=30000)
-    await pausa()
+    await _pausa()
     html = await _html(page.locator("mat-sidenav-content"))
     detalle = parse_detalle(html)
     if tiene_pestana_rubrica(html):
@@ -313,25 +317,21 @@ async def _clic_pestana(page: "Page", css: str, texto: str) -> None:
 
 
 async def _leer_rubrica_pestana(page: "Page") -> Rubrica | None:
-    from .browser import pausa
-
-    await pausa()
+    await _pausa()
     await _clic_pestana(page, S.NX_TAB_RUBRICA_CSS, S.NX_TAB_RUBRICA_TEXT)
     try:
         await page.wait_for_selector(S.NX_RUBRICA, timeout=10000)
         rubrica = parse_rubrica(await _html(page.locator("mat-sidenav-content")))
     finally:
-        await pausa()
+        await _pausa()
         with contextlib.suppress(Exception):
             await _clic_pestana(page, S.NX_TAB_CONTENIDOS_CSS, S.NX_TAB_CONTENIDOS_TEXT)
     return rubrica
 
 
 async def volver_a_lista(page: "Page") -> None:
-    from .browser import pausa
-
     link = page.locator(S.NX_LISTA_LINK)
-    await pausa()
+    await _pausa()
     if await link.count():
         await _clic(link)
     else:
@@ -406,23 +406,21 @@ async def _cerrar_dialogo(page: "Page") -> None:
 
 
 async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
-    from .browser import pausa
-
     hooks = hooks or Hooks()
-    await pausa()
+    await _pausa()
     boton = page.locator(S.NX_ENTREGAR_BUTTON).filter(has_text=S.NX_ENTREGAR_TEXT).first
     await _clic(boton)
     await page.wait_for_selector(S.NX_ENTREGA_UPLOAD, timeout=30000)
-    await pausa()
+    await _pausa()
 
     if not await page.locator(S.NX_ENTREGA_TAB_ACTIVA).filter(has_text=S.NX_ENTREGA_TAB_PC).count():
         tab_pc = page.locator(S.NX_ENTREGA_TAB).filter(has_text=re.compile(r"^\s*PC\s*$")).first
         await _clic(tab_pc)
-        await pausa()
+        await _pausa()
 
     await hooks.log("Subiendo el PDF a NEXUS")
     await _subir_archivo(page, pdf_path)
-    await pausa()
+    await _pausa()
 
     dialogo = page.locator(S.NX_ENTREGA_DIALOG).filter(has=page.locator(S.NX_ENTREGA_UPLOAD))
     if await dialogo.count():
@@ -434,11 +432,11 @@ async def entregar(page: "Page", pdf_path, hooks: Hooks | None = None) -> None:
         await confirmar.wait_for(state="visible", timeout=60000)
     except Exception as exc:
         raise EntregaError("El boton de confirmar no se habilito tras cargar el PDF.") from exc
-    await pausa()
+    await _pausa()
     await _clic(confirmar)
 
     snack = await _esperar_snackbar(page)
-    await pausa(0.6, 1.2)
+    await _pausa(0.6, 1.2)
     with contextlib.suppress(Exception):
         await page.locator(S.NX_SNACKBAR_CLOSE).last.click(timeout=3000)
     await _cerrar_dialogo(page)
@@ -451,6 +449,7 @@ __all__ = [
     "abrir_estructura",
     "abrir_materia",
     "abrir_tarea",
+    "volver_a_estructura",
     "entregar",
     "EntregaError",
     "parse_dialogo_entrega",

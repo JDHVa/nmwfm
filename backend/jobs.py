@@ -114,6 +114,12 @@ class JobManager:
     def get(self, job_id: str) -> Job | None:
         return self.jobs.get(job_id)
 
+    def activo(self, tipo: str) -> Job | None:
+        for job in self.jobs.values():
+            if job.tipo == tipo and job.estado in ("en_cola", "corriendo", "esperando_usuario"):
+                return job
+        return None
+
     def start(self, tipo: str, fn: JobFn) -> Job:
         job = Job(id=uuid.uuid4().hex, tipo=tipo)
         ctx = JobContext(self, job)
