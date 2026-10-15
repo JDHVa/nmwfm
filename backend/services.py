@@ -1,6 +1,8 @@
 import asyncio
 import contextlib
 import json
+import shutil
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -8,7 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from playwright.async_api import Page
 
 from . import config
-from .core import documents, images, metricas, nexus, selectors, siase
+from .core import documents, images, metricas, nexus, ocr, selectors, siase
 from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
@@ -79,6 +81,7 @@ class AppState:
             "usar_recorte": bool(row["usar_recorte"]),
         }
         if row["tipo"] == "imagen":
+            out["ocr_texto"] = row.get("ocr_texto")
             out["original_url"] = self.file_url(row["original_path"])
             out["recortada_url"] = self.file_url(row["recortada_path"])
             thumb = Path(row["recortada_path"]).with_name(f"{row['id']}_thumb.jpg")
@@ -549,6 +552,103 @@ def _insumo_refs(state: AppState, tarea_id: str) -> list[images.InsumoRef]:
     return refs
 
 
+def _ocr_pendiente(state: AppState, tarea_id: str) -> list[str]:
+    textos = []
+    for fila in state.storage.list_insumos(tarea_id):
+        if fila["tipo"] != "imagen" or not fila["recortada_path"]:
+            continue
+        texto = fila.get("ocr_texto")
+        if texto is None:
+            origen = fila["recortada_path"] if fila["usar_recorte"] else fila["original_path"]
+            try:
+                texto = ocr.extraer_texto(Path(origen), fila["rotacion"])
+            except Exception:
+                continue
+            state.storage.set_ocr(fila["id"], texto)
+        if texto.strip():
+            textos.append(texto.strip())
+    return textos
+
+
+async def _texto_ocr(state: AppState, ctx: JobContext, tarea_id: str) -> str:
+    if not any(f["tipo"] == "imagen" for f in state.storage.list_insumos(tarea_id)):
+        return ""
+    if not ocr.disponible():
+        await ctx.log(
+            "OCR local no disponible: instala rapidocr-onnxruntime para leer las imágenes"
+        )
+        return ""
+    await ctx.update("Leyendo el texto de las imágenes", 0.35)
+    return "\n\n".join(await asyncio.to_thread(_ocr_pendiente, state, tarea_id))
+
+
+EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
+EXTENSIONES_TEXTO = {".txt", ".md"}
+
+
+def tipo_recurso(nombre: str) -> str:
+    ext = Path(nombre).suffix.lower()
+    if ext in EXTENSIONES_IMAGEN:
+        return "imagen"
+    if ext in EXTENSIONES_TEXTO:
+        return "texto"
+    return "pdf" if ext == ".pdf" else "otro"
+
+
+def registrar_recurso(state: AppState, tarea_id: str, nombre: str, origen: Path | None) -> dict:
+    ruta = None
+    if origen is not None:
+        carpeta = state.paths.data / "recursos" / tarea_id
+        carpeta.mkdir(parents=True, exist_ok=True)
+        destino = carpeta / f"{uuid.uuid4().hex}_{Path(nombre).name}"
+        shutil.copyfile(origen, destino)
+        ruta = str(destino)
+    return state.storage.add_recurso(tarea_id, nombre, tipo_recurso(nombre), ruta)
+
+
+def recurso_public(recurso: dict) -> dict:
+    return {
+        "id": recurso["id"],
+        "tarea_id": recurso["tarea_id"],
+        "nombre": recurso["nombre"],
+        "tipo": recurso["tipo"],
+        "descargado": bool(recurso["ruta"]) and Path(recurso["ruta"]).exists(),
+        "usado": bool(recurso["usado"]),
+    }
+
+
+def usar_recurso(state: AppState, tarea_id: str, recurso_id: str) -> dict:
+    recurso = state.storage.get_recurso(recurso_id)
+    if recurso is None or recurso["tarea_id"] != tarea_id:
+        raise ApiError(404, "recurso_no_encontrado", "El recurso no existe.")
+    if not recurso["ruta"] or not Path(recurso["ruta"]).exists():
+        raise ApiError(409, "sin_descargar", "El recurso todavía no se descargó.")
+    ruta = Path(recurso["ruta"])
+    if recurso["tipo"] == "texto":
+        fila = state.storage.add_insumo(
+            tarea_id, "texto", texto=ruta.read_text(encoding="utf-8", errors="replace")
+        )
+    elif recurso["tipo"] == "imagen":
+        insumo_id = uuid.uuid4().hex
+        carpeta = state.paths.insumos / tarea_id
+        carpeta.mkdir(parents=True, exist_ok=True)
+        original = carpeta / f"{insumo_id}_orig{ruta.suffix.lower()}"
+        recortada = carpeta / f"{insumo_id}_crop.jpg"
+        shutil.copyfile(ruta, original)
+        images.process_upload(original, recortada, carpeta / f"{insumo_id}_thumb.jpg")
+        fila = state.storage.add_insumo(
+            tarea_id,
+            "imagen",
+            id=insumo_id,
+            original_path=str(original),
+            recortada_path=str(recortada),
+        )
+    else:
+        raise ApiError(415, "tipo_no_soportado", "Este tipo de recurso aún no se puede usar.")
+    state.storage.marcar_recurso_usado(recurso_id)
+    return state.insumo_public(fila)
+
+
 def _generacion_dir(state: AppState, tarea_id: str) -> Path:
     return state.paths.generaciones / tarea_id
 
@@ -576,6 +676,7 @@ async def run_generar(
         await ctx.update("Armando el PDF de insumos", 0.3)
         pdf_insumos = await asyncio.to_thread(images.build_pdf, refs, out_dir / "insumos.pdf")
 
+    texto_ocr = await _texto_ocr(state, ctx, tarea_id)
     prompt = build_prompt(
         PromptData(
             materia=materia["nombre"],
@@ -589,6 +690,7 @@ async def run_generar(
             rubrica=Rubrica.from_dict(detalle["rubrica"]) if detalle["rubrica"] else None,
             instrucciones_extra=instrucciones_extra,
             tiene_insumos=pdf_insumos is not None,
+            texto_ocr=texto_ocr,
         )
     )
     await ctx.update("generando", 0.45)

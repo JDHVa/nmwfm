@@ -59,7 +59,16 @@ CREATE TABLE IF NOT EXISTS insumos (
     texto TEXT,
     orden INTEGER NOT NULL DEFAULT 0,
     rotacion INTEGER NOT NULL DEFAULT 0,
-    usar_recorte INTEGER NOT NULL DEFAULT 1
+    usar_recorte INTEGER NOT NULL DEFAULT 1,
+    ocr_texto TEXT
+);
+CREATE TABLE IF NOT EXISTS recursos (
+    id TEXT PRIMARY KEY,
+    tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
+    nombre TEXT NOT NULL,
+    tipo TEXT NOT NULL,
+    ruta TEXT,
+    usado INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS generaciones (
     tarea_id TEXT PRIMARY KEY REFERENCES tareas(id) ON DELETE CASCADE,
@@ -143,6 +152,11 @@ class Storage:
         }
         if "avisos" not in gen_columnas:
             self._db.execute("ALTER TABLE generaciones ADD COLUMN avisos TEXT")
+        insumo_columnas = {
+            r["name"] for r in self._db.execute("PRAGMA table_info(insumos)").fetchall()
+        }
+        if "ocr_texto" not in insumo_columnas:
+            self._db.execute("ALTER TABLE insumos ADD COLUMN ocr_texto TEXT")
         if "hist_id" not in gen_columnas:
             self._db.execute("ALTER TABLE generaciones ADD COLUMN hist_id INTEGER")
         self._db.commit()
@@ -363,10 +377,32 @@ class Storage:
         sets = {k: v for k, v in fields.items() if k in allowed and v is not None}
         if "usar_recorte" in sets:
             sets["usar_recorte"] = 1 if sets["usar_recorte"] else 0
+        if "rotacion" in sets or "usar_recorte" in sets:
+            sets["ocr_texto"] = None
         if sets:
             cols = ", ".join(f"{k} = ?" for k in sets)
             self._run(f"UPDATE insumos SET {cols} WHERE id = ?", (*sets.values(), id))
         return self.get_insumo(id)
+
+    def set_ocr(self, insumo_id: str, texto: str) -> None:
+        self._run("UPDATE insumos SET ocr_texto = ? WHERE id = ?", (texto, insumo_id))
+
+    def add_recurso(self, tarea_id: str, nombre: str, tipo: str, ruta: str | None) -> dict:
+        recurso_id = uuid.uuid4().hex
+        self._run(
+            "INSERT INTO recursos(id, tarea_id, nombre, tipo, ruta) VALUES(?, ?, ?, ?, ?)",
+            (recurso_id, tarea_id, nombre, tipo, ruta),
+        )
+        return self.get_recurso(recurso_id)
+
+    def get_recurso(self, recurso_id: str) -> dict | None:
+        return self._one("SELECT * FROM recursos WHERE id = ?", (recurso_id,))
+
+    def list_recursos(self, tarea_id: str) -> list[dict]:
+        return self._all("SELECT * FROM recursos WHERE tarea_id = ? ORDER BY rowid", (tarea_id,))
+
+    def marcar_recurso_usado(self, recurso_id: str) -> None:
+        self._run("UPDATE recursos SET usado = 1 WHERE id = ?", (recurso_id,))
 
     def delete_insumo(self, id: str) -> None:
         self._run("DELETE FROM insumos WHERE id = ?", (id,))

@@ -11,7 +11,8 @@ type Etapa = { id: string; materia_id: string; nombre: string; descripcion: stri
 type Tarea = { id: string; etapa_id: string; materia_id: string; numero: string; titulo: string; tipo: "dimension" | "evidencia" | "examen" | "pia"; desde: string | null; hasta: string | null; puntos: number | null; modalidad: string | null; estado: "pendiente" | "generada" | "entregada"; entregada_en: string | null; vencida: boolean };
 type Rubrica = { niveles: string[]; criterios: { criterio: string; niveles: { puntos: number; descripcion: string }[] }[] };
 type TareaDetalle = Tarea & { actividades: string; contenido: string; criterios_desempeno: string; rubrica: Rubrica | null };
-type Insumo = { id: string; tipo: "imagen" | "texto"; original_url?: string; recortada_url?: string; miniatura_url?: string | null; texto?: string; orden: number; rotacion: 0 | 90 | 180 | 270; usar_recorte: boolean };
+type Recurso = { id: string; tarea_id: string; nombre: string; tipo: "imagen" | "texto" | "pdf" | "otro"; descargado: boolean; usado: boolean };
+type Insumo = { id: string; tipo: "imagen" | "texto"; ocr_texto?: string | null; original_url?: string; recortada_url?: string; miniatura_url?: string | null; texto?: string; orden: number; rotacion: 0 | 90 | 180 | 270; usar_recorte: boolean };
 type Job = { id: string; tipo: "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas"; estado: "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error"; paso: string; progreso: number; mensaje: string | null; resultado: unknown };
 type Generacion = { id: number; tarea_id: string; markdown: string; docx_url: string; pdf_url: string; creada_en: string; avisos: string[] };
 ```
@@ -32,9 +33,11 @@ Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la 
 - `GET /tareas/{id}/insumos` → `Insumo[]`
 - `POST /tareas/{id}/insumos` multipart `files[]` (imágenes) → `Insumo[]` (ya recortadas)
 - `POST /tareas/{id}/insumos/texto` body `{texto}` → `Insumo`
+- `GET /tareas/{id}/recursos` → `Recurso[]` (archivos de la pestaña "Recursos" de la tarea que ya se descargaron como insumos opcionales; la lista queda vacía mientras no se implemente la lectura de esa pestaña en NEXUS)
+- `POST /tareas/{id}/recursos/{rid}/usar` → `Insumo` (convierte el recurso en insumo: imagen → imagen recortada, texto → insumo de texto; 409 `sin_descargar` si el archivo no está, 415 `tipo_no_soportado` para otros tipos)
 - `PATCH /insumos/{id}` body `{orden?, rotacion?, usar_recorte?, texto?}` → `Insumo`
 - `DELETE /insumos/{id}` → 204
-- `POST /tareas/{id}/generar` body `{instrucciones_extra?: string}` → `Job` (insumos.pdf → Gemini → docx/pdf con portada; el documento lleva en su primera línea "Materia - Título", un índice automático si hay más de 4 secciones `##`, numeración de páginas desde el cuerpo (sin número en la portada) y las referencias APA con sangría francesa)
+- `POST /tareas/{id}/generar` body `{instrucciones_extra?: string}` → `Job` (OCR local de las imágenes si `rapidocr-onnxruntime` está instalado: el texto extraído se agrega al prompt y se expone en `Insumo.ocr_texto`; insumos.pdf → Gemini → docx/pdf con portada; el documento lleva en su primera línea "Materia - Título", un índice automático si hay más de 4 secciones `##`, numeración de páginas desde el cuerpo (sin número en la portada) y las referencias APA con sangría francesa)
 - `GET /tareas/{id}/generaciones` → `(Generacion & {actual: boolean})[]` (historial de generaciones de la tarea, la más reciente primero; cada una conserva su propio .docx/.pdf)
 - `POST /generaciones/{id}/restaurar` → `Generacion` (la generación del historial pasa a ser la actual; el estado de la tarea no cambia salvo que estuviera `pendiente`, que pasa a `generada`)
 - `GET /tareas/{id}/portada-preview` → `{pdf_url: string}` (PDF de la portada con los datos reales: nombre y matrícula de Settings, profesor de la materia y la fecha de hoy; requiere Word instalado, 502 `sin_word` si falla la conversión)

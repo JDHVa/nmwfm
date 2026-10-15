@@ -265,6 +265,16 @@ def create_app(
         row = state.storage.add_insumo(tarea_id, "texto", texto=body.texto)
         return state.insumo_public(row)
 
+    @router.get("/tareas/{tarea_id}/recursos")
+    async def recursos(tarea_id: str):
+        need_tarea(tarea_id)
+        return [services.recurso_public(r) for r in state.storage.list_recursos(tarea_id)]
+
+    @router.post("/tareas/{tarea_id}/recursos/{recurso_id}/usar")
+    async def usar_recurso(tarea_id: str, recurso_id: str):
+        need_tarea(tarea_id)
+        return await asyncio.to_thread(services.usar_recurso, state, tarea_id, recurso_id)
+
     @router.patch("/insumos/{insumo_id}")
     async def patch_insumo(insumo_id: str, body: PatchInsumoBody):
         row = need_insumo(insumo_id)

@@ -27,6 +27,7 @@ class PromptData:
     instrucciones_extra: str | None = None
     tiene_insumos: bool = True
     producto: str | None = None
+    texto_ocr: str = ""
 
 
 def _plano(text: str) -> str:
@@ -76,6 +77,11 @@ def build_prompt(data: PromptData) -> str:
         if rubrica:
             partes.append(f"## Rúbrica de evaluación\n{rubrica}")
 
+    if data.texto_ocr.strip():
+        partes.append(
+            "## Texto extraído de las imágenes adjuntas (OCR, puede tener errores)\n"
+            + data.texto_ocr.strip()
+        )
     producto = data.producto or detectar_producto(data.titulo, data.actividades)
     partes.append(f"## Formato del producto\n{plantilla_producto(producto)}")
 
