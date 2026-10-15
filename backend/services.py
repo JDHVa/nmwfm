@@ -1,6 +1,6 @@
 import asyncio
 import contextlib
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 
 from playwright.async_api import Page
@@ -122,6 +122,15 @@ async def run_validar_siase(state: AppState, ctx: JobContext) -> dict:
     return {"valido": True}
 
 
+async def guardar_snapshot(state: AppState, page: Page, nombre: str) -> None:
+    state.paths.debug.mkdir(parents=True, exist_ok=True)
+    base = state.paths.debug / f"{nombre}-{datetime.now():%Y%m%d-%H%M%S}"
+    with contextlib.suppress(Exception):
+        base.with_suffix(".html").write_text(await page.content(), encoding="utf-8")
+    with contextlib.suppress(Exception):
+        await page.screenshot(path=str(base.with_suffix(".png")), full_page=True)
+
+
 async def run_sync(state: AppState, ctx: JobContext) -> dict:
     hooks = ctx.hooks()
     async with state.browser.lock:
@@ -129,6 +138,9 @@ async def run_sync(state: AppState, ctx: JobContext) -> dict:
         page = await ensure_nexus(state, hooks)
         await ctx.update("Leyendo materias", 0.12)
         materias = await nexus.leer_materias(page)
+        if not materias:
+            await guardar_snapshot(state, page, "sync-sin-materias")
+            raise ApiError(502, "sin_materias", "No se encontraron materias en NEXUS")
         for m in materias:
             state.storage.upsert_materia(m.id, m.nombre, m.orden)
         total = max(len(materias), 1)
