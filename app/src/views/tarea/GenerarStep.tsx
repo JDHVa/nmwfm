@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import DecryptedText from "@/components/DecryptedText";
@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { JobProgress } from "@/components/JobProgress";
 import { api, type Job, type PortadaOverrides } from "@/lib/api";
 import { PortadaEditor } from "@/views/tarea/PortadaEditor";
+import { EVENTO_GENERAR } from "@/lib/atajos";
 import { useReducedMotion } from "@/lib/app-context";
 import { keys, useInsumos, type useJobRunner } from "@/lib/queries";
 
@@ -45,6 +46,18 @@ export function GenerarStep({
       qc.invalidateQueries({ queryKey: keys.etapas(materiaId) });
     }
   }
+
+  const alGenerar = useRef(generar);
+  useEffect(() => {
+    alGenerar.current = generar;
+  });
+  const puedeGenerar = !running && insumos.length > 0;
+  useEffect(() => {
+    if (!puedeGenerar) return;
+    const on = () => void alGenerar.current();
+    window.addEventListener(EVENTO_GENERAR, on);
+    return () => window.removeEventListener(EVENTO_GENERAR, on);
+  }, [puedeGenerar]);
 
   return (
     <div className="space-y-5">

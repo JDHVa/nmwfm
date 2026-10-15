@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
@@ -68,18 +68,6 @@ export function InsumosStep({ tareaId, onContinuar }: { tareaId: string; onConti
     },
     [subirArchivos],
   );
-
-  useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      const files = Array.from(e.clipboardData?.files ?? []);
-      if (files.some((f) => f.type.startsWith("image/"))) {
-        e.preventDefault();
-        recibir(files);
-      }
-    };
-    document.addEventListener("paste", onPaste);
-    return () => document.removeEventListener("paste", onPaste);
-  }, [recibir]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),

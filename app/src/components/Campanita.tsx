@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { useEscape } from "@/lib/atajos";
 import { api, type Novedad } from "@/lib/api";
 import { useNav } from "@/lib/app-context";
 import { keys } from "@/lib/queries";
@@ -21,6 +22,7 @@ export function Campanita({ className }: { className?: string }) {
     mutationFn: (ids?: string[]) => api.leerNovedades(ids),
     onSettled: () => qc.invalidateQueries({ queryKey: keys.novedades }),
   });
+  useEscape(abierto, () => setAbierto(false));
   const sinLeer = novedades.filter((n) => !n.leida);
 
   function abrir(n: Novedad) {

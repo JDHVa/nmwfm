@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { JobProgress } from "@/components/JobProgress";
 import { PageHeader } from "@/components/PageHeader";
 import { token } from "@/lib/tokens";
+import { useEscape } from "@/lib/atajos";
 import { useNav } from "@/lib/app-context";
 import { useMaterias } from "@/lib/queries";
 import { useSync } from "@/lib/sync";
@@ -21,6 +22,7 @@ export function MateriasView() {
   const sync = useSync();
   const { resuelto } = useTheme();
   const [menu, setMenu] = useState(false);
+  useEscape(menu, () => setMenu(false));
 
   return (
     <div className="mx-auto w-full max-w-6xl space-y-6 p-8">

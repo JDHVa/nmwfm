@@ -11,11 +11,13 @@ import {
 } from "lucide-react";
 import Dock from "@/components/Dock";
 import { Background } from "@/components/Background";
+import { AyudaAtajos } from "@/components/AyudaAtajos";
 import { Campanita } from "@/components/Campanita";
 import { LogPanel } from "@/components/LogPanel";
 import { PaletaBusqueda } from "@/components/PaletaBusqueda";
 import { SyncIndicator, SyncOverlay } from "@/components/SyncStatus";
 import { siguienteTema } from "@/components/ThemeToggle";
+import { estaEscribiendo } from "@/lib/atajos";
 import { useAlertas } from "@/lib/alertas";
 import { NavProvider, useNav, useReducedMotion } from "@/lib/app-context";
 import type { Settings } from "@/lib/api";
@@ -35,6 +37,7 @@ import { TareaView } from "@/views/TareaView";
 function Shell({ onSalir }: { onSalir: () => void }) {
   const { view, go } = useNav();
   const [buscando, setBuscando] = useState(false);
+  const [ayuda, setAyuda] = useState(false);
   useAlertas();
 
   useEffect(() => {
@@ -42,6 +45,9 @@ function Shell({ onSalir }: { onSalir: () => void }) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setBuscando((v) => !v);
+      } else if (e.key === "?" && !e.ctrlKey && !e.metaKey && !estaEscribiendo(e.target)) {
+        e.preventDefault();
+        setAyuda((v) => !v);
       }
     };
     window.addEventListener("keydown", onKey);
@@ -105,6 +111,7 @@ function Shell({ onSalir }: { onSalir: () => void }) {
             <Campanita />
             <SyncIndicator />
           </div>
+          <AyudaAtajos abierto={ayuda} onCerrar={() => setAyuda(false)} />
           <PaletaBusqueda abierto={buscando} onCerrar={() => setBuscando(false)} />
           {view.name === "config" && <ConfigView />}
           {view.name === "materias" && <MateriasView />}
