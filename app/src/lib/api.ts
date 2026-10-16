@@ -20,6 +20,8 @@ export type Settings = {
   asistente_keep_alive_s?: number;
   instrucciones_fijas?: InstruccionFija[];
   gemini_espera_envio_s?: number;
+  gemini_sesion?: boolean | null;
+  gemini_sesion_verificada_en?: string | null;
 };
 export type SettingsUpdate = Partial<Settings> & { password?: string };
 export type Materia = {
@@ -78,6 +80,7 @@ export type JobTipo =
   | "generar"
   | "entregar"
   | "login_gemini"
+  | "verificar_gemini"
   | "validar_siase"
   | "revisar_entregas"
   | "diagnostico"
@@ -348,6 +351,7 @@ export const api = {
   getSettings: () => request<Settings>("GET", "/settings"),
   putSettings: (data: SettingsUpdate) => request<Settings>("PUT", "/settings", data),
   loginGemini: () => request<Job>("POST", "/gemini/login"),
+  verificarGemini: () => request<Job>("POST", "/gemini/verificar"),
   revisarEntregas: () => request<Job>("POST", "/entregas/revisar"),
   proximas: () => request<TareaProxima[]>("GET", "/tareas/proximas"),
   validarSiase: () => request<Job>("POST", "/siase/validar"),

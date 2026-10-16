@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
-import { LogIn, Save, ShieldAlert } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { CheckCircle2, LogIn, RefreshCw, Save, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +9,7 @@ import { HoldButton } from "@/components/HoldButton";
 import { JobProgress } from "@/components/JobProgress";
 import { api, type Settings } from "@/lib/api";
 import { PasswordInput } from "@/components/PasswordInput";
-import { useJobRunner, useSaveSettings, useSettings } from "@/lib/queries";
+import { keys, useJobRunner, useSaveSettings, useSettings } from "@/lib/queries";
 import { PageHeader } from "@/components/PageHeader";
 import { aplicarCerrarABandeja, leerCerrarABandeja } from "@/lib/bandeja";
 import { ConfigAvanzada } from "@/views/ConfigAvanzada";
@@ -23,7 +24,10 @@ export function ConfigView() {
 
 function ConfigForm({ settings }: { settings: Settings }) {
   const guardar = useSaveSettings();
-  const gemini = useJobRunner();
+  const qc = useQueryClient();
+  const gemini = useJobRunner(() => {
+    void qc.invalidateQueries({ queryKey: keys.settings });
+  });
   const [form, setForm] = useState({
     cuenta: settings.cuenta,
     password: "",
@@ -126,13 +130,13 @@ function ConfigForm({ settings }: { settings: Settings }) {
 
       <section className="space-y-4 rounded-xl border bg-card p-6">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Gemini</h2>
-        <p className="text-sm text-muted-foreground">
-          Se abre Chrome para que inicies sesión tú mismo en Gemini. La sesión queda guardada en el perfil
-          local.
-        </p>
-        <Button variant="secondary" onClick={() => gemini.start(api.loginGemini)} disabled={gemini.running}>
-          <LogIn /> Iniciar sesión en Gemini
-        </Button>
+        <GeminiSesion
+          sesion={settings.gemini_sesion ?? null}
+          verificadaEn={settings.gemini_sesion_verificada_en ?? null}
+          ocupado={gemini.running}
+          onVerificar={() => gemini.start(api.verificarGemini)}
+          onLogin={() => gemini.start(api.loginGemini)}
+        />
         <JobProgress job={gemini.job} error={gemini.error} onCambio={gemini.actualizar} />
       </section>
 
@@ -232,6 +236,48 @@ function Preferencia({
         <p className="text-xs text-muted-foreground">{descripcion}</p>
       </div>
       <Switch id={id} checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
+function GeminiSesion({
+  sesion,
+  verificadaEn,
+  ocupado,
+  onVerificar,
+  onLogin,
+}: {
+  sesion: boolean | null;
+  verificadaEn: string | null;
+  ocupado: boolean;
+  onVerificar: () => void;
+  onLogin: () => void;
+}) {
+  const fecha = verificadaEn ? new Date(verificadaEn).toLocaleString("es-MX") : null;
+  return (
+    <div className="space-y-3">
+      {sesion === true && (
+        <p className="flex items-center gap-2 text-sm font-medium text-success">
+          <CheckCircle2 className="size-4" /> Sesión de Gemini guardada
+        </p>
+      )}
+      {sesion === false && <p className="text-sm font-medium text-destructive">La sesión de Gemini se cerró</p>}
+      {sesion === null && <p className="text-sm font-medium">Sesión sin verificar</p>}
+      {fecha && sesion !== null && <p className="text-xs text-muted-foreground">Verificada el {fecha}</p>}
+      <p className="text-sm text-muted-foreground">
+        Se abre Chrome para que inicies sesión tú mismo en Gemini. La sesión queda guardada en el perfil
+        local.
+      </p>
+      <div className="flex flex-wrap gap-3">
+        {sesion !== false && (
+          <Button variant={sesion === null ? "default" : "secondary"} onClick={onVerificar} disabled={ocupado}>
+            <RefreshCw /> Verificar sesión
+          </Button>
+        )}
+        <Button variant={sesion === false ? "default" : "secondary"} onClick={onLogin} disabled={ocupado}>
+          <LogIn /> {sesion === true ? "Volver a iniciar sesión" : "Iniciar sesión en Gemini"}
+        </Button>
+      </div>
     </div>
   );
 }
