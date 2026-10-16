@@ -1,4 +1,6 @@
 import type {
+  DatosPortada,
+  PortadaSuelta,
   EventoChat,
   Novedad,
   Respaldo,
@@ -82,6 +84,12 @@ export function createMockBackend(options: MockOptions = {}) {
   const asistenteDisponible = options.asistenteDisponible ?? true;
   const cargaModeloMs = options.cargaModeloMs ?? stepMs * 2;
   const llamadas: string[] = [];
+  const datosAula = (d: DatosPortada) => [
+    `Aula: ${d.aula || settings.aula}`,
+    `Grupo: ${d.grupo || settings.grupo}`,
+    `Turno: ${d.turno || settings.turno}`,
+    `Especialidad: ${d.especialidad || settings.especialidad}`,
+  ];
   let settings: Settings = {
     cuenta: "",
     tiene_password: false,
@@ -95,6 +103,10 @@ export function createMockBackend(options: MockOptions = {}) {
     asistente_keep_alive_s: 90,
     sync_inicial_hecha: false,
     ultima_sync: null,
+    aula: "144",
+    grupo: "5V1",
+    turno: "MATUTINO",
+    especialidad: "Técnico en Inteligencia Artificial BPI",
   };
   const materias = MATERIAS.map((m) => ({ ...m }));
   const etapas = crearEtapas();
@@ -429,9 +441,9 @@ export function createMockBackend(options: MockOptions = {}) {
       let portadaLinea = "Sin portada";
       if (typeof portadaCruda === "string") {
         try {
-          const d = JSON.parse(portadaCruda) as { profesor?: string; titulo?: string };
+          const d = JSON.parse(portadaCruda) as DatosPortada;
           if (!d.profesor) return fallo(422, "validacion", "La portada necesita el profesor");
-          portadaLinea = `Portada: ${d.profesor} ${d.titulo ?? ""}`;
+          portadaLinea = `Portada: ${d.profesor} ${d.aula ?? settings.aula} ${d.grupo ?? settings.grupo}`;
         } catch {
           return fallo(422, "validacion", "La portada no es JSON válido");
         }
@@ -446,20 +458,26 @@ export function createMockBackend(options: MockOptions = {}) {
       });
     }
     if (path === "/herramientas/portada") {
-      const d = body as { profesor: string; materia?: string; titulo?: string; fecha?: string };
+      const d = body as PortadaSuelta;
       return json({
         docx_url: "/files/portada-suelta.docx",
         pdf_url: pdfDe([
           "Universidad Autonoma de Nuevo Leon",
           "",
-          d.titulo ?? "",
-          d.materia ?? "",
           `Alumno: ${settings.nombre}`,
           `Matricula: ${settings.matricula}`,
           `Profesor: ${d.profesor}`,
-          `Fecha: ${d.fecha ?? new Date().toLocaleDateString("es-MX")}`,
+          ...datosAula(d),
+          `Fecha: ${new Date().toLocaleDateString("es-MX")}`,
         ]),
       });
+    }
+    if (path === "/profesores") {
+      const porNombre = new Map<string, string[]>();
+      for (const m of materias) {
+        if (m.profesor) porNombre.set(m.profesor, [...(porNombre.get(m.profesor) ?? []), m.nombre]);
+      }
+      return json([...porNombre].map(([nombre, ms]) => ({ nombre, materias: ms })));
     }
     if (path === "/settings" && method === "GET") return json(settings);
     if (path === "/settings" && method === "PUT") {
@@ -764,6 +782,7 @@ export function createMockBackend(options: MockOptions = {}) {
       const t = buscarTarea(m[1]);
       if (!t) return fallo(404, "no_encontrada", "Tarea no encontrada");
       const materia = materias.find((x) => x.id === t.materia_id);
+      const q = new URL(url).searchParams;
       return json({
         pdf_url: pdfDe([
           "Universidad Autonoma de Nuevo Leon",
@@ -772,7 +791,13 @@ export function createMockBackend(options: MockOptions = {}) {
           "",
           `Alumno: ${settings.nombre}`,
           `Matricula: ${settings.matricula}`,
-          `Profesor: ${materia?.profesor ?? ""}`,
+          `Profesor: ${q.get("profesor") || (materia?.profesor ?? "")}`,
+          ...datosAula({
+            aula: q.get("aula") ?? undefined,
+            grupo: q.get("grupo") ?? undefined,
+            turno: q.get("turno") ?? undefined,
+            especialidad: q.get("especialidad") ?? undefined,
+          }),
           `Fecha: ${new Date().toLocaleDateString("es-MX")}`,
         ]),
       });

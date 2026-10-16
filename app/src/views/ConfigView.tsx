@@ -28,6 +28,10 @@ function ConfigForm({ settings }: { settings: Settings }) {
     password: "",
     nombre: settings.nombre,
     matricula: settings.matricula,
+    aula: settings.aula,
+    grupo: settings.grupo,
+    turno: settings.turno,
+    especialidad: settings.especialidad,
   });
   const [confirmando, setConfirmando] = useState(false);
   const [guardado, setGuardado] = useState(false);
@@ -84,6 +88,32 @@ function ConfigForm({ settings }: { settings: Settings }) {
         <p className="text-xs text-muted-foreground">
           La contraseña se guarda en el Administrador de credenciales de Windows, nunca en archivos.
         </p>
+      <div className="space-y-4 border-t pt-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
+          Datos de la portada
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="aula">Aula</Label>
+            <Input id="aula" value={form.aula} onChange={set("aula")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="grupo">Grupo</Label>
+            <Input id="grupo" value={form.grupo} onChange={set("grupo")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="turno">Turno</Label>
+            <Input id="turno" value={form.turno} onChange={set("turno")} />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="especialidad">Especialidad</Label>
+            <Input id="especialidad" value={form.especialidad} onChange={set("especialidad")} />
+          </div>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Se usan para rellenar solas todas las portadas. La fecha siempre es la de hoy.
+        </p>
+      </div>
         <div className="flex items-center gap-3">
           <Button type="submit" disabled={incompleto || guardar.isPending}>
             <Save /> Guardar

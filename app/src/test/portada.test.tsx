@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -62,6 +62,29 @@ describe("portada en el paso Generar", () => {
     montar();
     await user.type(screen.getByLabelText(/Instrucciones extra/), "Sé breve");
     await user.click(screen.getByRole("button", { name: /Generar tarea/ }));
-    expect(generar).toHaveBeenCalledWith("m1-t12", "Sé breve");
+    expect(generar).toHaveBeenCalledWith("m1-t12", "Sé breve", {
+      profesor: "CAVAZOS MARTÍNEZ RAFAEL ALFREDO",
+      aula: "144",
+      grupo: "5V1",
+      turno: "MATUTINO",
+      especialidad: "Técnico en Inteligencia Artificial BPI",
+    });
+  });
+
+  it("prellena la portada con la configuración y el profesor sugerido", async () => {
+    const preview = vi.spyOn(api, "portadaPreview");
+    const user = userEvent.setup();
+    montar();
+    const aula = await screen.findByLabelText("Aula");
+    await waitFor(() => expect(aula).toHaveValue("144"));
+    expect(screen.queryByLabelText("Materia")).toBeNull();
+    expect(screen.queryByLabelText("Título")).toBeNull();
+    const profesor = screen.getByRole("combobox", { name: "Profesor" });
+    await waitFor(() => expect(profesor).toHaveValue("CAVAZOS MARTÍNEZ RAFAEL ALFREDO"));
+    await user.clear(profesor);
+    expect(await screen.findByRole("option", { name: /CAVAZOS/ })).toHaveTextContent("Algoritmos Bio Inspirados");
+    await user.click(screen.getByRole("option", { name: /CAVAZOS/ }));
+    expect(profesor).toHaveValue("CAVAZOS MARTÍNEZ RAFAEL ALFREDO");
+    expect(preview).toHaveBeenCalled();
   });
 });
