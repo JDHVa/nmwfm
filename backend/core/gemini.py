@@ -19,7 +19,7 @@ class GeminiError(Exception):
 class LLMProvider(Protocol):
     async def sesion_activa(self) -> bool: ...
 
-    async def iniciar_sesion(self, hooks: Hooks) -> None: ...
+    async def iniciar_sesion(self, hooks: Hooks) -> bool: ...
 
     async def generar(self, prompt: str, pdf_path: Path | None, hooks: Hooks) -> str: ...
 
@@ -28,8 +28,8 @@ class GeminiWeb:
     def __init__(self, browser: BrowserManager):
         self.browser = browser
 
-    async def _abrir(self) -> Page:
-        ctx = await self.browser.context()
+    async def _abrir(self, headless: bool | None = None) -> Page:
+        ctx = await self.browser.context(headless=headless)
         with contextlib.suppress(Exception):
             await ctx.grant_permissions(
                 ["clipboard-read", "clipboard-write"], origin="https://gemini.google.com"
@@ -65,30 +65,31 @@ class GeminiWeb:
 
     async def iniciar_sesion(
         self, hooks: Hooks, timeout: float = config.USER_WAIT_TIMEOUT_S
-    ) -> None:
-        page = await self._abrir()
+    ) -> bool:
+        page = await self._abrir(headless=False)
         await hooks.paso("Abriendo Gemini", 0.1)
         if await self._hay_sesion(page):
+            await hooks.paso("Ya tienes la sesión de Gemini iniciada", 1.0)
             await page.close()
-            return
+            return True
         await hooks.marcar_espera(
-            "Inicia sesion en Gemini en la ventana de Chrome; se detecta solo al terminar."
+            "Inicia sesión en Gemini en la ventana de Chrome; se detecta solo al terminar."
         )
         fin = time.monotonic() + timeout
         while time.monotonic() < fin:
             await asyncio.sleep(3)
             if page.is_closed():
-                raise GeminiError("Se cerro la ventana de Gemini antes de iniciar sesion.")
+                raise GeminiError("Se cerró la ventana de Gemini antes de iniciar sesión.")
             if "accounts.google.com" not in page.url and await self._hay_sesion(page):
-                await hooks.paso("Sesion de Gemini detectada", 1.0)
+                await hooks.paso("Sesión de Gemini detectada", 1.0)
                 await page.close()
-                return
-        raise GeminiError("Tiempo agotado esperando el inicio de sesion en Gemini.")
+                return False
+        raise GeminiError("Tiempo agotado esperando el inicio de sesión en Gemini.")
 
     async def generar(self, prompt: str, pdf_path: Path | None, hooks: Hooks) -> str:
         page = await self._abrir()
         try:
-            await self._asegurar_sesion(page, hooks)
+            page = await self._asegurar_sesion(page, hooks)
             if pdf_path is not None:
                 await hooks.paso("Adjuntando PDF en Gemini", 0.55)
                 await self._adjuntar(page, pdf_path)
@@ -102,16 +103,27 @@ class GeminiWeb:
             with contextlib.suppress(Exception):
                 await page.close()
 
-    async def _asegurar_sesion(self, page: Page, hooks: Hooks) -> None:
-        for _ in range(2):
+    async def _asegurar_sesion(self, page: Page, hooks: Hooks) -> Page:
+        for intento in range(2):
             if await self._hay_sesion(page):
-                return
+                return page
+            if intento == 0 and not await self._visible():
+                with contextlib.suppress(Exception):
+                    await page.close()
+                page = await self._abrir(headless=False)
+                if await self._hay_sesion(page):
+                    return page
             await hooks.esperar_usuario(
-                "Gemini no tiene sesion iniciada. Inicia sesion en la ventana de Chrome "
+                "Gemini no tiene sesión iniciada. Inicia sesión en la ventana de Chrome "
                 "y pulsa continuar."
             )
             await page.goto(config.GEMINI_URL, wait_until="domcontentloaded")
-            raise GeminiError("No se pudo detectar la sesion de Gemini.")
+        if await self._hay_sesion(page):
+            return page
+        raise GeminiError("No se pudo detectar la sesión de Gemini.")
+
+    async def _visible(self) -> bool:
+        return getattr(self.browser, "_headless", True) is False
 
     async def _adjuntar(self, page: Page, pdf_path: Path) -> None:
         inputs = page.locator(S.GM_FILE_INPUT)
@@ -157,8 +169,8 @@ class GeminiWeb:
         while time.monotonic() < fin:
             if await self._bloqueado(page):
                 await hooks.esperar_usuario(
-                    "Gemini pide una verificacion (captcha o aviso). "
-                    "Resuelvela en Chrome y pulsa continuar."
+                    "Gemini pide una verificación (captcha o aviso). "
+                    "Resuélvela en Chrome y pulsa continuar."
                 )
             escribiendo = await page.locator(S.GM_STOP_BUTTON).count() > 0
             texto = await self._ultimo_texto(page)

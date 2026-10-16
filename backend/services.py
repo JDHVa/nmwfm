@@ -651,8 +651,8 @@ async def traer_detalle(state: AppState, tarea_id: str) -> dict:
 
 async def run_login_gemini(state: AppState, ctx: JobContext) -> dict:
     async with state.browser_gemini.lock:
-        await state.gemini.iniciar_sesion(ctx.hooks())
-    return {"sesion": True}
+        ya_iniciada = await state.gemini.iniciar_sesion(ctx.hooks())
+    return {"sesion": True, "ya_iniciada": bool(ya_iniciada)}
 
 
 def _insumo_refs(state: AppState, tarea_id: str) -> list[images.InsumoRef]:
