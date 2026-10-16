@@ -139,7 +139,7 @@ function Detalle({ m }: { m: MateriaCalificacion }) {
                 <td className="py-1.5">{c.nombre}</td>
                 <td className="py-1.5 text-right tabular-nums">{nota(c.peso)}</td>
                 <td className="py-1.5 text-right tabular-nums">
-                  {c.calificacion === null ? <span className="text-muted-foreground">sin calificar</span> : nota(c.calificacion)}
+                  {c.calificacion === null ? <span className="text-muted-foreground">{c.clave === "portafolio" ? "—" : "sin calificar"}</span> : nota(c.calificacion)}
                 </td>
                 <td className="py-1.5 text-right tabular-nums">{c.puntos === null ? "—" : nota(c.puntos)}</td>
               </tr>
@@ -186,6 +186,7 @@ function TarjetaMateria({ m }: { m: MateriaCalificacion }) {
     onSuccess: actualizar,
   });
   const sinDatos = m.estado === "sin_datos";
+  const dudoso = m.alertas.find((a) => a.tipo === "tipo_dudoso");
 
   return (
     <article
@@ -226,6 +227,22 @@ function TarjetaMateria({ m }: { m: MateriaCalificacion }) {
               </button>
             )}
           </div>
+          {dudoso && (
+            <div role="alert" className="mt-2 flex flex-wrap items-center gap-2 text-sm text-warning">
+              <TriangleAlert className="size-4 shrink-0" />
+              <span>
+                <strong className="font-medium">{ETIQUETA_ALERTA.tipo_dudoso}.</strong> {dudoso.detalle}
+              </span>
+              <button
+                type="button"
+                disabled={tipo.isPending}
+                onClick={() => tipo.mutate(null)}
+                className="rounded-md border px-2 py-0.5 text-xs text-foreground hover:bg-muted"
+              >
+                Usar detección automática
+              </button>
+            </div>
+          )}
         </div>
         <div className="text-right">
           <p className="text-3xl font-semibold tabular-nums leading-none">{sinDatos ? "—" : nota(m.proyectada)}</p>
@@ -237,7 +254,7 @@ function TarjetaMateria({ m }: { m: MateriaCalificacion }) {
 
       {m.alertas.length > 0 && (
         <ul aria-label={`Alertas de ${m.nombre}`} className="space-y-1">
-          {m.alertas.map((a) => (
+          {m.alertas.filter((a) => a.tipo !== "tipo_dudoso").map((a) => (
             <li key={a.tipo} className="flex items-start gap-2 text-sm text-warning">
               <TriangleAlert className="mt-0.5 size-4 shrink-0" />
               <span>

@@ -68,6 +68,7 @@ export const ETIQUETA_ALERTA: Record<TipoAlerta, string> = {
   bajo_historico: "Por debajo de tu histórico",
   examen_bajo: "Examen bajo",
   puntos_perdidos: "Puntos perdidos",
+  tipo_dudoso: "Tipo dudoso",
 };
 
 export const ETIQUETA_PRESET: Record<PresetEscenario, string> = {
