@@ -15,6 +15,7 @@ import {
   X,
 } from "lucide-react";
 import { Markdown } from "@/components/Markdown";
+import { HerramientasPanel } from "@/views/HerramientasPanel";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -47,6 +48,38 @@ const NOMBRES_HERRAMIENTAS: Record<string, string> = {
 const nombreHerramienta = (n: string) => NOMBRES_HERRAMIENTAS[n] ?? n.replace(/_/g, " ");
 
 export function AsistenteView({ tareaId }: { tareaId?: string }) {
+  const [pestana, setPestana] = useState<"chat" | "herramientas">("chat");
+  return (
+    <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 p-8">
+      <div
+        role="tablist"
+        aria-label="Asistente y herramientas"
+        className="inline-flex w-fit rounded-lg border bg-muted p-1"
+      >
+        {(["chat", "herramientas"] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            role="tab"
+            aria-selected={pestana === p}
+            onClick={() => setPestana(p)}
+            className={cn(
+              "rounded-md px-4 py-1.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              pestana === p
+                ? "bg-card text-foreground shadow-card"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {p === "chat" ? "Chat" : "Herramientas"}
+          </button>
+        ))}
+      </div>
+      {pestana === "chat" ? <ChatPanel tareaId={tareaId} /> : <HerramientasPanel />}
+    </div>
+  );
+}
+
+function ChatPanel({ tareaId }: { tareaId?: string }) {
   const chat = useChat(tareaId);
   const { data: estado } = useQuery({
     queryKey: ["asistente-estado"],
@@ -85,7 +118,7 @@ export function AsistenteView({ tareaId }: { tareaId?: string }) {
   }
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 p-8">
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
       <PageHeader
         titulo="Asistente"
         descripcion="Pregunta, pide resúmenes o delega tareas sencillas. Todo corre en tu equipo."
