@@ -25,7 +25,7 @@ from .scheduler import Programador
 from .services import ApiError, AppState
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
-PUBLIC_DIRS = ("insumos", "generaciones")
+PUBLIC_DIRS = ("insumos", "generaciones", "herramientas", "respaldos")
 
 
 class TextoBody(BaseModel):
