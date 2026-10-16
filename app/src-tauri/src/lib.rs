@@ -89,7 +89,14 @@ fn lanzar_backend(
     use tauri_plugin_shell::process::CommandEvent;
     use tauri_plugin_shell::ShellExt;
 
-    let (mut rx, child) = app.shell().sidecar("nmwfm-backend")?.spawn()?;
+    let datos = app.path().app_local_data_dir()?;
+    std::fs::create_dir_all(&datos)?;
+    let (mut rx, child) = app
+        .shell()
+        .sidecar("nmwfm-backend")?
+        .env("NMWFM_DEV", "0")
+        .env("NMWFM_DATA_DIR", datos.to_string_lossy().to_string())
+        .spawn()?;
     tauri::async_runtime::spawn(async move {
         while let Some(evento) = rx.recv().await {
             if let CommandEvent::Stdout(linea) = evento {
