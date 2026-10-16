@@ -11,6 +11,7 @@ export type Settings = {
   sync_inicial_hecha: boolean;
   ultima_sync: string | null;
   sync_cada_horas?: number;
+  asistente_modelo?: string;
 };
 export type SettingsUpdate = Partial<Settings> & { password?: string };
 export type Materia = {
@@ -47,6 +48,7 @@ export type TareaDetalle = Tarea & {
   contenido: string;
   criterios_desempeno: string;
   rubrica: Rubrica | null;
+  indicaciones?: string;
 };
 export type Insumo = {
   id: string;
@@ -108,6 +110,23 @@ export type PasoDiagnostico = {
 };
 export type Diagnostico = { ok: boolean; pasos: PasoDiagnostico[] };
 export type Calificaciones = { columnas: string[]; filas: string[][]; actualizada_en: string };
+export type MensajeChat = { rol: "user" | "assistant" | "tool"; contenido: string; herramienta?: string };
+export type EstadoAsistente = {
+  ollama: boolean;
+  modelo: string;
+  modelo_instalado: boolean;
+  error: string | null;
+};
+export type EventoChat =
+  | { type: "token"; text: string }
+  | { type: "tool_call"; nombre: string; args: unknown }
+  | { type: "tool_result"; nombre: string; resultado: unknown }
+  | { type: "confirmar"; accion: string; args: unknown; id: string }
+  | { type: "fin" }
+  | { type: "error"; message: string };
+export type ConfirmacionResultado = { ok?: boolean; mensaje?: string } & Record<string, unknown>;
+export type PortadaSuelta = { profesor: string; materia?: string; titulo?: string; fecha?: string };
+export type PortadaSueltaResultado = { docx_url: string; pdf_url: string };
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
   materias: number;
@@ -255,6 +274,19 @@ export const api = {
   diagnostico: () => request<Job>("POST", "/diagnostico"),
   calificaciones: (materiaId: string) =>
     request<Calificaciones | null>("GET", `/materias/${materiaId}/calificaciones`),
+  asistenteEstado: () => request<EstadoAsistente>("GET", "/asistente/estado"),
+  confirmarAsistente: (id: string, aceptar: boolean) =>
+    request<ConfirmacionResultado>("POST", "/asistente/confirmar", { id, aceptar }),
+  indicaciones: (tareaId: string, indicaciones: string) =>
+    request<TareaDetalle>("PUT", `/tareas/${tareaId}/indicaciones`, { indicaciones }),
+  herramientaPdf: (files: File[], recortar: boolean) => {
+    const form = new FormData();
+    files.forEach((f) => form.append("files[]", f, f.name));
+    form.append("recortar", recortar ? "true" : "false");
+    return request<{ pdf_url: string }>("POST", "/herramientas/pdf", form);
+  },
+  herramientaPortada: (datos: PortadaSuelta) =>
+    request<PortadaSueltaResultado>("POST", "/herramientas/portada", datos),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),
@@ -404,4 +436,60 @@ export function jobActivo(job: Job | null | undefined): boolean {
   return (
     !!job && (job.estado === "en_cola" || job.estado === "corriendo" || job.estado === "esperando_usuario")
   );
+}
+
+export async function chatAsistente(
+  body: { mensajes: MensajeChat[]; tarea_id?: string },
+  alEvento: (e: EventoChat) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  let res: Response;
+  try {
+    res = await connection.transport(`${connection.base}/asistente/chat`, {
+      method: "POST",
+      headers: {
+        "X-Token": connection.token,
+        "Content-Type": "application/json",
+        Accept: "text/event-stream",
+      },
+      body: JSON.stringify(body),
+      signal,
+    });
+  } catch (e) {
+    if ((e as Error)?.name === "AbortError") return;
+    throw new ApiError(0, "sin_conexion", "No se pudo conectar con el servicio local");
+  }
+  if (!res.ok) throw await parseError(res);
+  if (!res.body) throw new ApiError(0, "sin_flujo", "La respuesta no trae un flujo de datos");
+  const lector = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  const procesar = (bloque: string) => {
+    const datos = bloque
+      .split("\n")
+      .filter((l) => l.startsWith("data:"))
+      .map((l) => l.slice(5).trimStart())
+      .join("\n");
+    if (!datos) return;
+    try {
+      alEvento(JSON.parse(datos) as EventoChat);
+    } catch {
+      return;
+    }
+  };
+  try {
+    for (;;) {
+      const { done, value } = await lector.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let i: number;
+      while ((i = buffer.search(/\r?\n\r?\n/)) >= 0) {
+        procesar(buffer.slice(0, i));
+        buffer = buffer.slice(i).replace(/^\r?\n\r?\n/, "");
+      }
+    }
+    if (buffer.trim()) procesar(buffer);
+  } catch (e) {
+    if ((e as Error)?.name !== "AbortError") throw e;
+  }
 }

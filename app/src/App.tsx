@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   BookOpen,
+  Bot,
   CalendarClock,
   Search,
   LogOut,
@@ -30,6 +31,7 @@ import { token } from "@/lib/tokens";
 import { ConfigView } from "@/views/ConfigView";
 import { LoginView } from "@/views/LoginView";
 import { MateriaView } from "@/views/MateriaView";
+import { AsistenteView } from "@/views/AsistenteView";
 import { MateriasView } from "@/views/MateriasView";
 import { ProximasView } from "@/views/ProximasView";
 import { SaludoView } from "@/views/SaludoView";
@@ -97,6 +99,12 @@ function Shell({ onSalir }: { onSalir: () => void }) {
                 onClick: () => go({ name: "proximas" }),
               },
               {
+                label: "Asistente",
+                icon: <Bot className="size-5" />,
+                active: view.name === "asistente",
+                onClick: () => go({ name: "asistente" }),
+              },
+              {
                 label: "Configuración",
                 icon: <SettingsIcon className="size-5" />,
                 active: view.name === "config",
@@ -133,6 +141,9 @@ function Shell({ onSalir }: { onSalir: () => void }) {
           {view.name === "config" && <ConfigView />}
           {view.name === "materias" && <MateriasView />}
           {view.name === "proximas" && <ProximasView />}
+          {view.name === "asistente" && (
+            <AsistenteView key={view.tareaId ?? "libre"} tareaId={view.tareaId} />
+          )}
           {view.name === "materia" && <MateriaView id={view.id} />}
           {view.name === "tarea" && <TareaView id={view.id} materiaId={view.materiaId} />}
         </main>

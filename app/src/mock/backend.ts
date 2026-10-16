@@ -1,4 +1,5 @@
 import type {
+  EventoChat,
   Novedad,
   Respaldo,
   EtapaConTareas,
@@ -15,7 +16,7 @@ import { MATERIAS, crearEtapas, detalleDe, marcarVencida } from "./data";
 
 type Emitter = (msg: WsMessage) => void;
 
-export type MockOptions = { stepMs?: number };
+export type MockOptions = { stepMs?: number; asistenteDisponible?: boolean };
 
 function svgDataUrl(label: string, hue: number, w = 420, h = 560): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="hsl(${hue},30%,92%)"/><rect x="24" y="24" width="${w - 48}" height="${h - 48}" fill="white" stroke="hsl(${hue},40%,60%)" stroke-width="3"/>${Array.from({ length: 9 }, (_, i) => `<rect x="48" y="${64 + i * 40}" width="${120 + ((i * 53) % 200)}" height="10" fill="hsl(${hue},25%,70%)"/>`).join("")}<text x="48" y="${h - 48}" font-family="sans-serif" font-size="22" fill="hsl(${hue},40%,35%)">${label}</text></svg>`;
@@ -78,6 +79,7 @@ function readAsDataUrl(file: File): Promise<string> {
 
 export function createMockBackend(options: MockOptions = {}) {
   const stepMs = options.stepMs ?? 700;
+  const asistenteDisponible = options.asistenteDisponible ?? true;
   let settings: Settings = {
     cuenta: "",
     tiene_password: false,
@@ -87,6 +89,7 @@ export function createMockBackend(options: MockOptions = {}) {
     entregar_sin_revisar: false,
     reducir_animaciones: false,
     sync_cada_horas: 0,
+    asistente_modelo: "qwen3:4b",
     sync_inicial_hecha: false,
     ultima_sync: null,
   };
@@ -131,6 +134,8 @@ export function createMockBackend(options: MockOptions = {}) {
     });
   };
   const respaldos: Respaldo[] = [];
+  const indicaciones = new Map<string, string>();
+  const confirmaciones = new Map<string, string>();
   let syncActivo: string | null = null;
   let revisionActiva: string | null = null;
   let seq = 0;
@@ -203,6 +208,144 @@ export function createMockBackend(options: MockOptions = {}) {
     lista.sort((a, b) => a.orden - b.orden);
   }
 
+  const sse = (eventos: EventoChat[]) => {
+    const encoder = new TextEncoder();
+    let i = 0;
+    const stream = new ReadableStream<Uint8Array>({
+      async pull(controller) {
+        if (i >= eventos.length) {
+          controller.close();
+          return;
+        }
+        const e = eventos[i++];
+        await new Promise((r) => setTimeout(r, Math.max(1, Math.round(stepMs / 4))));
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
+      },
+    });
+    return new Response(stream, { status: 200, headers: { "Content-Type": "text/event-stream" } });
+  };
+
+  const palabras = (texto: string): EventoChat[] =>
+    texto.split(/(?<=\s)/).map((p) => ({ type: "token", text: p }));
+
+  const sinAcentos = (t: string) =>
+    t
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+
+  function todasLasTareas() {
+    return Object.values(etapas)
+      .flat()
+      .flatMap((e) => e.tareas);
+  }
+
+  function guionAsistente(texto: string, tareaId?: string): EventoChat[] {
+    const q = sinAcentos(texto);
+    const fin: EventoChat = { type: "fin" };
+    if (/vence|semana|proxim/.test(q)) {
+      const pendientes = todasLasTareas()
+        .filter((t) => t.estado !== "entregada" && !t.vencida && t.hasta)
+        .sort((a, b) => new Date(a.hasta!).getTime() - new Date(b.hasta!).getTime())
+        .slice(0, 4);
+      const lista = pendientes.map((t) => `- **${t.numero}** ${t.titulo}`).join("\n");
+      return [
+        { type: "tool_call", nombre: "proximas_entregas", args: { dias: 7 } },
+        {
+          type: "tool_result",
+          nombre: "proximas_entregas",
+          resultado: pendientes.map((t) => ({
+            id: t.id,
+            numero: t.numero,
+            titulo: t.titulo,
+            hasta: t.hasta,
+          })),
+        },
+        ...palabras(
+          `Estas son tus próximas entregas:\n\n${lista}\n\nLa más urgente es la **${pendientes[0]?.numero ?? "-"}**.`,
+        ),
+        fin,
+      ];
+    }
+    if (/equipo|indicaci/.test(q)) {
+      const objetivo =
+        todasLasTareas().find((t) => t.numero === "2.3" && t.materia_id === "m1") ?? todasLasTareas()[0];
+      const nota = texto.trim();
+      indicaciones.set(objetivo.id, [indicaciones.get(objetivo.id), nota].filter(Boolean).join("\n"));
+      return [
+        { type: "tool_call", nombre: "agregar_indicaciones", args: { tarea_id: objetivo.id, texto: nota } },
+        {
+          type: "tool_result",
+          nombre: "agregar_indicaciones",
+          resultado: { ok: true, tarea_id: objetivo.id },
+        },
+        ...palabras(
+          `Listo, guardé esa indicación en la tarea **${objetivo.numero} ${objetivo.titulo}**. Tendrá prioridad sobre la descripción de NEXUS al generar.`,
+        ),
+        fin,
+      ];
+    }
+    if (/explic|1\.4/.test(q)) {
+      const objetivo = todasLasTareas().find((t) => t.numero === "1.4" && t.materia_id === "m1")!;
+      return [
+        { type: "tool_call", nombre: "buscar_tareas", args: { consulta: "1.4 Algoritmos" } },
+        {
+          type: "tool_result",
+          nombre: "buscar_tareas",
+          resultado: [{ id: objetivo.id, numero: objetivo.numero, titulo: objetivo.titulo }],
+        },
+        { type: "tool_call", nombre: "ver_tarea", args: { tarea_id: objetivo.id } },
+        {
+          type: "tool_result",
+          nombre: "ver_tarea",
+          resultado: { titulo: objetivo.titulo, puntos: objetivo.puntos, hasta: objetivo.hasta },
+        },
+        ...palabras(
+          `La **${objetivo.numero} ${objetivo.titulo}** vale ${objetivo.puntos} puntos.\n\n1. Revisa el contenido de la etapa.\n2. Redacta el informe con los criterios de la rúbrica.\n3. Entrega el PDF antes de la fecha límite.`,
+        ),
+        fin,
+      ];
+    }
+    if (/entreg/.test(q)) {
+      const objetivo = (tareaId && buscarTarea(tareaId)) || todasLasTareas()[1];
+      const id = `conf-${++seq}`;
+      confirmaciones.set(id, objetivo.id);
+      return [
+        ...palabras("Puedo entregarla, pero necesito tu confirmación."),
+        {
+          type: "confirmar",
+          accion: "entregar_tarea",
+          args: { tarea_id: objetivo.id, titulo: `${objetivo.numero} ${objetivo.titulo}` },
+          id,
+        },
+        fin,
+      ];
+    }
+    if (/portada|profe/.test(q)) {
+      const profesor = /profe\w*\s+([^.,]+)/i.exec(texto)?.[1]?.trim() ?? "el profesor";
+      const pdf = pdfDe(["Portada", `Profesor: ${profesor}`]);
+      return [
+        { type: "tool_call", nombre: "generar_portada", args: { profesor } },
+        {
+          type: "tool_result",
+          nombre: "generar_portada",
+          resultado: { docx_url: "/files/portada-suelta.docx", pdf_url: pdf },
+        },
+        ...palabras(`Preparé la portada para **${profesor}**: [Descargar PDF](${pdf}).`),
+        fin,
+      ];
+    }
+    if (/pdf|foto|imagen/.test(q)) {
+      return [...palabras("Adjunta las imágenes con el clip del chat y las convierto en un solo PDF."), fin];
+    }
+    return [
+      ...palabras(
+        "Soy el asistente simulado. Puedo **buscar tareas**, explicarlas, guardar indicaciones del profesor, crear PDFs y portadas.",
+      ),
+      fin,
+    ];
+  }
+
   const json = (data: unknown, status = 200) =>
     new Response(status === 204 ? null : JSON.stringify(data), {
       status,
@@ -219,6 +362,66 @@ export function createMockBackend(options: MockOptions = {}) {
     let m: RegExpMatchArray | null;
 
     if (path === "/health") return json({ ok: true, version: "mock" });
+    if ((m = path.match(/^\/tareas\/([^/]+)\/indicaciones$/)) && method === "PUT") {
+      const t = buscarTarea(m[1]);
+      if (!t) return fallo(404, "no_encontrada", "Tarea no encontrada");
+      indicaciones.set(t.id, (body as { indicaciones: string }).indicaciones);
+      return json({ ...detalleDe(t), indicaciones: indicaciones.get(t.id) });
+    }
+    if (path === "/asistente/estado") {
+      return json({
+        ollama: asistenteDisponible,
+        modelo: settings.asistente_modelo ?? "qwen3:4b",
+        modelo_instalado: asistenteDisponible,
+        error: asistenteDisponible ? null : "No se pudo conectar con Ollama en 127.0.0.1:11434",
+      });
+    }
+    if (path === "/asistente/confirmar") {
+      const { id, aceptar } = body as { id: string; aceptar: boolean };
+      const tareaId = confirmaciones.get(id);
+      if (!tareaId) return fallo(404, "no_encontrada", "La confirmación ya no existe");
+      confirmaciones.delete(id);
+      if (!aceptar) return json({ ok: true, mensaje: "Acción cancelada" });
+      const t = buscarTarea(tareaId);
+      if (t) {
+        t.estado = "entregada";
+        t.entregada_en = new Date().toISOString();
+      }
+      return json({ ok: true, mensaje: "La tarea se entregó en NEXUS" });
+    }
+    if (path === "/asistente/chat") {
+      if (!asistenteDisponible) return fallo(503, "sin_ollama", "El asistente no está disponible");
+      const { mensajes, tarea_id } = body as {
+        mensajes: { rol: string; contenido: string }[];
+        tarea_id?: string;
+      };
+      const ultimo = [...mensajes].reverse().find((x) => x.rol === "user")?.contenido ?? "";
+      return sse(guionAsistente(ultimo, tarea_id));
+    }
+    if (path === "/herramientas/pdf") {
+      const form = body as FormData;
+      const n = form.getAll("files[]").length;
+      if (n === 0) return fallo(400, "sin_archivos", "Sube al menos una imagen");
+      return json({
+        pdf_url: pdfDe(["Imagenes unidas", `${n} imagen(es)`, `Recorte: ${form.get("recortar")}`]),
+      });
+    }
+    if (path === "/herramientas/portada") {
+      const d = body as { profesor: string; materia?: string; titulo?: string; fecha?: string };
+      return json({
+        docx_url: "/files/portada-suelta.docx",
+        pdf_url: pdfDe([
+          "Universidad Autonoma de Nuevo Leon",
+          "",
+          d.titulo ?? "",
+          d.materia ?? "",
+          `Alumno: ${settings.nombre}`,
+          `Matricula: ${settings.matricula}`,
+          `Profesor: ${d.profesor}`,
+          `Fecha: ${d.fecha ?? new Date().toLocaleDateString("es-MX")}`,
+        ]),
+      });
+    }
     if (path === "/settings" && method === "GET") return json(settings);
     if (path === "/settings" && method === "PUT") {
       const { password: nueva, ...rest } = body as Partial<Settings> & { password?: string };
@@ -451,7 +654,9 @@ export function createMockBackend(options: MockOptions = {}) {
     if ((m = path.match(/^\/tareas\/([^/]+)$/))) {
       const t = buscarTarea(m[1]);
       if (t) marcarVencida(t);
-      return t ? json(detalleDe(t)) : fallo(404, "no_encontrada", "Tarea no encontrada");
+      return t
+        ? json({ ...detalleDe(t), indicaciones: indicaciones.get(t.id) ?? "" })
+        : fallo(404, "no_encontrada", "Tarea no encontrada");
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/insumos$/))) {
       const id = m[1];
