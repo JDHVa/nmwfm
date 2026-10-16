@@ -1,4 +1,4 @@
-import { act, cleanup, renderHook, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -75,5 +75,30 @@ describe("configuración avanzada", () => {
     renderHook(() => useSyncPeriodico(0, ejecutar));
     act(() => vi.advanceTimersByTime(48 * 3_600_000));
     expect(ejecutar).not.toHaveBeenCalled();
+  });
+
+  it("muestra el estado de Ollama y guarda el modelo del asistente", async () => {
+    const user = userEvent.setup();
+    montar();
+    const estado = await screen.findByRole("status", { name: "Estado de Ollama" });
+    expect(await within(estado).findByText(/Ollama: conectado/)).toBeInTheDocument();
+    const campo = screen.getByLabelText("Modelo del asistente (Ollama)");
+    expect(campo).toHaveValue("qwen3:4b");
+    await user.clear(campo);
+    await user.type(campo, "qwen3:8b");
+    await user.tab();
+    await waitFor(async () => expect((await api.getSettings()).asistente_modelo).toBe("qwen3:8b"));
+    expect(await within(estado).findByText(/Modelo qwen3:8b: instalado/)).toBeInTheDocument();
+  });
+
+  it("explica cómo instalar Ollama cuando no está disponible", async () => {
+    const sinOllama = createMockBackend({ stepMs: 2, asistenteDisponible: false });
+    configureApi({ base: "http://127.0.0.1:8765", token: "dev", transport: sinOllama.transport });
+    configureSocket(sinOllama.createSocket);
+    await api.putSettings({ cuenta: "a1", nombre: "Ana", matricula: "1", password: "x" });
+    montar();
+    const estado = await screen.findByRole("status", { name: "Estado de Ollama" });
+    expect(await within(estado).findByText(/Ollama: no encontrado/)).toBeInTheDocument();
+    expect(await screen.findByText(/ollama pull qwen3:4b/)).toBeInTheDocument();
   });
 });

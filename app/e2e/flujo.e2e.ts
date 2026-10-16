@@ -73,3 +73,21 @@ test("el cambio de tema se aplica y se recuerda", async ({ page }) => {
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
 });
+
+test("el asistente responde con herramientas y pide confirmación para entregar", async ({ page }) => {
+  await entrar(page);
+  await minimizarSyncInicial(page);
+  await page.getByRole("button", { name: "Asistente" }).click();
+  await page.getByRole("button", { name: "¿Qué vence esta semana?" }).click();
+  const conversacion = page.getByRole("log", { name: "Conversación" });
+  await expect(conversacion.getByText("Próximas entregas")).toBeVisible();
+  await expect(conversacion.getByText(/La más urgente es la/)).toBeVisible({ timeout: 15_000 });
+
+  await expect(page.getByRole("button", { name: "Enviar" })).toBeVisible({ timeout: 15_000 });
+  await page.getByLabel("Mensaje").fill("entrega la tarea");
+  await page.keyboard.press("Enter");
+  const tarjeta = page.getByRole("region", { name: "Confirmación" });
+  await expect(tarjeta).toBeVisible({ timeout: 15_000 });
+  await tarjeta.getByRole("button", { name: "Aceptar" }).click();
+  await expect(tarjeta.getByText(/Aceptada/)).toBeVisible();
+});
