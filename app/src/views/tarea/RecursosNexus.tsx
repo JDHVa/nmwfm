@@ -3,12 +3,6 @@ import { FileText } from "lucide-react";
 import { api } from "@/lib/api";
 import { keys } from "@/lib/queries";
 
-function tamano(bytes: number | null): string {
-  if (bytes === null) return "";
-  if (bytes < 1_000_000) return `${Math.round(bytes / 1000)} KB`;
-  return `${(bytes / 1_000_000).toFixed(1)} MB`;
-}
-
 export function RecursosNexus({ tareaId }: { tareaId: string }) {
   const qc = useQueryClient();
   const { data: recursos = [] } = useQuery({
@@ -16,8 +10,11 @@ export function RecursosNexus({ tareaId }: { tareaId: string }) {
     queryFn: () => api.recursos(tareaId),
   });
   const usar = useMutation({
-    mutationFn: ({ id, valor }: { id: string; valor: boolean }) => api.usarRecurso(tareaId, id, valor),
-    onSettled: () => qc.invalidateQueries({ queryKey: keys.recursos(tareaId) }),
+    mutationFn: (id: string) => api.usarRecurso(tareaId, id),
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: keys.recursos(tareaId) });
+      qc.invalidateQueries({ queryKey: keys.insumos(tareaId) });
+    },
   });
 
   if (recursos.length === 0) return null;
@@ -34,17 +31,20 @@ export function RecursosNexus({ tareaId }: { tareaId: string }) {
               <input
                 type="checkbox"
                 className="size-4 accent-primary"
-                checked={r.usar}
+                checked={r.usado}
+                disabled={r.usado || !r.descargado || usar.isPending}
                 aria-label={`Usar como insumo: ${r.nombre}`}
-                onChange={(e) => usar.mutate({ id: r.id, valor: e.target.checked })}
+                onChange={() => usar.mutate(r.id)}
               />
               <span className="min-w-0 flex-1 truncate">{r.nombre}</span>
-              <span className="text-xs text-muted-foreground">{tamano(r.tamano)}</span>
-              <span className="text-xs text-muted-foreground">Usar como insumo</span>
+              <span className="text-xs text-muted-foreground">
+                {r.usado ? "Ya es un insumo" : r.descargado ? "Usar como insumo" : "Sin descargar"}
+              </span>
             </label>
           </li>
         ))}
       </ul>
+      {usar.error && <p className="text-xs text-danger">{usar.error.message}</p>}
     </section>
   );
 }

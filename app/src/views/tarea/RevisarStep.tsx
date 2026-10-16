@@ -59,6 +59,19 @@ export function RevisarStep({
           {new Date(gen.creada_en).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })}
         </span>
       </div>
+      {gen.avisos.length > 0 && (
+        <div
+          role="alert"
+          className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning"
+        >
+          <p className="font-medium">Avisos de la generación</p>
+          <ul className="list-disc pl-5 text-xs">
+            {gen.avisos.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {(abrir.error || reconstruir.error) && (
         <p className="text-sm text-destructive">{(abrir.error ?? reconstruir.error)?.message}</p>
       )}

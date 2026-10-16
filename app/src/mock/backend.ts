@@ -1,4 +1,7 @@
 import type {
+  Novedad,
+  Recurso,
+  Respaldo,
   EtapaConTareas,
   Generacion,
   Insumo,
@@ -17,27 +20,6 @@ export type MockOptions = { stepMs?: number };
 
 function svgDataUrl(label: string, hue: number, w = 420, h = 560): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="hsl(${hue},30%,92%)"/><rect x="24" y="24" width="${w - 48}" height="${h - 48}" fill="white" stroke="hsl(${hue},40%,60%)" stroke-width="3"/>${Array.from({ length: 9 }, (_, i) => `<rect x="48" y="${64 + i * 40}" width="${120 + ((i * 53) % 200)}" height="10" fill="hsl(${hue},25%,70%)"/>`).join("")}<text x="48" y="${h - 48}" font-family="sans-serif" font-size="22" fill="hsl(${hue},40%,35%)">${label}</text></svg>`;
-  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
-}
-
-function esc(s: string) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function portadaSvg(d: {
-  profesor: string;
-  titulo: string;
-  alumno: string;
-  matricula: string;
-  fecha: string;
-}) {
-  const lineas = [
-    ["Alumno", d.alumno],
-    ["Matrícula", d.matricula],
-    ["Profesor", d.profesor],
-    ["Fecha", d.fecha],
-  ];
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="560" viewBox="0 0 420 560"><rect width="100%" height="100%" fill="white"/><rect x="0" y="0" width="420" height="8" fill="#2563eb"/><text x="210" y="90" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold" fill="#0f172a">UNIVERSIDAD AUTÓNOMA DE NUEVO LEÓN</text><text x="210" y="240" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#0f172a">${esc(d.titulo)}</text>${lineas.map(([k, v], i) => `<text x="48" y="${360 + i * 28}" font-family="sans-serif" font-size="14" fill="#334155"><tspan font-weight="bold">${k}: </tspan>${esc(v)}</text>`).join("")}</svg>`;
   return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
 }
 
@@ -64,6 +46,13 @@ function minimalPdf(lines: string[]): Uint8Array {
   });
   out += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
   return new TextEncoder().encode(out);
+}
+
+function pdfDe(lineas: string[]): string {
+  const bytes = minimalPdf(lineas);
+  const buf = new ArrayBuffer(bytes.length);
+  new Uint8Array(buf).set(bytes);
+  return URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
 }
 
 function pdfUrl(titulo: string): string {
@@ -106,51 +95,44 @@ export function createMockBackend(options: MockOptions = {}) {
   const etapas = crearEtapas();
   const insumos = new Map<string, Insumo[]>();
   const generaciones = new Map<string, Generacion>();
-  const versiones = new Map<string, Generacion[]>();
-  const registrar = (g: Generacion) => {
-    generaciones.set(g.tarea_id, g);
-    versiones.set(g.tarea_id, [...(versiones.get(g.tarea_id) ?? []), g]);
+  const historial = new Map<string, Generacion[]>();
+  let genSeq = 0;
+  const registrar = (g: Omit<Generacion, "id" | "avisos"> & { avisos?: string[] }): Generacion => {
+    const completa: Generacion = { avisos: [], ...g, id: ++genSeq };
+    generaciones.set(g.tarea_id, completa);
+    historial.set(g.tarea_id, [completa, ...(historial.get(g.tarea_id) ?? [])]);
+    return completa;
   };
   const jobs = new Map<string, Job>();
   const emitters = new Set<Emitter>();
   let password = "";
-  const recursos = new Map<
-    string,
-    { id: string; nombre: string; tipo: string; tamano: number | null; usar: boolean }[]
-  >();
-  const novedades: {
-    id: string;
-    tarea_id: string;
-    materia_id: string;
-    materia_nombre: string;
-    titulo: string;
-    tipo: "nueva" | "modificada";
-    detectada_en: string;
-    leida: boolean;
-  }[] = [];
+  const recursos = new Map<string, Recurso[]>();
+  const novedades: Novedad[] = [];
   const sembrarNovedades = () => {
     if (novedades.length) return;
     const ahora = Date.now();
     [
-      ["m1-t13", "nueva", 2],
-      ["m1-t14", "modificada", 26],
-      ["m2-t12", "nueva", 50],
-    ].forEach(([id, tipo, horas], i) => {
+      ["m1-t13", "nueva", 2, "Tarea nueva en NEXUS"],
+      ["m1-t14", "modificada", 26, "Cambió la fecha de entrega"],
+      ["m2-t12", "nueva", 50, "Tarea nueva en NEXUS"],
+    ].forEach(([id, tipo, horas, detalle], i) => {
       const t = buscarTarea(id as string);
       if (!t) return;
       novedades.push({
-        id: `nov-${i + 1}`,
+        id: i + 1,
         tarea_id: t.id,
         materia_id: t.materia_id,
         materia_nombre: materias.find((x) => x.id === t.materia_id)?.nombre ?? "",
+        numero: t.numero,
         titulo: t.titulo,
         tipo: tipo as "nueva" | "modificada",
-        detectada_en: new Date(ahora - (horas as number) * 3_600_000).toISOString(),
+        detalle: detalle as string,
+        creada_en: new Date(ahora - (horas as number) * 3_600_000).toISOString(),
         leida: false,
       });
     });
   };
-  const respaldos: { id: string; creado_en: string; tamano: number }[] = [];
+  const respaldos: Respaldo[] = [];
   let syncActivo: string | null = null;
   let revisionActiva: string | null = null;
   let seq = 0;
@@ -306,22 +288,27 @@ export function createMockBackend(options: MockOptions = {}) {
       syncActivo = job.id;
       return json(job);
     }
-    if (path === "/respaldos" && method === "GET") return json([...respaldos].reverse());
-    if (path === "/respaldos" && method === "POST") {
+    if (path === "/respaldo" && method === "GET") return json([...respaldos].reverse());
+    if (path === "/respaldo" && method === "POST") {
+      const n = respaldos.length + 1;
+      const nombre = `respaldo-20261015-12${String(n).padStart(2, "0")}00.zip`;
       const r = {
-        id: `resp-${respaldos.length + 1}`,
+        nombre,
+        url: `/files/respaldos/${nombre}`,
+        bytes: 1_250_000 + n * 4000,
         creado_en: new Date().toISOString(),
-        tamano: 1_250_000 + respaldos.length * 4000,
       };
       respaldos.push(r);
       log("info", "Respaldo creado");
       return json(r);
     }
-    if ((m = path.match(/^\/respaldos\/([^/]+)\/restaurar$/))) {
-      if (!respaldos.some((r) => r.id === m![1]))
-        return fallo(404, "no_encontrado", "Respaldo no encontrado");
+    if (path === "/respaldo/restaurar") {
+      const nombre = (body as { nombre?: string } | undefined)?.nombre;
+      if (!respaldos.some((r) => r.nombre === nombre)) {
+        return fallo(400, "respaldo_invalido", "El respaldo no existe o no es válido");
+      }
       log("info", "Respaldo restaurado");
-      return json(null, 204);
+      return json({ restaurados: 42, respaldo_previo: "pre-restauracion-20261015-121500.zip" });
     }
     if (path === "/diagnostico") {
       return json(
@@ -334,14 +321,35 @@ export function createMockBackend(options: MockOptions = {}) {
             "Comprobando pestaña Entregas",
           ],
           () => ({
+            ok: false,
             pasos: [
-              { nombre: "Inicio de sesión en SIASE", ok: true, detalle: "Entró correctamente" },
-              { nombre: "Lista de materias", ok: true, detalle: "10 materias encontradas" },
-              { nombre: "Estructura de etapas", ok: true, detalle: "5 etapas en la primera materia" },
+              {
+                nombre: "Inicio de sesión en SIASE",
+                ok: true,
+                ms: 2300,
+                detalle: "Entró correctamente",
+                selectores_faltantes: [],
+              },
+              {
+                nombre: "Lista de materias",
+                ok: true,
+                ms: 1800,
+                detalle: "10 materias encontradas",
+                selectores_faltantes: [],
+              },
+              {
+                nombre: "Estructura de etapas",
+                ok: true,
+                ms: 950,
+                detalle: "5 etapas en la primera materia",
+                selectores_faltantes: [],
+              },
               {
                 nombre: "Pestaña Entregas",
                 ok: false,
+                ms: 3100,
                 detalle: "No se encontró el botón «Entregar» (selector desactualizado)",
+                selectores_faltantes: ["button.entregar"],
               },
             ],
           }),
@@ -350,14 +358,19 @@ export function createMockBackend(options: MockOptions = {}) {
     }
     if (path === "/novedades" && method === "GET") {
       sembrarNovedades();
-      return json(novedades);
+      const soloNuevas = new URL(url).searchParams.get("no_leidas") === "1";
+      return json(soloNuevas ? novedades.filter((n) => !n.leida) : novedades);
     }
-    if (path === "/novedades/leer") {
-      const ids = (body as { ids?: string[] } | undefined)?.ids;
+    if (path === "/novedades/leidas") {
+      const ids = (body as { ids?: number[] } | undefined)?.ids;
+      let marcadas = 0;
       novedades.forEach((n) => {
-        if (!ids || ids.includes(n.id)) n.leida = true;
+        if ((!ids || ids.includes(n.id)) && !n.leida) {
+          n.leida = true;
+          marcadas += 1;
+        }
       });
-      return json(null, 204);
+      return json({ marcadas });
     }
     if (path === "/alertas") {
       const ahora = new Date();
@@ -369,12 +382,9 @@ export function createMockBackend(options: MockOptions = {}) {
         .map((t) => ({ t, dias: Math.round((inicio(new Date(t.hasta!)) - inicio(ahora)) / 86_400_000) }))
         .filter(({ dias }) => dias <= 1)
         .map(({ t, dias }) => ({
-          tarea_id: t.id,
-          materia_id: t.materia_id,
+          ...t,
           materia_nombre: materias.find((x) => x.id === t.materia_id)?.nombre ?? "",
-          titulo: t.titulo,
-          hasta: t.hasta!,
-          cuando: dias === 0 ? "hoy" : "manana",
+          dias,
         }));
       return json(lista);
     }
@@ -419,25 +429,21 @@ export function createMockBackend(options: MockOptions = {}) {
     if ((m = path.match(/^\/materias\/([^/]+)\/calificaciones$/))) {
       const lista = etapas[m[1]];
       if (!lista) return fallo(404, "no_encontrada", "Materia no encontrada");
-      const items = lista.flatMap((e) =>
+      if (m[1] !== "m1") return json(null);
+      const filas = lista.flatMap((e) =>
         e.tareas
-          .filter((t) => t.tipo !== "examen")
-          .map((t) => ({
-            tarea_id: t.id,
-            etapa: e.nombre,
-            numero: t.numero,
-            titulo: t.titulo,
-            obtenida: t.estado === "entregada" && t.puntos ? Math.round(t.puntos * 0.9 * 10) / 10 : null,
-            maxima: t.puntos,
-          })),
+          .filter((t) => t.tipo !== "examen" && t.puntos)
+          .map((t) => [
+            `${t.numero} ${t.titulo}`,
+            t.estado === "entregada" ? String(Math.round(t.puntos! * 0.9 * 10) / 10) : "-",
+            String(t.puntos),
+          ]),
       );
-      const con = items.filter((i) => i.obtenida !== null && i.maxima);
-      const promedio = con.length
-        ? Math.round(
-            (con.reduce((a, i) => a + i.obtenida!, 0) / con.reduce((a, i) => a + i.maxima!, 0)) * 100,
-          ) / 10
-        : null;
-      return json({ items, promedio });
+      return json({
+        columnas: ["Actividad", "Calificación", "Puntos"],
+        filas,
+        actualizada_en: new Date().toISOString(),
+      });
     }
     if ((m = path.match(/^\/materias\/([^/]+)\/etapas$/))) {
       const lista = etapas[m[1]];
@@ -478,20 +484,78 @@ export function createMockBackend(options: MockOptions = {}) {
       log("info", `${nuevos.length} imagen(es) recortada(s)`);
       return json(nuevos);
     }
-    if ((m = path.match(/^\/tareas\/([^/]+)\/recursos(?:\/([^/]+))?$/))) {
-      if (!recursos.has(m[1])) {
-        recursos.set(m[1], [
-          { id: "r1", nombre: "Lectura de la unidad.pdf", tipo: "pdf", tamano: 482_000, usar: false },
-          { id: "r2", nombre: "Presentación de la clase.pptx", tipo: "pptx", tamano: 2_300_000, usar: false },
-          { id: "r3", nombre: "Guía de estudio.docx", tipo: "docx", tamano: 96_000, usar: false },
+    if ((m = path.match(/^\/tareas\/([^/]+)\/recursos(?:\/([^/]+)\/usar)?$/))) {
+      const tid = m[1];
+      if (!recursos.has(tid)) {
+        recursos.set(tid, [
+          {
+            id: "r1",
+            tarea_id: tid,
+            nombre: "Diagrama de la unidad.png",
+            tipo: "imagen",
+            descargado: true,
+            usado: false,
+          },
+          {
+            id: "r2",
+            tarea_id: tid,
+            nombre: "Notas de la clase.txt",
+            tipo: "texto",
+            descargado: true,
+            usado: false,
+          },
+          {
+            id: "r3",
+            tarea_id: tid,
+            nombre: "Lectura de la unidad.pdf",
+            tipo: "pdf",
+            descargado: true,
+            usado: false,
+          },
+          {
+            id: "r4",
+            tarea_id: tid,
+            nombre: "Presentación.pptx",
+            tipo: "otro",
+            descargado: false,
+            usado: false,
+          },
         ]);
       }
-      const lista = recursos.get(m[1])!;
-      if (method === "PATCH" && m[2]) {
+      const lista = recursos.get(tid)!;
+      if (method === "POST" && m[2]) {
         const r = lista.find((x) => x.id === m![2]);
         if (!r) return fallo(404, "no_encontrado", "Recurso no encontrado");
-        r.usar = !!(body as { usar?: boolean }).usar;
-        return json(r);
+        if (!r.descargado) return fallo(409, "sin_descargar", "El archivo todavía no se descargó");
+        if (r.tipo !== "imagen" && r.tipo !== "texto") {
+          return fallo(415, "tipo_no_soportado", "Solo se pueden usar imágenes y texto");
+        }
+        const actuales = insumos.get(tid) ?? [];
+        insumos.set(tid, actuales);
+        hue = (hue + 47) % 360;
+        const nuevo: Insumo =
+          r.tipo === "imagen"
+            ? {
+                id: `ins-${++seq}`,
+                tipo: "imagen",
+                original_url: svgDataUrl(r.nombre, hue),
+                recortada_url: svgDataUrl(`${r.nombre} (recorte)`, hue, 360, 480),
+                orden: actuales.length,
+                rotacion: 0,
+                usar_recorte: true,
+                ocr_texto: `Texto detectado en ${r.nombre}`,
+              }
+            : {
+                id: `ins-${++seq}`,
+                tipo: "texto",
+                texto: `Contenido de ${r.nombre}`,
+                orden: actuales.length,
+                rotacion: 0,
+                usar_recorte: false,
+              };
+        actuales.push(nuevo);
+        r.usado = true;
+        return json(nuevo);
       }
       return json(lista);
     }
@@ -532,16 +596,19 @@ export function createMockBackend(options: MockOptions = {}) {
     if ((m = path.match(/^\/tareas\/([^/]+)\/portada-preview$/))) {
       const t = buscarTarea(m[1]);
       if (!t) return fallo(404, "no_encontrada", "Tarea no encontrada");
-      const q = new URL(url).searchParams;
       const materia = materias.find((x) => x.id === t.materia_id);
-      const datos = {
-        profesor: q.get("profesor") || materia?.profesor || "",
-        titulo: q.get("titulo") || t.titulo,
-        alumno: settings.nombre,
-        matricula: settings.matricula,
-        fecha: new Date().toLocaleDateString("es-MX", { day: "numeric", month: "long", year: "numeric" }),
-      };
-      return json({ ...datos, imagen_url: portadaSvg(datos) });
+      return json({
+        pdf_url: pdfDe([
+          "Universidad Autonoma de Nuevo Leon",
+          "",
+          t.titulo,
+          "",
+          `Alumno: ${settings.nombre}`,
+          `Matricula: ${settings.matricula}`,
+          `Profesor: ${materia?.profesor ?? ""}`,
+          `Fecha: ${new Date().toLocaleDateString("es-MX")}`,
+        ]),
+      });
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/generar$/))) {
       const t = buscarTarea(m[1]);
@@ -578,24 +645,17 @@ export function createMockBackend(options: MockOptions = {}) {
     if ((m = path.match(/^\/tareas\/([^/]+)\/generacion$/))) return json(generaciones.get(m[1]) ?? null);
     if ((m = path.match(/^\/tareas\/([^/]+)\/generaciones$/))) {
       const actual = generaciones.get(m[1]);
-      const lista = (versiones.get(m[1]) ?? []).map((g, i) => ({
-        id: `${m![1]}-v${i + 1}`,
-        tarea_id: g.tarea_id,
-        version: i + 1,
-        creada_en: g.creada_en,
-        pdf_url: g.pdf_url,
-        docx_url: g.docx_url,
-        actual: actual?.pdf_url === g.pdf_url,
-        resumen: g.markdown.slice(0, 80),
-      }));
-      return json(lista);
+      return json((historial.get(m[1]) ?? []).map((g) => ({ ...g, actual: actual?.id === g.id })));
     }
-    if ((m = path.match(/^\/tareas\/([^/]+)\/generaciones\/([^/]+)\/restaurar$/))) {
-      const lista = versiones.get(m[1]) ?? [];
-      const g = lista[Number(m[2].split("-v").pop()) - 1];
-      if (!g) return fallo(404, "no_encontrada", "Versión no encontrada");
-      generaciones.set(m[1], g);
-      return json(g);
+    if ((m = path.match(/^\/generaciones\/(\d+)\/restaurar$/))) {
+      for (const lista of historial.values()) {
+        const g = lista.find((x) => x.id === Number(m![1]));
+        if (g) {
+          generaciones.set(g.tarea_id, g);
+          return json(g);
+        }
+      }
+      return fallo(404, "no_encontrada", "Generación no encontrada");
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/abrir-docx$/))) {
       log("info", "Abriendo documento en Word");
@@ -610,8 +670,7 @@ export function createMockBackend(options: MockOptions = {}) {
         pdf_url: pdfUrl(`${t.titulo} (reconstruido)`),
         creada_en: new Date().toISOString(),
       };
-      registrar(nueva);
-      return json(nueva);
+      return json(registrar(nueva));
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/entregar$/))) {
       const t = buscarTarea(m[1]);

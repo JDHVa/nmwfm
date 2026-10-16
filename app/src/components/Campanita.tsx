@@ -19,7 +19,7 @@ export function Campanita({ className }: { className?: string }) {
     refetchInterval: 5 * 60 * 1000,
   });
   const leer = useMutation({
-    mutationFn: (ids?: string[]) => api.leerNovedades(ids),
+    mutationFn: (ids?: number[]) => api.leerNovedades(ids),
     onSettled: () => qc.invalidateQueries({ queryKey: keys.novedades }),
   });
   useEscape(abierto, () => setAbierto(false));
@@ -79,11 +79,14 @@ export function Campanita({ className }: { className?: string }) {
                     )}
                   />
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate font-medium">{n.titulo}</span>
+                    <span className="block truncate font-medium">
+                      {n.numero} · {n.titulo}
+                    </span>
                     <span className="block truncate text-xs text-muted-foreground">
                       {n.tipo === "nueva" ? "Tarea nueva" : "Tarea modificada"} · {n.materia_nombre} ·{" "}
-                      {haceTiempo(n.detectada_en)}
+                      {haceTiempo(n.creada_en)}
                     </span>
+                    <span className="block truncate text-xs text-muted-foreground">{n.detalle}</span>
                   </span>
                 </button>
               </li>

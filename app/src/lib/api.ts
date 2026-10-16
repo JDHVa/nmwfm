@@ -75,40 +75,25 @@ export type Job = {
   mensaje: string | null;
   resultado: unknown;
 };
-export type PortadaPreview = {
-  imagen_url: string;
-  profesor: string;
-  titulo: string;
-  alumno: string;
-  matricula: string;
-  fecha: string;
-};
-export type PortadaOverrides = { profesor?: string; titulo?: string };
-export type GeneracionVersion = {
-  id: string;
-  tarea_id: string;
-  version: number;
-  creada_en: string;
-  pdf_url: string;
-  docx_url: string;
-  actual: boolean;
-  resumen: string;
-};
+export type PortadaPreview = { pdf_url: string };
 export type Recurso = {
   id: string;
+  tarea_id: string;
   nombre: string;
-  tipo: string;
-  tamano: number | null;
-  usar: boolean;
+  tipo: "imagen" | "texto" | "pdf" | "otro";
+  descargado: boolean;
+  usado: boolean;
 };
 export type Novedad = {
-  id: string;
+  id: number;
   tarea_id: string;
   materia_id: string;
   materia_nombre: string;
+  numero: string;
   titulo: string;
   tipo: "nueva" | "modificada";
-  detectada_en: string;
+  detalle: string;
+  creada_en: string;
   leida: boolean;
 };
 export type Alerta = {
@@ -119,18 +104,18 @@ export type Alerta = {
   hasta: string;
   cuando: "hoy" | "manana";
 };
-export type Respaldo = { id: string; creado_en: string; tamano: number };
-export type PasoDiagnostico = { nombre: string; ok: boolean; detalle: string };
-export type DiagnosticoResultado = { pasos: PasoDiagnostico[] };
-export type ItemCalificacion = {
-  tarea_id: string | null;
-  etapa: string;
-  numero: string;
-  titulo: string;
-  obtenida: number | null;
-  maxima: number | null;
+export type AlertaApi = Tarea & { materia_nombre: string; dias: 0 | 1 };
+export type Respaldo = { nombre: string; url: string; bytes: number; creado_en: string };
+export type RestauracionResultado = { restaurados: number; respaldo_previo: string };
+export type PasoDiagnostico = {
+  nombre: string;
+  ok: boolean;
+  ms: number;
+  detalle: string;
+  selectores_faltantes: string[];
 };
-export type Calificaciones = { items: ItemCalificacion[]; promedio: number | null };
+export type Diagnostico = { ok: boolean; pasos: PasoDiagnostico[] };
+export type Calificaciones = { columnas: string[]; filas: string[][]; actualizada_en: string };
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
   materias: number;
@@ -146,12 +131,15 @@ export type RevisionResultado = {
   errores: string[];
 };
 export type Generacion = {
+  id: number;
   tarea_id: string;
   markdown: string;
   docx_url: string;
   pdf_url: string;
   creada_en: string;
+  avisos: string[];
 };
+export type GeneracionHistorial = Generacion & { actual: boolean };
 export type EtapaConTareas = Etapa & { tareas: Tarea[] };
 export type Health = { ok: boolean; version: string };
 export type WsMessage = { type: "job"; job: Job } | { type: "log"; level: string; message: string };
@@ -248,35 +236,36 @@ export const api = {
     request<Insumo>("POST", `/tareas/${tareaId}/insumos/texto`, { texto }),
   patchInsumo: (id: string, patch: InsumoPatch) => request<Insumo>("PATCH", `/insumos/${id}`, patch),
   borrarInsumo: (id: string) => request<void>("DELETE", `/insumos/${id}`),
-  generar: (tareaId: string, instruccionesExtra?: string, portada?: PortadaOverrides) =>
-    request<Job>("POST", `/tareas/${tareaId}/generar`, {
-      instrucciones_extra: instruccionesExtra,
-      ...(portada?.profesor ? { profesor: portada.profesor } : {}),
-      ...(portada?.titulo ? { titulo: portada.titulo } : {}),
-    }),
-  portadaPreview: (tareaId: string, o: PortadaOverrides = {}) => {
-    const q = new URLSearchParams();
-    if (o.profesor) q.set("profesor", o.profesor);
-    if (o.titulo) q.set("titulo", o.titulo);
-    const qs = q.toString();
-    return request<PortadaPreview>("GET", `/tareas/${tareaId}/portada-preview${qs ? `?${qs}` : ""}`);
-  },
+  generar: (tareaId: string, instruccionesExtra?: string) =>
+    request<Job>("POST", `/tareas/${tareaId}/generar`, { instrucciones_extra: instruccionesExtra }),
+  portadaPreview: (tareaId: string) => request<PortadaPreview>("GET", `/tareas/${tareaId}/portada-preview`),
   generacion: (tareaId: string) => request<Generacion | null>("GET", `/tareas/${tareaId}/generacion`),
-  generaciones: (tareaId: string) => request<GeneracionVersion[]>("GET", `/tareas/${tareaId}/generaciones`),
-  restaurarGeneracion: (tareaId: string, id: string) =>
-    request<Generacion>("POST", `/tareas/${tareaId}/generaciones/${id}/restaurar`),
+  generaciones: (tareaId: string) => request<GeneracionHistorial[]>("GET", `/tareas/${tareaId}/generaciones`),
+  restaurarGeneracion: (id: number) => request<Generacion>("POST", `/generaciones/${id}/restaurar`),
   recursos: (tareaId: string) => request<Recurso[]>("GET", `/tareas/${tareaId}/recursos`),
-  usarRecurso: (tareaId: string, id: string, usar: boolean) =>
-    request<Recurso>("PATCH", `/tareas/${tareaId}/recursos/${id}`, { usar }),
+  usarRecurso: (tareaId: string, id: string) =>
+    request<Insumo>("POST", `/tareas/${tareaId}/recursos/${id}/usar`),
   novedades: () => request<Novedad[]>("GET", "/novedades"),
-  leerNovedades: (ids?: string[]) => request<void>("POST", "/novedades/leer", ids ? { ids } : {}),
-  alertas: () => request<Alerta[]>("GET", "/alertas"),
-  respaldos: () => request<Respaldo[]>("GET", "/respaldos"),
-  crearRespaldo: () => request<Respaldo>("POST", "/respaldos"),
-  restaurarRespaldo: (id: string) => request<void>("POST", `/respaldos/${id}/restaurar`),
+  leerNovedades: (ids?: number[]) =>
+    request<{ marcadas: number }>("POST", "/novedades/leidas", ids ? { ids } : {}),
+  alertas: async (): Promise<Alerta[]> => {
+    const lista = await request<AlertaApi[]>("GET", "/alertas");
+    return lista.map((t) => ({
+      tarea_id: t.id,
+      materia_id: t.materia_id,
+      materia_nombre: t.materia_nombre,
+      titulo: t.titulo,
+      hasta: t.hasta ?? "",
+      cuando: t.dias === 0 ? "hoy" : "manana",
+    }));
+  },
+  respaldos: () => request<Respaldo[]>("GET", "/respaldo"),
+  crearRespaldo: () => request<Respaldo>("POST", "/respaldo"),
+  restaurarRespaldo: (nombre: string) =>
+    request<RestauracionResultado>("POST", "/respaldo/restaurar", { nombre }),
   diagnostico: () => request<Job>("POST", "/diagnostico"),
   calificaciones: (materiaId: string) =>
-    request<Calificaciones>("GET", `/materias/${materiaId}/calificaciones`),
+    request<Calificaciones | null>("GET", `/materias/${materiaId}/calificaciones`),
   abrirDocx: (tareaId: string) => request<void>("POST", `/tareas/${tareaId}/abrir-docx`),
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),

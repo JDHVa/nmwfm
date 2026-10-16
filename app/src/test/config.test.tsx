@@ -47,7 +47,7 @@ describe("configuración avanzada", () => {
     expect(lista).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: /Restaurar/ }));
     await user.click(await screen.findByRole("button", { name: "Sí, restaurar" }));
-    expect(await screen.findByText("Respaldo restaurado")).toBeInTheDocument();
+    expect(await screen.findByText(/Respaldo restaurado/)).toBeInTheDocument();
   });
 
   it("ejecuta el diagnóstico y muestra el reporte con los fallos", async () => {

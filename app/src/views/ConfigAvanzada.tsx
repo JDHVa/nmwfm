@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { JobProgress } from "@/components/JobProgress";
-import { api, type DiagnosticoResultado, type Respaldo, type Settings } from "@/lib/api";
+import { api, type Diagnostico, type Respaldo, type Settings } from "@/lib/api";
 import { keys, useJobRunner, useSaveSettings } from "@/lib/queries";
 
 const INTERVALOS = [0, 1, 2, 4, 6, 12, 24];
@@ -69,16 +69,16 @@ function RespaldoSeccion() {
   const qc = useQueryClient();
   const { data: respaldos = [] } = useQuery({ queryKey: keys.respaldos, queryFn: api.respaldos });
   const [aRestaurar, setARestaurar] = useState<Respaldo | null>(null);
-  const [restaurado, setRestaurado] = useState(false);
+  const [restaurado, setRestaurado] = useState<string | null>(null);
   const crear = useMutation({
     mutationFn: api.crearRespaldo,
     onSuccess: () => qc.invalidateQueries({ queryKey: keys.respaldos }),
   });
   const restaurar = useMutation({
-    mutationFn: (id: string) => api.restaurarRespaldo(id),
-    onSuccess: () => {
+    mutationFn: (nombre: string) => api.restaurarRespaldo(nombre),
+    onSuccess: (r) => {
       setARestaurar(null);
-      setRestaurado(true);
+      setRestaurado(r.respaldo_previo);
       qc.invalidateQueries();
     },
   });
@@ -93,16 +93,20 @@ function RespaldoSeccion() {
           <DatabaseBackup /> {crear.isPending ? "Creando…" : "Crear respaldo"}
         </Button>
         {crear.error && <span className="text-sm text-danger">{crear.error.message}</span>}
-        {restaurado && <span className="text-sm text-success">Respaldo restaurado</span>}
+        {restaurado && (
+          <span className="text-sm text-success">
+            Respaldo restaurado (se guardó una copia previa: {restaurado})
+          </span>
+        )}
       </div>
       {respaldos.length > 0 && (
         <ul className="divide-y rounded-lg border" aria-label="Respaldos">
           {respaldos.map((r) => (
-            <li key={r.id} className="flex items-center gap-3 px-3 py-2 text-sm">
+            <li key={r.nombre} className="flex items-center gap-3 px-3 py-2 text-sm">
               <span className="flex-1">
                 {new Date(r.creado_en).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })}
               </span>
-              <span className="text-xs text-muted-foreground">{(r.tamano / 1_000_000).toFixed(1)} MB</span>
+              <span className="text-xs text-muted-foreground">{(r.bytes / 1_000_000).toFixed(1)} MB</span>
               <Button size="sm" variant="ghost" onClick={() => setARestaurar(r)}>
                 <RotateCcw /> Restaurar
               </Button>
@@ -125,7 +129,7 @@ function RespaldoSeccion() {
             <Button
               variant="destructive"
               disabled={restaurar.isPending}
-              onClick={() => aRestaurar && restaurar.mutate(aRestaurar.id)}
+              onClick={() => aRestaurar && restaurar.mutate(aRestaurar.nombre)}
             >
               Sí, restaurar
             </Button>
@@ -138,8 +142,7 @@ function RespaldoSeccion() {
 
 function DiagnosticoSeccion() {
   const runner = useJobRunner();
-  const resultado =
-    runner.job?.estado === "ok" ? (runner.job.resultado as DiagnosticoResultado | null) : null;
+  const resultado = runner.job?.estado === "ok" ? (runner.job.resultado as Diagnostico | null) : null;
   return (
     <Seccion titulo="Diagnóstico de NEXUS">
       <p className="text-sm text-muted-foreground">
@@ -163,7 +166,13 @@ function DiagnosticoSeccion() {
                 <span className={p.ok ? "text-xs text-muted-foreground" : "text-xs text-danger"}>
                   {p.detalle}
                 </span>
+                {p.selectores_faltantes.length > 0 && (
+                  <span className="block font-mono text-[11px] text-danger">
+                    Selectores faltantes: {p.selectores_faltantes.join(", ")}
+                  </span>
+                )}
               </span>
+              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">{p.ms} ms</span>
             </li>
           ))}
         </ul>

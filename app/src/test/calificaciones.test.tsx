@@ -26,14 +26,14 @@ describe("calificaciones de la materia", () => {
     );
   }
 
-  it("muestra la pestaña con las calificaciones y el promedio", async () => {
+  it("muestra la pestaña con las calificaciones de NEXUS", async () => {
     const user = userEvent.setup();
     montar();
     expect(await screen.findByText("Etapa 1: Algoritmos Evolutivos")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Calificaciones" }));
-    expect(await screen.findByLabelText("Promedio")).toHaveTextContent("9.2");
-    expect(screen.getByText("Dimensión 2 - Comprensión - Ficha Técnica")).toBeInTheDocument();
-    expect(screen.getAllByText("Sin calificar").length).toBeGreaterThan(0);
+    expect(await screen.findByRole("columnheader", { name: "Calificación" })).toBeInTheDocument();
+    expect(screen.getByText(/1\.2 Dimensión 2 - Comprensión - Ficha Técnica/)).toBeInTheDocument();
+    expect(screen.getByText("2.3")).toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "Tareas" }));
     expect(await screen.findByText("Etapa 1: Algoritmos Evolutivos")).toBeInTheDocument();
   });

@@ -29,11 +29,23 @@ describe("recursos de NEXUS y OCR", () => {
   it("lista los recursos y permite usarlos como insumo", async () => {
     const user = userEvent.setup();
     montar();
-    const check = await screen.findByRole("checkbox", { name: "Usar como insumo: Lectura de la unidad.pdf" });
+    const check = await screen.findByRole("checkbox", { name: "Usar como insumo: Notas de la clase.txt" });
     expect(check).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Usar como insumo: Presentación.pptx" })).toBeDisabled();
     await user.click(check);
     await waitFor(() => expect(check).toBeChecked());
-    expect((await api.recursos(TAREA)).find((r) => r.id === "r1")?.usar).toBe(true);
+    expect(check).toBeDisabled();
+    expect((await api.recursos(TAREA)).find((r) => r.id === "r2")?.usado).toBe(true);
+    expect((await api.insumos(TAREA)).some((i) => i.tipo === "texto")).toBe(true);
+  });
+
+  it("avisa cuando el tipo de recurso no se puede usar", async () => {
+    const user = userEvent.setup();
+    montar();
+    await user.click(
+      await screen.findByRole("checkbox", { name: "Usar como insumo: Lectura de la unidad.pdf" }),
+    );
+    expect(await screen.findByText("Solo se pueden usar imágenes y texto")).toBeInTheDocument();
   });
 
   it("muestra el texto OCR desplegable y guarda las ediciones", async () => {
