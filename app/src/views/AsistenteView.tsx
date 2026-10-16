@@ -85,7 +85,7 @@ export function AsistenteView({ tareaId }: { tareaId?: string }) {
       {barra && (
         <aside
           aria-label="Historial de conversaciones"
-          className="flex w-64 shrink-0 flex-col border-r bg-card/50"
+          className="flex w-64 shrink-0 flex-col border-r bg-card"
         >
           <div className="p-3">
             <Button variant="secondary" className="w-full justify-start" onClick={chat.nueva}>

@@ -184,7 +184,7 @@ export function ImagenesAPdf() {
         Agregar portada
       </label>
       {conPortada && (
-        <div className="grid gap-3 rounded-lg border bg-muted/40 p-3 sm:grid-cols-2">
+        <div className="grid gap-3 rounded-lg border bg-muted p-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label htmlFor="pdf-portada-profesor">Profesor</Label>
             <Input id="pdf-portada-profesor" value={portada.profesor} onChange={setP("profesor")} />

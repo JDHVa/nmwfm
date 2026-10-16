@@ -4,7 +4,7 @@ import { FILTROS_VACIOS, hayFiltros, type Filtros } from "@/lib/filtros";
 import { cn } from "@/lib/utils";
 
 const CAMPO =
-  "h-9 rounded-md border border-input bg-background/50 px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
+  "h-9 rounded-md border border-input bg-background px-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50";
 
 export function FiltrosTareas({
   valor,

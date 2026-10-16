@@ -16,7 +16,7 @@ export function JobProgress({
   if (!job && !error) return null;
   const estado = job?.estado;
   return (
-    <div className={cn("rounded-lg border bg-card/60 p-4", className)} role="status" aria-live="polite">
+    <div className={cn("rounded-lg border bg-card p-4", className)} role="status" aria-live="polite">
       <div className="flex items-center gap-3 text-sm">
         {job && jobActivo(job) && <Loader2 className="size-4 animate-spin text-primary" />}
         {estado === "ok" && <CheckCircle2 className="size-4 text-success" />}

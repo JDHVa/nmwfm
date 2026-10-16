@@ -10,3 +10,5 @@ src/components/Stepper.tsx
 src/components/ui
 package-lock.json
 src/components/BlurText.tsx
+src/components/Silk.tsx
+src/components/Galaxy.tsx

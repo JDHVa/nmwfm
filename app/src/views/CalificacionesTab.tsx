@@ -26,7 +26,7 @@ export function CalificacionesTab({ materiaId }: { materiaId: string }) {
       <div className="overflow-x-auto rounded-xl border bg-card shadow-card">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b bg-muted/40 text-left">
+            <tr className="border-b bg-muted text-left">
               {data.columnas.map((c) => (
                 <th key={c} scope="col" className="px-4 py-2.5 font-medium">
                   {c}
