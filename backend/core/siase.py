@@ -199,6 +199,45 @@ def parse_evaluacion(markup: str) -> list[dict]:
     return materias
 
 
+def parse_kardex(markup: str) -> list[dict]:
+    filas = []
+    for fila in select(parse(markup), "tr"):
+        celdas = [text_of(c) for c in fila.xpath("./td")]
+        if len(celdas) != S.SIASE_KARDEX_COLUMNAS or not celdas[0].isdigit():
+            continue
+        oportunidades = [(i + 1, _numero(c)) for i, c in enumerate(celdas[4:10])]
+        validas = [(i, v) for i, v in oportunidades if v is not None]
+        if not validas:
+            continue
+        oportunidad, calificacion = validas[-1]
+        filas.append(
+            {
+                "semestre": int(celdas[0]),
+                "clave": celdas[2],
+                "nombre": celdas[3],
+                "calificacion": calificacion,
+                "oportunidad": oportunidad,
+            }
+        )
+    return filas
+
+
+async def _leer_kardex(page: Page, hooks: Hooks) -> list[dict]:
+    try:
+        menu = await _buscar_alguno(page, [S.SIASE_MENU_KARDEX], 15)
+        if menu is None:
+            raise SiaseError("No se encontro el Kardex en el menu de SIASE.")
+        await hooks.paso("Leyendo el Kardex", 0.9)
+        await clic_robusto(menu[0].locator(S.SIASE_MENU_KARDEX).first)
+        tabla = await _buscar_alguno(page, [S.SIASE_KARDEX_TABLA], 30)
+        if tabla is None:
+            raise SiaseError("SIASE no mostro la tabla del Kardex.")
+        return parse_kardex(await tabla[0].content())
+    except SiaseError as exc:
+        await hooks.log(f"Kardex: {exc}")
+        return []
+
+
 async def _leer_tabla(page: Page, timeout: float) -> list[dict]:
     encontrado = await _buscar_alguno(page, [S.SIASE_EVAL_TABLA], timeout)
     if encontrado is None:
@@ -208,7 +247,7 @@ async def _leer_tabla(page: Page, timeout: float) -> list[dict]:
 
 async def leer_calificaciones(
     ctx: BrowserContext, cuenta: str, password: str, hooks: Hooks | None = None
-) -> list[dict]:
+) -> tuple[list[dict], list[dict]]:
     hooks = hooks or Hooks()
     page = await ctx.new_page()
     try:
@@ -234,7 +273,8 @@ async def leer_calificaciones(
         await hooks.paso("Leyendo calificaciones", 0.65)
         await formulario.locator(S.SIASE_PERIODO_SELECT).first.select_option(validos[0])
         await clic_robusto(formulario.locator(S.SIASE_EVAL_ACEPTAR))
-        return await _leer_tabla(page, 30)
+        materias = await _leer_tabla(page, 30)
+        return materias, await _leer_kardex(page, hooks)
     finally:
         with contextlib.suppress(Exception):
             await page.close()

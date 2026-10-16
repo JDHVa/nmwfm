@@ -11,6 +11,8 @@ from .asgi_client import MiniClient
 
 DATOS = Path(__file__).parent / "html_reales"
 HTML = (DATOS / "siase_evaluacion.html").read_text(encoding="utf-8")
+KARDEX_HTML = (DATOS / "siase_kardex.html").read_text(encoding="utf-8")
+KARDEX = siase.parse_kardex(KARDEX_HTML)
 
 
 def por_clave(materias):
@@ -97,6 +99,7 @@ class Frame:
             S.SIASE_CARRERA_LINK: "menu",
             S.SIASE_MENU_EVALUACION: "periodo",
             S.SIASE_EVAL_ACEPTAR: "tabla",
+            S.SIASE_MENU_KARDEX: "kardex",
         }
 
     def presentes(self):
@@ -104,14 +107,15 @@ class Frame:
             "inicio": {S.SIASE_NEXUS_LOGO, S.SIASE_CARRERA_LINK},
             "menu": {S.SIASE_MENU_EVALUACION},
             "periodo": {S.SIASE_PERIODO_SELECT, S.SIASE_EVAL_ACEPTAR},
-            "tabla": {S.SIASE_EVAL_TABLA},
+            "tabla": {S.SIASE_EVAL_TABLA, S.SIASE_MENU_KARDEX},
+            "kardex": {S.SIASE_KARDEX_TABLA, S.SIASE_MENU_KARDEX},
         }[self.etapa]
 
     def locator(self, selector):
         return Loc(self, selector)
 
     async def content(self):
-        return HTML
+        return KARDEX_HTML if self.etapa == "kardex" else HTML
 
 
 class Page:
@@ -140,12 +144,13 @@ class Ctx:
 def test_flujo_carrera_evaluacion_periodo_aceptar_y_tabla():
     frame = Frame()
     ctx = Ctx(frame)
-    materias = asyncio.run(siase.leer_calificaciones(ctx, "c", "p"))
-    assert len(materias) == 10
+    materias, kardex = asyncio.run(siase.leer_calificaciones(ctx, "c", "p"))
+    assert len(materias) == 10 and len(kardex) == 5
     assert [e for e in frame.eventos if e[0] == "click"] == [
         ("click", S.SIASE_CARRERA_LINK),
         ("click", S.SIASE_MENU_EVALUACION),
         ("click", S.SIASE_EVAL_ACEPTAR),
+        ("click", S.SIASE_MENU_KARDEX),
     ]
     assert ("select", "0x3b9471") in frame.eventos
     assert ctx.pagina.cerrada
@@ -179,7 +184,7 @@ def correr(state):
     return asyncio.run(escenario())
 
 
-def preparar(state, monkeypatch, materias=None, error=None):
+def preparar(state, monkeypatch, materias=None, error=None, kardex=None):
     state.storage.set_settings({"cuenta": "123"})
     state.credentials.set("123", "pw")
     llamadas = []
@@ -191,7 +196,7 @@ def preparar(state, monkeypatch, materias=None, error=None):
         llamadas.append((cuenta, password))
         if error:
             raise error
-        return materias
+        return materias, KARDEX if kardex is None else kardex
 
     monkeypatch.setattr(state.browser, "context", contexto)
     monkeypatch.setattr(siase, "leer_calificaciones", leer)
@@ -201,7 +206,7 @@ def preparar(state, monkeypatch, materias=None, error=None):
 def test_job_guarda_la_tabla(state, monkeypatch):
     llamadas = preparar(state, monkeypatch, siase.parse_evaluacion(HTML))
     job = correr(state)
-    assert job.estado == "ok" and job.resultado == {"materias": 10}
+    assert job.estado == "ok" and job.resultado == {"materias": 10, "kardex": 5}
     assert llamadas == [("123", "pw")]
     guardado = state.storage.get_siase_calificaciones()
     assert len(guardado["materias"]) == 10 and guardado["leida_en"]
@@ -245,7 +250,7 @@ def test_endpoint_crea_el_job_una_sola_vez(client, state, monkeypatch):
 
     async def lento(ctx, cuenta, password, hooks=None):
         await asyncio.sleep(0.3)
-        return siase.parse_evaluacion(HTML)
+        return siase.parse_evaluacion(HTML), KARDEX
 
     monkeypatch.setattr(siase, "leer_calificaciones", lento)
 
@@ -260,7 +265,7 @@ def test_endpoint_crea_el_job_una_sola_vez(client, state, monkeypatch):
             await asyncio.sleep(0.05)
 
     job = asyncio.run(escenario())
-    assert job["estado"] == "ok" and job["resultado"] == {"materias": 10}
+    assert job["estado"] == "ok" and job["resultado"] == {"materias": 10, "kardex": 5}
 
 
 def test_endpoint_sin_credenciales_es_400(client):
@@ -298,3 +303,60 @@ def test_cancelar_no_cierra_el_navegador_compartido(state, client):
     datos = asyncio.run(escenario())
     assert datos["estado"] == "error" and datos["resultado"] == {"cancelado": True}
     assert state.browser.cierres == 0
+
+
+def test_parser_kardex_toma_la_ultima_oportunidad_e_ignora_filas_sin_calificacion():
+    assert [(f["semestre"], f["clave"], f["calificacion"], f["oportunidad"]) for f in KARDEX] == [
+        (1, "001", 100.0, 1),
+        (1, "002", 85.0, 2),
+        (1, "003", 95.0, 1),
+        (2, "004", 90.0, 1),
+        (2, "005", 80.0, 3),
+    ]
+    assert KARDEX[0]["nombre"] == "Algebra Inventada"
+
+
+def test_job_guarda_el_kardex_en_el_historial(state, monkeypatch):
+    preparar(state, monkeypatch, siase.parse_evaluacion(HTML))
+    assert correr(state).estado == "ok"
+    filas = state.storage.get_historial_calificaciones()
+    assert [s["periodo"] for s in filas] == ["Semestre 1", "Semestre 2"]
+    assert filas[0]["materias"][1] == {
+        "nombre": "Lectura Ficticia",
+        "clave": "002",
+        "tipo": None,
+        "total": 85.0,
+    }
+    preparar(state, monkeypatch, siase.parse_evaluacion(HTML), kardex=KARDEX[:1])
+    assert correr(state).estado == "ok"
+    assert len(state.storage.get_historial_calificaciones()[0]["materias"]) == 1
+
+
+def test_kardex_fusiona_con_el_historial_importado(state, monkeypatch):
+    state.storage.set_historial_calificaciones(
+        [
+            {
+                "periodo": "Agosto-Diciembre 2025",
+                "materias": [
+                    {"nombre": "Álgebra inventada", "tipo": "carrera", "emt": 80, "total": 90}
+                ],
+            },
+            {
+                "periodo": "2do semestre",
+                "materias": [{"nombre": None, "tipo": "carrera", "total": 77}],
+            },
+        ]
+    )
+    preparar(state, monkeypatch, siase.parse_evaluacion(HTML))
+    assert correr(state).estado == "ok"
+    semestres = services.historial_semestres(state)
+    todas = [m for s in semestres for m in s["materias"]]
+    algebra = next(m for m in todas if m["nombre"] == "Álgebra inventada")
+    assert algebra["total"] == 100.0 and algebra["emt"] == 80
+    assert not any(m["nombre"] == "Algebra Inventada" for m in todas)
+    assert not any(m["nombre"] == "Fisica Inventada" for m in todas)
+    assert sorted(m["total"] for m in todas if m["nombre"] != "Álgebra inventada") == [
+        77,
+        85.0,
+        95.0,
+    ]

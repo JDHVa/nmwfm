@@ -8,13 +8,13 @@ from contextlib import asynccontextmanager
 from email import policy
 from email.parser import BytesParser
 from pathlib import Path
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import check, config, respaldo, services
@@ -57,6 +57,43 @@ class ObjetivosBody(BaseModel):
 class TipoBody(BaseModel):
     clave: str
     tipo: Literal["bachillerato", "carrera", "portafolio"] | None = None
+
+
+Nota = Annotated[float, Field(ge=0, le=100)]
+
+
+class MateriaHistorialBody(BaseModel):
+    nombre: str | None = None
+    tipo: Literal["bachillerato", "carrera", "portafolio"] | None = None
+    par1: Nota | None = None
+    par2: Nota | None = None
+    emt: Nota | None = None
+    eg: Nota | None = None
+    port: Nota | None = None
+    total: Nota
+
+
+class SemestreHistorialBody(BaseModel):
+    periodo: str
+    materias: list[MateriaHistorialBody]
+
+
+class HistorialBody(BaseModel):
+    semestres: list[SemestreHistorialBody]
+
+
+class AjusteMateriaBody(BaseModel):
+    examenes: Nota | None = None
+    tareas: Nota | None = None
+    pendientes: dict[int, Nota] = {}
+    esfuerzo: bool = False
+
+
+class EscenarioBody(BaseModel):
+    preset: Literal["pesimista", "realista", "optimista", "mio", "personalizado"]
+    examenes: Nota | None = None
+    tareas: Nota | None = None
+    materias: dict[str, AjusteMateriaBody] = {}
 
 
 class MensajeChat(BaseModel):
@@ -451,6 +488,28 @@ def create_app(
         return state.jobs.start(
             "calificaciones_siase", lambda ctx: services.run_calificaciones_siase(state, ctx)
         ).to_dict()
+
+    @router.post("/nexus/portafolio")
+    async def nexus_portafolio():
+        activo = state.jobs.activo("portafolio_nexus")
+        if activo is not None:
+            return activo.to_dict()
+        services.require_credentials(state)
+        return state.jobs.start(
+            "portafolio_nexus", lambda ctx: services.run_portafolio_nexus(state, ctx)
+        ).to_dict()
+
+    @router.get("/calificaciones/historial")
+    async def get_historial():
+        return services.get_historial(state)
+
+    @router.put("/calificaciones/historial")
+    async def put_historial(body: HistorialBody):
+        return services.guardar_historial(state, body.model_dump()["semestres"])
+
+    @router.post("/calificaciones/escenario")
+    async def calificaciones_escenario(body: EscenarioBody):
+        return services.escenario_calificaciones(state, body.model_dump())
 
     @router.put("/calificaciones/objetivos")
     async def calificaciones_objetivos(body: ObjetivosBody):
