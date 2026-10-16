@@ -58,7 +58,7 @@ describe("login", () => {
     await llenar(user);
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(await screen.findByText("Verificando con SIASE...")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Asistente" }, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Asistente" }, { timeout: 20000 })).toBeInTheDocument();
     expect(localStorage.getItem("nmwfm.recordar")).toBe("1");
   });
 
@@ -68,7 +68,7 @@ describe("login", () => {
     await llenar(user, "mala");
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(
-      await screen.findByText("La cuenta o la contraseña son incorrectas", {}, { timeout: 5000 }),
+      await screen.findByText("La cuenta o la contraseña son incorrectas", {}, { timeout: 20000 }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "Asistente" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();

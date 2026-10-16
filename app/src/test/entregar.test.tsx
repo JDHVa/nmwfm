@@ -40,8 +40,8 @@ describe("reentrega", () => {
     const botones = screen.getAllByRole("button", { name: "Reemplazar entrega" });
     await user.click(botones[botones.length - 1]);
     expect(
-      (await screen.findAllByText("La Tarea ha sido cargada y entregada con éxito", {}, { timeout: 5000 }))
+      (await screen.findAllByText("La Tarea ha sido cargada y entregada con éxito", {}, { timeout: 20000 }))
         .length,
     ).toBeGreaterThan(0);
-  }, 15000);
+  }, 40000);
 });

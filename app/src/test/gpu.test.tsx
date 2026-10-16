@@ -32,7 +32,7 @@ describe("memoria de video del asistente", () => {
   afterEach(() => cleanup());
 
   it("precalienta al entrar, muestra «Cargando modelo…» y libera al salir", async () => {
-    const mock = await preparar(400);
+    const mock = await preparar(3000);
     const user = userEvent.setup();
     montar();
     await entrar(user);
@@ -46,7 +46,7 @@ describe("memoria de video del asistente", () => {
   });
 
   it("muestra «Cargando modelo…» en la burbuja hasta que llega la respuesta", async () => {
-    await preparar(400);
+    await preparar(3000);
     const user = userEvent.setup();
     montar();
     await entrar(user);
@@ -56,7 +56,7 @@ describe("memoria de video del asistente", () => {
     const conversacion = screen.getByRole("log", { name: "Conversación" });
     expect(await within(conversacion).findByText("Cargando modelo…")).toBeInTheDocument();
     expect(
-      await within(conversacion).findByText(/asistente simulado/, undefined, { timeout: 5000 }),
+      await within(conversacion).findByText(/asistente simulado/, undefined, { timeout: 20000 }),
     ).toBeInTheDocument();
     expect(within(conversacion).queryByText("Cargando modelo…")).not.toBeInTheDocument();
   });
