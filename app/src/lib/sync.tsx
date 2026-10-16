@@ -16,6 +16,7 @@ type SyncCtx = {
   error: string | null;
   minimizado: boolean;
   setMinimizado: (v: boolean) => void;
+  actualizar: (job: Job) => void;
   iniciar: (modo: SyncModo) => Promise<void>;
   revisar: () => Promise<void>;
   esRevision: boolean;
@@ -95,6 +96,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       error: runner.error,
       minimizado,
       setMinimizado,
+      actualizar: runner.actualizar,
       iniciar: async (modo) => {
         setMinimizado(false);
         await start(() => api.sync(modo));
@@ -108,7 +110,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       errores: resultadoDe(runner.job)?.errores ?? [],
       resultado: resultadoDe(runner.job),
     }),
-    [runner.job, runner.running, runner.error, minimizado, start],
+    [runner.job, runner.running, runner.error, runner.actualizar, minimizado, start],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

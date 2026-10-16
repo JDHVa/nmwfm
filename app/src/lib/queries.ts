@@ -91,5 +91,5 @@ export function useJobRunner(onFinish?: (job: Job) => void) {
     }
   }
 
-  return { job, error, start, running: jobActivo(job), reset: () => setJob(null) };
+  return { job, error, start, running: jobActivo(job), reset: () => setJob(null), actualizar: setJob };
 }

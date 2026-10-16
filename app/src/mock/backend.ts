@@ -188,6 +188,7 @@ export function createMockBackend(options: MockOptions = {}) {
     jobs.set(job.id, job);
     let i = 0;
     const tick = () => {
+      if (job.estado === "error" || job.estado === "ok") return;
       if (i < pasos.length) {
         job.estado = "corriendo";
         job.paso = pasos[i];
@@ -880,6 +881,21 @@ export function createMockBackend(options: MockOptions = {}) {
     if ((m = path.match(/^\/jobs\/([^/]+)$/))) {
       const j = jobs.get(m[1]);
       return j ? json(j) : fallo(404, "no_encontrado", "Trabajo no encontrado");
+    }
+    if ((m = path.match(/^\/jobs\/([^/]+)\/cancelar$/))) {
+      const j = jobs.get(m[1]);
+      if (!j) return fallo(404, "no_encontrado", "Trabajo no encontrado");
+      if (j.estado === "en_cola" || j.estado === "corriendo" || j.estado === "esperando_usuario") {
+        j.estado = "error";
+        j.paso = "Cancelado";
+        j.mensaje = "Cancelado por el usuario";
+        j.resultado = { cancelado: true };
+        if (syncActivo === j.id) syncActivo = null;
+        if (revisionActiva === j.id) revisionActiva = null;
+        log("info", `Trabajo ${j.tipo} cancelado por el usuario`);
+        emit({ type: "job", job: { ...j } });
+      }
+      return json({ ...j });
     }
     if ((m = path.match(/^\/jobs\/([^/]+)\/continuar$/))) {
       const j = jobs.get(m[1]);

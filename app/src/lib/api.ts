@@ -327,6 +327,7 @@ export const api = {
   reconstruirPdf: (tareaId: string) => request<Generacion>("POST", `/tareas/${tareaId}/reconstruir-pdf`),
   entregar: (tareaId: string) => request<Job>("POST", `/tareas/${tareaId}/entregar`, { confirmar: true }),
   job: (id: string) => request<Job>("GET", `/jobs/${id}`),
+  cancelarJob: (id: string) => request<Job>("POST", `/jobs/${id}/cancelar`),
   continuarJob: (id: string) => request<Job>("POST", `/jobs/${id}/continuar`),
 };
 
@@ -466,6 +467,10 @@ export function useJobUpdates(jobId: string | null | undefined, onJob: (job: Job
       unsub();
     };
   }, [jobId]);
+}
+
+export function jobCancelado(job: Job | null | undefined): boolean {
+  return !!job && job.estado === "error" && (job.resultado as { cancelado?: boolean } | null)?.cancelado === true;
 }
 
 export function jobActivo(job: Job | null | undefined): boolean {

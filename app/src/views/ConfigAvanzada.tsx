@@ -262,7 +262,7 @@ function DiagnosticoSeccion() {
       <Button variant="secondary" onClick={() => runner.start(api.diagnostico)} disabled={runner.running}>
         <Stethoscope /> Ejecutar diagnóstico
       </Button>
-      <JobProgress job={runner.job} error={runner.error} />
+      <JobProgress job={runner.job} error={runner.error} onCambio={runner.actualizar} />
       {resultado && (
         <ul className="divide-y rounded-lg border" aria-label="Reporte de diagnóstico">
           {resultado.pasos.map((p) => (

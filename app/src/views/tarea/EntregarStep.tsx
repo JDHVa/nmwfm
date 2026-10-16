@@ -80,7 +80,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
             </>
           )}
         </div>
-        <JobProgress job={runner.job} error={runner.error} />
+        <JobProgress job={runner.job} error={runner.error} onCambio={runner.actualizar} confirmar />
         {entregada && (
           <div
             role="status"

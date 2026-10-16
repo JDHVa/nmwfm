@@ -112,7 +112,7 @@ export function GenerarStep({
           )}
         </div>
       )}
-      <JobProgress job={job} error={runner.error} />
+      <JobProgress job={job} error={runner.error} onCambio={runner.actualizar} />
 
       <div className="flex justify-between">
         <Button variant="ghost" onClick={onAtras} disabled={running}>
