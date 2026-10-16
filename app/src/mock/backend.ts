@@ -1,6 +1,5 @@
 import type {
   Novedad,
-  Recurso,
   Respaldo,
   EtapaConTareas,
   Generacion,
@@ -106,7 +105,6 @@ export function createMockBackend(options: MockOptions = {}) {
   const jobs = new Map<string, Job>();
   const emitters = new Set<Emitter>();
   let password = "";
-  const recursos = new Map<string, Recurso[]>();
   const novedades: Novedad[] = [];
   const sembrarNovedades = () => {
     if (novedades.length) return;
@@ -483,81 +481,6 @@ export function createMockBackend(options: MockOptions = {}) {
       lista.push(...nuevos);
       log("info", `${nuevos.length} imagen(es) recortada(s)`);
       return json(nuevos);
-    }
-    if ((m = path.match(/^\/tareas\/([^/]+)\/recursos(?:\/([^/]+)\/usar)?$/))) {
-      const tid = m[1];
-      if (!recursos.has(tid)) {
-        recursos.set(tid, [
-          {
-            id: "r1",
-            tarea_id: tid,
-            nombre: "Diagrama de la unidad.png",
-            tipo: "imagen",
-            descargado: true,
-            usado: false,
-          },
-          {
-            id: "r2",
-            tarea_id: tid,
-            nombre: "Notas de la clase.txt",
-            tipo: "texto",
-            descargado: true,
-            usado: false,
-          },
-          {
-            id: "r3",
-            tarea_id: tid,
-            nombre: "Lectura de la unidad.pdf",
-            tipo: "pdf",
-            descargado: true,
-            usado: false,
-          },
-          {
-            id: "r4",
-            tarea_id: tid,
-            nombre: "Presentación.pptx",
-            tipo: "otro",
-            descargado: false,
-            usado: false,
-          },
-        ]);
-      }
-      const lista = recursos.get(tid)!;
-      if (method === "POST" && m[2]) {
-        const r = lista.find((x) => x.id === m![2]);
-        if (!r) return fallo(404, "no_encontrado", "Recurso no encontrado");
-        if (!r.descargado) return fallo(409, "sin_descargar", "El archivo todavía no se descargó");
-        if (r.tipo !== "imagen" && r.tipo !== "texto") {
-          return fallo(415, "tipo_no_soportado", "Solo se pueden usar imágenes y texto");
-        }
-        const actuales = insumos.get(tid) ?? [];
-        insumos.set(tid, actuales);
-        hue = (hue + 47) % 360;
-        const nuevo: Insumo =
-          r.tipo === "imagen"
-            ? {
-                id: `ins-${++seq}`,
-                tipo: "imagen",
-                original_url: svgDataUrl(r.nombre, hue),
-                recortada_url: svgDataUrl(`${r.nombre} (recorte)`, hue, 360, 480),
-                orden: actuales.length,
-                rotacion: 0,
-                usar_recorte: true,
-                ocr_texto: `Texto detectado en ${r.nombre}`,
-              }
-            : {
-                id: `ins-${++seq}`,
-                tipo: "texto",
-                texto: `Contenido de ${r.nombre}`,
-                orden: actuales.length,
-                rotacion: 0,
-                usar_recorte: false,
-              };
-        actuales.push(nuevo);
-        r.usado = true;
-        return json(nuevo);
-      }
-      return json(lista);
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/insumos\/texto$/))) {
       const lista = insumos.get(m[1]) ?? [];
