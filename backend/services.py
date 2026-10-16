@@ -1,8 +1,6 @@
 import asyncio
 import contextlib
 import json
-import shutil
-import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -674,73 +672,6 @@ async def _texto_ocr(state: AppState, ctx: JobContext, tarea_id: str) -> str:
     elif sin_texto:
         await ctx.update("Leyendo el texto de las imágenes", 0.35)
     return "\n\n".join(await asyncio.to_thread(_ocr_pendiente, state, tarea_id))
-
-
-EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
-EXTENSIONES_TEXTO = {".txt", ".md"}
-
-
-def tipo_recurso(nombre: str) -> str:
-    ext = Path(nombre).suffix.lower()
-    if ext in EXTENSIONES_IMAGEN:
-        return "imagen"
-    if ext in EXTENSIONES_TEXTO:
-        return "texto"
-    return "pdf" if ext == ".pdf" else "otro"
-
-
-def registrar_recurso(state: AppState, tarea_id: str, nombre: str, origen: Path | None) -> dict:
-    ruta = None
-    if origen is not None:
-        carpeta = state.paths.data / "recursos" / tarea_id
-        carpeta.mkdir(parents=True, exist_ok=True)
-        destino = carpeta / f"{uuid.uuid4().hex}_{Path(nombre).name}"
-        shutil.copyfile(origen, destino)
-        ruta = str(destino)
-    return state.storage.add_recurso(tarea_id, nombre, tipo_recurso(nombre), ruta)
-
-
-def recurso_public(recurso: dict) -> dict:
-    return {
-        "id": recurso["id"],
-        "tarea_id": recurso["tarea_id"],
-        "nombre": recurso["nombre"],
-        "tipo": recurso["tipo"],
-        "descargado": bool(recurso["ruta"]) and Path(recurso["ruta"]).exists(),
-        "usado": bool(recurso["usado"]),
-    }
-
-
-def usar_recurso(state: AppState, tarea_id: str, recurso_id: str) -> dict:
-    recurso = state.storage.get_recurso(recurso_id)
-    if recurso is None or recurso["tarea_id"] != tarea_id:
-        raise ApiError(404, "recurso_no_encontrado", "El recurso no existe.")
-    if not recurso["ruta"] or not Path(recurso["ruta"]).exists():
-        raise ApiError(409, "sin_descargar", "El recurso todavía no se descargó.")
-    ruta = Path(recurso["ruta"])
-    if recurso["tipo"] == "texto":
-        fila = state.storage.add_insumo(
-            tarea_id, "texto", texto=ruta.read_text(encoding="utf-8", errors="replace")
-        )
-    elif recurso["tipo"] == "imagen":
-        insumo_id = uuid.uuid4().hex
-        carpeta = state.paths.insumos / tarea_id
-        carpeta.mkdir(parents=True, exist_ok=True)
-        original = carpeta / f"{insumo_id}_orig{ruta.suffix.lower()}"
-        recortada = carpeta / f"{insumo_id}_crop.jpg"
-        shutil.copyfile(ruta, original)
-        images.process_upload(original, recortada, carpeta / f"{insumo_id}_thumb.jpg")
-        fila = state.storage.add_insumo(
-            tarea_id,
-            "imagen",
-            id=insumo_id,
-            original_path=str(original),
-            recortada_path=str(recortada),
-        )
-    else:
-        raise ApiError(415, "tipo_no_soportado", "Este tipo de recurso aún no se puede usar.")
-    state.storage.marcar_recurso_usado(recurso_id)
-    return state.insumo_public(fila)
 
 
 def _generacion_dir(state: AppState, tarea_id: str) -> Path:

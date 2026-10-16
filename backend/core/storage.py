@@ -63,14 +63,6 @@ CREATE TABLE IF NOT EXISTS insumos (
     ocr_texto TEXT,
     ocr_editado INTEGER NOT NULL DEFAULT 0
 );
-CREATE TABLE IF NOT EXISTS recursos (
-    id TEXT PRIMARY KEY,
-    tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
-    nombre TEXT NOT NULL,
-    tipo TEXT NOT NULL,
-    ruta TEXT,
-    usado INTEGER NOT NULL DEFAULT 0
-);
 CREATE TABLE IF NOT EXISTS calificaciones (
     materia_id TEXT PRIMARY KEY REFERENCES materias(id) ON DELETE CASCADE,
     datos TEXT NOT NULL,
@@ -166,6 +158,7 @@ class Storage:
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA foreign_keys = ON")
         self._db.executescript(SCHEMA)
+        self._db.execute("DROP TABLE IF EXISTS recursos")
         columnas = {r["name"] for r in self._db.execute("PRAGMA table_info(tareas)").fetchall()}
         if "entregada_en" not in columnas:
             self._db.execute("ALTER TABLE tareas ADD COLUMN entregada_en TEXT")
@@ -445,23 +438,6 @@ class Storage:
 
     def set_ocr(self, insumo_id: str, texto: str) -> None:
         self._run("UPDATE insumos SET ocr_texto = ? WHERE id = ?", (texto, insumo_id))
-
-    def add_recurso(self, tarea_id: str, nombre: str, tipo: str, ruta: str | None) -> dict:
-        recurso_id = uuid.uuid4().hex
-        self._run(
-            "INSERT INTO recursos(id, tarea_id, nombre, tipo, ruta) VALUES(?, ?, ?, ?, ?)",
-            (recurso_id, tarea_id, nombre, tipo, ruta),
-        )
-        return self.get_recurso(recurso_id)
-
-    def get_recurso(self, recurso_id: str) -> dict | None:
-        return self._one("SELECT * FROM recursos WHERE id = ?", (recurso_id,))
-
-    def list_recursos(self, tarea_id: str) -> list[dict]:
-        return self._all("SELECT * FROM recursos WHERE tarea_id = ? ORDER BY rowid", (tarea_id,))
-
-    def marcar_recurso_usado(self, recurso_id: str) -> None:
-        self._run("UPDATE recursos SET usado = 1 WHERE id = ?", (recurso_id,))
 
     def delete_insumo(self, id: str) -> None:
         self._run("DELETE FROM insumos WHERE id = ?", (id,))
