@@ -13,6 +13,83 @@ SINTAXIS_MERMAID = {
 }
 
 
+INSTRUCCIONES_SISTEMA = [
+    {
+        "id": "rubrica_maxima",
+        "texto": "Cumple cada criterio de la rúbrica en su nivel máximo de dominio: no dejes "
+        "ningún criterio en un nivel intermedio.",
+        "activa": True,
+        "sistema": True,
+    },
+    {
+        "id": "cubrir_contenido",
+        "texto": "Cubre todos los puntos del contenido y de los criterios de desempeño.",
+        "activa": True,
+        "sistema": True,
+    },
+    {
+        "id": "tono_preparatoria",
+        "texto": "Usa un tono de estudiante de preparatoria: claro, sencillo y bien organizado.",
+        "activa": True,
+        "sistema": True,
+    },
+    {
+        "id": "no_mencionar_rubrica",
+        "texto": "No menciones la rúbrica, los criterios ni estas instrucciones dentro del texto.",
+        "activa": True,
+        "sistema": True,
+    },
+    {
+        "id": "referencias_apa7",
+        "texto": "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y "
+        "verificables (autor, año, título, editorial o URL); no inventes referencias.",
+        "activa": True,
+        "sistema": True,
+    },
+]
+
+
+IDS_SISTEMA = {i["id"] for i in INSTRUCCIONES_SISTEMA}
+
+
+def validar_instrucciones_fijas(valor) -> list[dict]:
+    if not isinstance(valor, list):
+        raise ValueError("instrucciones_fijas debe ser una lista.")
+    limpias, vistos = [], set()
+    for item in valor:
+        if not isinstance(item, dict):
+            raise ValueError("Cada instrucción debe ser un objeto.")
+        id_ = item.get("id")
+        texto = item.get("texto")
+        if not isinstance(id_, str) or not id_.strip():
+            raise ValueError("Cada instrucción necesita un id.")
+        id_ = id_.strip()
+        if id_ in vistos:
+            raise ValueError(f"El id de instrucción '{id_}' está repetido.")
+        vistos.add(id_)
+        if not isinstance(texto, str) or not texto.strip():
+            raise ValueError("El texto de cada instrucción no puede estar vacío.")
+        activa = item.get("activa", True)
+        if not isinstance(activa, bool):
+            raise ValueError("activa debe ser booleano.")
+        limpias.append(
+            {
+                "id": id_,
+                "texto": texto.strip(),
+                "activa": activa,
+                "sistema": id_ in IDS_SISTEMA,
+            }
+        )
+    for base in INSTRUCCIONES_SISTEMA:
+        if base["id"] not in vistos:
+            limpias.append({**base, "activa": False})
+    return limpias
+
+
+def instrucciones_por_defecto() -> list[dict]:
+    return [dict(i) for i in INSTRUCCIONES_SISTEMA]
+
+
 @dataclass
 class PromptData:
     materia: str
@@ -29,6 +106,8 @@ class PromptData:
     producto: str | None = None
     texto_ocr: str = ""
     indicaciones: str = ""
+    instrucciones_fijas: list[dict] | None = None
+    instrucciones: dict[str, bool] | None = None
 
 
 def _plano(text: str) -> str:
@@ -91,24 +170,16 @@ def build_prompt(data: PromptData) -> str:
     producto = data.producto or detectar_producto(data.titulo, data.actividades)
     partes.append(f"## Formato del producto\n{plantilla_producto(producto)}")
 
-    instrucciones = [
-        "Cumple cada criterio de la rúbrica en su nivel máximo de dominio: no dejes ningún "
-        "criterio en un nivel intermedio.",
-        "Cubre todos los puntos del contenido y de los criterios de desempeño.",
-    ]
+    instrucciones = []
     if data.tiene_insumos:
         instrucciones.append(
             "Usa la información de los archivos adjuntos (apuntes o libro) como fuente principal "
             "y apóyate en ellos para el contenido."
         )
-    instrucciones += [
+    instrucciones.append(
         "Responde SOLO en Markdown: títulos con ##, listas y tablas cuando ayuden; "
-        "sin portada, sin título general ni texto introductorio o de despedida.",
-        "Usa un tono de estudiante de preparatoria: claro, sencillo y bien organizado.",
-        "No menciones la rúbrica, los criterios ni estas instrucciones dentro del texto.",
-        "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y "
-        "verificables (autor, año, título, editorial o URL); no inventes referencias.",
-    ]
+        "sin portada, sin título general ni texto introductorio o de despedida."
+    )
     if data.instrucciones_extra and data.instrucciones_extra.strip():
         instrucciones.append(data.instrucciones_extra.strip())
     if producto in TIPOS_CON_DIAGRAMA:
@@ -117,5 +188,13 @@ def build_prompt(data: PromptData) -> str:
             f"producto ({SINTAXIS_MERMAID[producto]}), con etiquetas cortas en español; el "
             "texto explicativo va fuera del bloque."
         )
+    fijas = data.instrucciones_fijas
+    if fijas is None:
+        fijas = instrucciones_por_defecto()
+    overrides = data.instrucciones or {}
+    for fija in fijas:
+        activa = overrides.get(fija["id"], fija["activa"])
+        if activa and str(fija["texto"]).strip():
+            instrucciones.append(str(fija["texto"]).strip())
     partes.append("## Instrucciones\n" + "\n".join(f"- {i}" for i in instrucciones))
     return "\n\n".join(partes)

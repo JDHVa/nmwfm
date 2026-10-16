@@ -79,7 +79,7 @@ def test_limpia_portada_vacia():
 def test_api_generar_pasa_la_portada(app, seeded, monkeypatch):
     recibido = {}
 
-    async def falso(state, ctx, tarea_id, extra, portada=None):
+    async def falso(state, ctx, tarea_id, extra, portada=None, instrucciones=None):
         recibido["portada"] = portada
         return {}
 

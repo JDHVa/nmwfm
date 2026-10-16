@@ -2,6 +2,7 @@ import asyncio
 
 from backend import config
 from backend.api import create_app
+from backend.core.prompt_builder import instrucciones_por_defecto
 from backend.jobs import JobManager
 
 from .asgi_client import MiniClient, multipart
@@ -61,6 +62,8 @@ def test_settings_roundtrip(client, state):
         "recorte_modelo": "auto",
         "asistente_modelo": "qwen3:4b-instruct-2507-q4_K_M",
         "asistente_keep_alive_s": 90,
+        "gemini_espera_envio_s": 3,
+        "instrucciones_fijas": instrucciones_por_defecto(),
         "aula": "144",
         "grupo": "5V1",
         "turno": "MATUTINO",

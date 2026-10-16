@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import time
+from collections.abc import Callable
 from pathlib import Path
 from typing import Protocol
 
@@ -25,8 +26,9 @@ class LLMProvider(Protocol):
 
 
 class GeminiWeb:
-    def __init__(self, browser: BrowserManager):
+    def __init__(self, browser: BrowserManager, espera_envio_s: Callable[[], float] | None = None):
         self.browser = browser
+        self.espera_envio_s = espera_envio_s or (lambda: config.GEMINI_ESPERA_ENVIO_S)
 
     async def _abrir(self, headless: bool | None = None) -> Page:
         ctx = await self.browser.context(headless=headless)
@@ -150,9 +152,10 @@ class GeminiWeb:
 
     async def _escribir_y_enviar(self, page: Page, prompt: str) -> None:
         editor = page.locator(S.GM_EDITOR).first
-        await pausa(0.5, 1.5)
         await self._pegar_prompt(page, editor, prompt)
-        await pausa(0.5, 1.5)
+        espera = self.espera_envio_s()
+        if espera > 0:
+            await asyncio.sleep(espera)
         send = page.locator(S.GM_SEND_BUTTON).first
         try:
             await send.wait_for(state="visible", timeout=15000)

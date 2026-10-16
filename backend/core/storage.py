@@ -1,4 +1,5 @@
 import contextlib
+import copy
 import json
 import sqlite3
 import threading
@@ -10,6 +11,7 @@ import keyring
 from keyring.errors import KeyringError
 
 from .. import config
+from .prompt_builder import instrucciones_por_defecto
 from .types import DetalleTarea, EtapaItem, Rubrica
 
 SCHEMA = """
@@ -131,8 +133,11 @@ SETTING_DEFAULTS = {
     "especialidad": "Técnico en Inteligencia Artificial BPI",
     "asistente_modelo": MODELO_ASISTENTE,
     "asistente_keep_alive_s": 90,
+    "gemini_espera_envio_s": config.GEMINI_ESPERA_ENVIO_S,
+    "instrucciones_fijas": instrucciones_por_defecto(),
 }
-INT_SETTINGS = {"sync_cada_horas", "asistente_keep_alive_s"}
+JSON_SETTINGS = {"instrucciones_fijas"}
+INT_SETTINGS = {"sync_cada_horas", "asistente_keep_alive_s", "gemini_espera_envio_s"}
 BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}
 
 
@@ -243,7 +248,7 @@ class Storage:
         out = {}
         for key, default in SETTING_DEFAULTS.items():
             if key not in rows or rows[key] is None:
-                out[key] = default
+                out[key] = copy.deepcopy(default)
             elif key in BOOL_SETTINGS:
                 out[key] = rows[key] == "1"
             elif key in INT_SETTINGS:
@@ -251,6 +256,11 @@ class Storage:
                     out[key] = int(rows[key])
                 except ValueError:
                     out[key] = default
+            elif key in JSON_SETTINGS:
+                try:
+                    out[key] = json.loads(rows[key])
+                except ValueError:
+                    out[key] = copy.deepcopy(default)
             else:
                 out[key] = rows[key]
         return out
@@ -260,7 +270,12 @@ class Storage:
             for key, value in values.items():
                 if key not in SETTING_DEFAULTS:
                     continue
-                stored = ("1" if value else "0") if key in BOOL_SETTINGS else str(value)
+                if key in BOOL_SETTINGS:
+                    stored = "1" if value else "0"
+                elif key in JSON_SETTINGS:
+                    stored = json.dumps(value, ensure_ascii=False)
+                else:
+                    stored = str(value)
                 self._db.execute(
                     "INSERT INTO settings(key, value) VALUES(?, ?) "
                     "ON CONFLICT(key) DO UPDATE SET value = excluded.value",

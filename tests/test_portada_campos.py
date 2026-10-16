@@ -64,7 +64,7 @@ def test_profesores_ignora_nulos_y_agrupa(app, seeded):
 def test_generar_tarea_pasa_la_portada(seeded, monkeypatch):
     recibido = {}
 
-    async def falso(state, ctx, tarea_id, extra, portada=None):
+    async def falso(state, ctx, tarea_id, extra, portada=None, instrucciones=None):
         recibido["portada"] = portada
         return {}
 
