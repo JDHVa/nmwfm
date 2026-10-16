@@ -85,7 +85,7 @@ def test_sistemas_de_calidad_es_carrera():
     pesos = {x["clave"]: x["peso"] for x in m["componentes"]}
     assert pesos == {"par1": 10, "emt": 15, "par2": 10, "eg": 15, "portafolio": 50}
     port = next(x for x in m["componentes"] if x["clave"] == "portafolio")
-    assert port["calificacion"] == 39 and port["puntos"] == 19.5
+    assert port["calificacion"] is None and port["puntos"] == 19.5
     assert m["asegurados"] == pytest.approx(42.8)
     assert {(p["clave"], p["peso"]) for p in m["pendientes"]} == {
         ("par2", 10),

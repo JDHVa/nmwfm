@@ -161,9 +161,10 @@ def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
         if clave == "portafolio" and elementos:
             calificados = [e for e in elementos if e["calificacion"] is not None]
             pts = sum(e["puntos"] for e in calificados) if calificados else None
-            if cal is None and calificados:
-                base = sum(e["valor"] for e in calificados)
-                cal = pts / base * 100 if base else None
+            base = sum(e["valor"] for e in calificados)
+            cal = pts / base * 100 if calificados and base else None
+        elif clave == "portafolio":
+            cal = None
         elif cal is not None and pts is None:
             pts = cal * peso / 100
         componentes.append(
@@ -181,6 +182,15 @@ def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
             elif peso:
                 pendientes.append({"clave": clave, "titulo": NOMBRES[clave], "peso": peso})
         elif elementos:
+            faltante = peso - suma_valor
+            if faltante > TOLERANCIA_SUMA:
+                pendientes.append(
+                    {
+                        "clave": "portafolio",
+                        "titulo": "Portafolio aún no publicado",
+                        "peso": faltante,
+                    }
+                )
             for e in elementos:
                 if e["calificacion"] is not None:
                     obs_tarea.append(e["calificacion"])
@@ -207,7 +217,14 @@ def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
     elif comp_port and comp_port["puntos"] is not None:
         evaluado += comp_port["puntos"]
     hay_datos = bool(obs_examen or obs_tarea) or any(c["puntos"] is not None for c in componentes)
+    tipo_dudoso = None
+    if elementos and tipo_manual in PESOS and tipo_auto not in (None, tipo_manual):
+        tipo_dudoso = (
+            f"NEXUS suma {suma_valor:g} puntos de portafolio; "
+            f"el tipo elegido espera {PESOS[tipo_manual]['portafolio']:g}"
+        )
     return {
+        "tipo_dudoso": tipo_dudoso,
         "entrada": entrada,
         "tipo": tipo,
         "tipo_manual": tipo_manual in PESOS,
@@ -441,6 +458,8 @@ def _alertas(p: dict, hist: dict | None) -> list[dict]:
                 "detalle": f"Perdiste {perdidos:.1f} puntos de lo evaluado (límite {limite:.1f})",
             }
         )
+    if p["tipo_dudoso"]:
+        alertas.append({"tipo": "tipo_dudoso", "detalle": p["tipo_dudoso"]})
     unicas = {(a["tipo"], a["detalle"]): a for a in alertas}
     return list(unicas.values())
 

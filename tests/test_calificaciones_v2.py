@@ -566,3 +566,47 @@ def test_alertas_sin_duplicados():
     r = calcular([carrera("X", par1=70)], historial=historial_alto())["materias"][0]
     pares = [(a["tipo"], a["detalle"]) for a in r["alertas"]]
     assert len(pares) == len(set(pares))
+
+
+def _port(valores):
+    return [
+        {
+            "titulo": f"T{i}",
+            "valor": v,
+            "calificacion": cal,
+            "puntos": None if cal is None else cal * v / 100,
+            "perdida": False,
+        }
+        for i, (v, cal) in enumerate(valores)
+    ]
+
+
+def _siase_port(clave, cal, pts):
+    return materia(clave, {"portafolio": {"cal": cal, "pts": pts}})
+
+
+def test_portafolio_con_nexus_ignora_cal_de_siase_y_no_alerta():
+    entrada = {**_siase_port("N", 35, 35), "portafolio": _port([(20, 100), (20, 100), (10, None)])}
+    historial = [{"tipo": "carrera", "total": 95, "port": 100, "par1": 90}]
+    r = c.calcular([entrada], {"N": "carrera"}, historial=historial)["materias"][0]
+    comp = next(x for x in r["componentes"] if x["clave"] == "portafolio")
+    assert comp["calificacion"] == 100 and comp["puntos"] == 40
+    assert not any(a["tipo"] == "bajo_historico" for a in r["alertas"])
+
+
+def test_portafolio_sin_nexus_no_tiene_calificacion():
+    r = c.calcular([_siase_port("S", 35, 17.5)], {"S": "carrera"})["materias"][0]
+    comp = next(x for x in r["componentes"] if x["clave"] == "portafolio")
+    assert comp["calificacion"] is None and comp["puntos"] == 17.5
+
+
+def test_portafolio_no_publicado_y_tipo_dudoso():
+    entrada = {**materia("D", {}), "portafolio": _port([(20, 100), (20, None)])}
+    r = c.calcular([entrada], {"D": "carrera"})["materias"][0]
+    faltante = [p for p in r["pendientes"] if p["titulo"] == "Portafolio aún no publicado"]
+    assert len(faltante) == 1 and faltante[0]["peso"] == 10
+    dudoso = [a for a in r["alertas"] if a["tipo"] == "tipo_dudoso"]
+    assert dudoso and "40" in dudoso[0]["detalle"] and "50" in dudoso[0]["detalle"]
+    auto = c.calcular([entrada])["materias"][0]
+    assert not any(a["tipo"] == "tipo_dudoso" for a in auto["alertas"])
+    assert not any(p["titulo"] == "Portafolio aún no publicado" for p in auto["pendientes"])
