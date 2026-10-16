@@ -137,6 +137,11 @@ class AppState:
             with contextlib.suppress(Exception):
                 await manager.close()
 
+    async def cerrar_navegador_de(self, tipo: str) -> None:
+        manager = self.browser_gemini if tipo in ("generar", "login_gemini") else self.browser
+        with contextlib.suppress(Exception):
+            await manager.close()
+
     async def close(self) -> None:
         await self.jobs.shutdown()
         await self.cerrar_navegadores()
