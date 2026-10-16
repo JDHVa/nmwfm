@@ -90,3 +90,38 @@ type EstadoAsistente = { ollama: boolean; modelo: string; modelo_instalado: bool
 - `GET /profesores` → `{nombre: string, materias: string[]}[]` (profesores distintos guardados en las materias, para autocompletar; la UI permite también escribir uno a mano).
 - Portada: la fecha SIEMPRE es la de hoy (no se acepta `fecha`); ya no hay campos `materia` ni `titulo` en la portada. Los campos de `DatosPortada` omitidos o vacíos se llenan con `Settings` (`aula`, `grupo`, `turno`, `especialidad`, por defecto "144", "5V1", "MATUTINO", "Técnico en Inteligencia Artificial BPI") y el profesor con el de la materia de la tarea. La plantilla `portada_word.docx` usa los marcadores `(AULA)`, `(GRUPO)`, `(TURNO)` y `(ESPECIALIDAD)`.
 - MCP: `python -m backend.mcp` expone por stdio las mismas herramientas del asistente (salvo que `entregar_tarea` exige un argumento `confirmar: true`), para usarlas desde cualquier cliente MCP.
+
+## Calificaciones y predicción
+Fuentes: SIASE «Consulta de Evaluación» (oficial: PAR 1, EMT, PAR 2, EG y PORT por materia; flujo en `htmls/siase/SIASE_calificaciones`) y la pestaña «Calificaciones» de NEXUS (detalle del portafolio por tarea; `htmls/nexus/nexus_calificaciones.txt`, ya se lee en el sync completo).
+```ts
+type TipoMateria = "bachillerato" | "carrera" | "portafolio";
+type ClaveComponente = "par1" | "emt" | "par2" | "eg" | "portafolio";
+type Componente = { clave: ClaveComponente; nombre: string; peso: number; calificacion: number | null; puntos: number | null };
+type ElementoPortafolio = { titulo: string; valor: number; puntos: number | null; perdida: boolean };
+type Pendiente = { clave: ClaveComponente; titulo: string; peso: number };
+type MateriaCalificacion = {
+  clave: string; nombre: string; materia_id: string | null; tipo: TipoMateria | null; tipo_manual: boolean;
+  componentes: Componente[]; portafolio: ElementoPortafolio[]; pendientes: Pendiente[];
+  asegurados: number; maximo_posible: number; proyectada: number; rango: [number, number];
+  objetivo: number | null; necesario: number | null; alcanzable: boolean;
+  prob_objetivo: number | null; prob_aprobar: number; estado: "bien" | "atento" | "riesgo" | "sin_datos";
+};
+type ResumenCalificaciones = {
+  materias: MateriaCalificacion[];
+  semestre: { actual: number; proyectada: number; rango: [number, number]; objetivo: number | null; prob_objetivo: number | null; necesario_promedio: number | null };
+  siase_leida_en: string | null;
+};
+```
+- Pesos (puntos sobre 100). `bachillerato`: portafolio 40, PAR 1 10, EMT 15, PAR 2 10, EG 25. `carrera`: portafolio 50, PAR 1 10, EMT 15, PAR 2 10, EG 15. `portafolio` (p. ej. Elección Vocacional): portafolio 100, sin exámenes.
+- Tipo: por la suma de `valor` de las tareas del portafolio en NEXUS sin los diagnósticos (≈40 → bachillerato, ≈50 → carrera, ≈100 → portafolio); si no hay NEXUS, por la razón `%`/`Cal` del PORT de SIASE (0.4 / 0.5); si no se puede, `null` y el usuario lo elige (`tipo_manual: true`).
+- NEXUS: «-» = sin calificar (NO es 0); los «Diagnostic Evaluation…»/«Diagnóstico» se ignoran siempre. `perdida: true` si la tarea está vencida y no entregada (cuenta como 0 en la proyección, no en `asegurados`).
+- `asegurados`: puntos ya ganados (exámenes de SIASE + puntos del portafolio; el portafolio sale del detalle de NEXUS si existe y si no del PORT de SIASE). `maximo_posible` = asegurados + peso de todo lo pendiente no perdido. Las materias de SIASE se emparejan con las de NEXUS por nombre normalizado (sin clave, acentos ni mayúsculas).
+- `necesario`: calificación uniforme (0–100) que hace falta en TODO lo pendiente para llegar a `objetivo`; `alcanzable: false` si pasa de 100. `null` sin objetivo o sin pendientes.
+- Predicción probabilística: el rendimiento esperado en cada pendiente se estima con un modelo bayesiano simple (media de tus exámenes y de tus tareas, encogida hacia tu promedio general en todas las materias cuando hay pocos datos, con su desviación); Monte Carlo (~5000 muestras, recortadas a 0–100, semilla fija para que sea reproducible) da `proyectada` (media), `rango` (percentiles 10–90), `prob_objetivo` y `prob_aprobar` (≥ 70). El semestre usa las mismas muestras: promedio simple de TODAS las materias.
+- `estado`: `riesgo` si `prob_aprobar` < 0.6 o `necesario` para 70 > 90; `atento` si no llega al objetivo (`prob_objetivo` < 0.5); `bien` en otro caso; `sin_datos` si no hay ninguna calificación.
+- Calificación aprobatoria: 70.
+- `GET /calificaciones` → `ResumenCalificaciones` (calculado al vuelo con lo guardado).
+- `POST /siase/calificaciones` → `Job` (tipo nuevo `"calificaciones_siase"`; login SIASE → carrera → «Consulta de Evaluación» → periodo (la única opción distinta de «Selecciona..») → Aceptar → tabla; oculto y sin pausas; selectores en `selectors.py`; `resultado: {materias: number}`). SIASE es independiente de NEXUS: no usa el lock ni la pestaña de NEXUS.
+- `PUT /calificaciones/objetivos` body `{semestre?: number | null, materias?: {[clave: string]: number | null}}` → `ResumenCalificaciones` (objetivos 0–100; `null` borra).
+- `PUT /calificaciones/tipo` body `{clave: string, tipo: TipoMateria | null}` → `ResumenCalificaciones` (`null` vuelve a la detección automática).
+- Herramienta del asistente/MCP nueva: `ver_calificaciones` (devuelve el resumen).
