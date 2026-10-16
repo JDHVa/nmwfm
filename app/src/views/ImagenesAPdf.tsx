@@ -19,8 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { useMutation } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight, FileDown, FileImage, GripVertical, ImagePlus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { PortadaCampos, datosDePortada, usePortadaForm } from "@/components/PortadaCampos";
 import { api, fileUrl } from "@/lib/api";
 import { alPulsarEnlace } from "@/lib/opener";
 import { cn } from "@/lib/utils";
@@ -35,7 +34,7 @@ export function ImagenesAPdf() {
   const [paginas, setPaginas] = useState<Pagina[]>([]);
   const [recortar, setRecortar] = useState(true);
   const [conPortada, setConPortada] = useState(false);
-  const [portada, setPortada] = useState({ profesor: "", materia: "", titulo: "", fecha: "" });
+  const { valores: portada, cambiar: cambiarPortada } = usePortadaForm();
   const [arrastrando, setArrastrando] = useState(false);
   const input = useRef<HTMLInputElement>(null);
   const sensors = useSensors(
@@ -48,12 +47,7 @@ export function ImagenesAPdf() {
         paginas.map((p) => p.file),
         recortar,
         conPortada
-          ? {
-              profesor: portada.profesor.trim(),
-              ...(portada.materia.trim() ? { materia: portada.materia.trim() } : {}),
-              ...(portada.titulo.trim() ? { titulo: portada.titulo.trim() } : {}),
-              ...(portada.fecha ? { fecha: portada.fecha } : {}),
-            }
+          ? { ...datosDePortada(portada), profesor: portada.profesor.trim() }
           : undefined,
       ),
   });
@@ -101,8 +95,6 @@ export function ImagenesAPdf() {
     if (desde >= 0 && hacia >= 0) mover(desde, hacia);
   }
 
-  const setP = (k: keyof typeof portada) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setPortada((f) => ({ ...f, [k]: e.target.value }));
   const bloqueado = paginas.length === 0 || (conPortada && !portada.profesor.trim()) || crear.isPending;
 
   return (
@@ -184,23 +176,8 @@ export function ImagenesAPdf() {
         Agregar portada
       </label>
       {conPortada && (
-        <div className="grid gap-3 rounded-lg border bg-muted p-3 sm:grid-cols-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="pdf-portada-profesor">Profesor</Label>
-            <Input id="pdf-portada-profesor" value={portada.profesor} onChange={setP("profesor")} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pdf-portada-materia">Materia</Label>
-            <Input id="pdf-portada-materia" value={portada.materia} onChange={setP("materia")} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pdf-portada-titulo">Título</Label>
-            <Input id="pdf-portada-titulo" value={portada.titulo} onChange={setP("titulo")} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="pdf-portada-fecha">Fecha</Label>
-            <Input id="pdf-portada-fecha" type="date" value={portada.fecha} onChange={setP("fecha")} />
-          </div>
+        <div className="rounded-lg border bg-muted p-3">
+          <PortadaCampos valores={portada} onCambio={cambiarPortada} prefijo="pdf-portada" />
         </div>
       )}
       <Button onClick={() => crear.mutate()} disabled={bloqueado}>

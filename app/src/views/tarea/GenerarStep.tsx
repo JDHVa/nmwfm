@@ -7,10 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { JobProgress } from "@/components/JobProgress";
 import { api, type Job } from "@/lib/api";
+import { datosDePortada, usePortadaForm } from "@/components/PortadaCampos";
 import { PortadaPreview } from "@/views/tarea/PortadaPreview";
 import { EVENTO_GENERAR } from "@/lib/atajos";
 import { useReducedMotion } from "@/lib/app-context";
-import { keys, useInsumos, type useJobRunner } from "@/lib/queries";
+import { keys, useInsumos, useMaterias, type useJobRunner } from "@/lib/queries";
 
 const FRASES = [
   "Leyendo tus insumos",
@@ -35,11 +36,15 @@ export function GenerarStep({
   const qc = useQueryClient();
   const reducido = useReducedMotion();
   const { data: insumos = [] } = useInsumos(tareaId);
+  const { data: materias = [] } = useMaterias();
+  const { valores: portada, cambiar: cambiarPortada } = usePortadaForm(
+    materias.find((m) => m.id === materiaId)?.profesor ?? "",
+  );
   const [extra, setExtra] = useState("");
   const { job, running } = runner;
 
   async function generar() {
-    const j = await runner.start(() => api.generar(tareaId, extra.trim() || undefined));
+    const j = await runner.start(() => api.generar(tareaId, extra.trim() || undefined, datosDePortada(portada)));
     if (j) {
       qc.invalidateQueries({ queryKey: keys.generacion(tareaId) });
       qc.invalidateQueries({ queryKey: keys.etapas(materiaId) });
@@ -78,7 +83,7 @@ export function GenerarStep({
         </p>
       </div>
 
-      <PortadaPreview tareaId={tareaId} />
+      <PortadaPreview tareaId={tareaId} valores={portada} onCambio={cambiarPortada} />
 
       {running && (
         <div className="flex flex-col items-center gap-3 rounded-xl border bg-card/60 p-8 text-center">

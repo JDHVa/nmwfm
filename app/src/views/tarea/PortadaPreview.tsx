@@ -1,14 +1,34 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { PortadaCampos, datosDePortada, type CamposPortada } from "@/components/PortadaCampos";
 import { api, fileUrl } from "@/lib/api";
 
 const PdfPreview = lazy(() => import("./PdfPreview"));
 
-export function PortadaPreview({ tareaId }: { tareaId: string }) {
+function useRetardo<T>(valor: T, ms = 600): T {
+  const [retardado, setRetardado] = useState(valor);
+  useEffect(() => {
+    const id = setTimeout(() => setRetardado(valor), ms);
+    return () => clearTimeout(id);
+  }, [valor, ms]);
+  return retardado;
+}
+
+export function PortadaPreview({
+  tareaId,
+  valores,
+  onCambio,
+}: {
+  tareaId: string;
+  valores: CamposPortada;
+  onCambio: (campo: keyof CamposPortada, valor: string) => void;
+}) {
+  const datos = useRetardo(JSON.stringify(datosDePortada(valores)));
   const { data, isLoading, error } = useQuery({
-    queryKey: ["portada", tareaId],
-    queryFn: () => api.portadaPreview(tareaId),
+    queryKey: ["portada", tareaId, datos],
+    queryFn: () => api.portadaPreview(tareaId, JSON.parse(datos)),
     retry: false,
+    placeholderData: (previa) => previa,
   });
 
   return (
@@ -21,9 +41,10 @@ export function PortadaPreview({ tareaId }: { tareaId: string }) {
           Portada del documento
         </h3>
         <p className="text-xs text-muted-foreground">
-          Así se verá la primera hoja, con tu nombre, tu matrícula, el profesor de la materia y la fecha de
-          hoy.
+          Así se verá la primera hoja, con tu nombre, tu matrícula y la fecha de hoy. Los cambios de aquí solo
+          afectan a esta portada.
         </p>
+        <PortadaCampos valores={valores} onCambio={onCambio} prefijo="tarea-portada" />
         {error && <p className="text-xs text-danger">No se pudo generar la vista previa: {error.message}</p>}
       </div>
       <div className="overflow-hidden rounded-lg border bg-white shadow-card">

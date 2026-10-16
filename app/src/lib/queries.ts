@@ -29,6 +29,10 @@ export function useSaveSettings() {
   });
 }
 
+export function useProfesores() {
+  return useQuery({ queryKey: ["profesores"], queryFn: api.profesores });
+}
+
 export function useMaterias() {
   return useQuery({ queryKey: keys.materias, queryFn: api.materias });
 }

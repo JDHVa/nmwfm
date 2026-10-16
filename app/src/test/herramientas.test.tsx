@@ -55,7 +55,6 @@ describe("herramientas sueltas", () => {
     const crear = screen.getByRole("button", { name: "Crear portada" });
     expect(crear).toBeDisabled();
     await user.type(screen.getByLabelText("Profesor"), "Rafael Cavazos");
-    await user.type(screen.getByLabelText("Título"), "Ficha técnica");
     await user.click(crear);
     expect(await screen.findByRole("link", { name: /PDF de la portada/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Word de la portada/ })).toHaveAttribute(
@@ -99,14 +98,21 @@ describe("herramientas sueltas", () => {
       screen.getByTestId("input-herramienta-pdf"),
       new File(["a"], "uno.png", { type: "image/png" }),
     );
-    expect(document.getElementById("pdf-portada-materia")).toBeNull();
+    expect(document.getElementById("pdf-portada-aula")).toBeNull();
     await user.click(screen.getByRole("checkbox", { name: "Agregar portada" }));
     const crear = screen.getByRole("button", { name: "Crear PDF" });
     expect(crear).toBeDisabled();
     await user.type(screen.getAllByLabelText("Profesor")[0], "Rafael Cavazos");
-    await user.type(screen.getAllByLabelText("Título")[0], "Mapa mental");
+    await user.clear(screen.getByLabelText("Aula", { selector: "#pdf-portada-aula" }));
+    await user.type(screen.getByLabelText("Aula", { selector: "#pdf-portada-aula" }), "201");
     await user.click(crear);
     await screen.findByRole("link", { name: /Descargar PDF/ });
-    expect(espia.mock.calls[0][2]).toEqual({ profesor: "Rafael Cavazos", titulo: "Mapa mental" });
+    expect(espia.mock.calls[0][2]).toEqual({
+      profesor: "Rafael Cavazos",
+      aula: "201",
+      grupo: "5V1",
+      turno: "MATUTINO",
+      especialidad: "Técnico en Inteligencia Artificial BPI",
+    });
   });
 });

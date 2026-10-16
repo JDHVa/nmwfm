@@ -10,6 +10,10 @@ export type Settings = {
   reducir_animaciones: boolean;
   sync_inicial_hecha: boolean;
   ultima_sync: string | null;
+  aula: string;
+  grupo: string;
+  turno: string;
+  especialidad: string;
   sync_cada_horas?: number;
   asistente_modelo?: string;
   asistente_keep_alive_s?: number;
@@ -127,7 +131,15 @@ export type EventoChat =
   | { type: "fin" }
   | { type: "error"; message: string };
 export type ConfirmacionResultado = { ok?: boolean; mensaje?: string } & Record<string, unknown>;
-export type PortadaSuelta = { profesor: string; materia?: string; titulo?: string; fecha?: string };
+export type DatosPortada = {
+  profesor?: string;
+  aula?: string;
+  grupo?: string;
+  turno?: string;
+  especialidad?: string;
+};
+export type PortadaSuelta = DatosPortada & { profesor: string };
+export type ProfesorSugerido = { nombre: string; materias: string[] };
 export type PortadaSueltaResultado = { docx_url: string; pdf_url: string };
 export type SyncModo = "auto" | "completo" | "incremental";
 export type SyncResultado = {
@@ -249,9 +261,17 @@ export const api = {
     request<Insumo>("POST", `/tareas/${tareaId}/insumos/texto`, { texto }),
   patchInsumo: (id: string, patch: InsumoPatch) => request<Insumo>("PATCH", `/insumos/${id}`, patch),
   borrarInsumo: (id: string) => request<void>("DELETE", `/insumos/${id}`),
-  generar: (tareaId: string, instruccionesExtra?: string) =>
-    request<Job>("POST", `/tareas/${tareaId}/generar`, { instrucciones_extra: instruccionesExtra }),
-  portadaPreview: (tareaId: string) => request<PortadaPreview>("GET", `/tareas/${tareaId}/portada-preview`),
+  generar: (tareaId: string, instruccionesExtra?: string, portada?: DatosPortada) =>
+    request<Job>("POST", `/tareas/${tareaId}/generar`, {
+      instrucciones_extra: instruccionesExtra,
+      ...(portada ? { portada } : {}),
+    }),
+  portadaPreview: (tareaId: string, datos: DatosPortada = {}) => {
+    const qs = new URLSearchParams(Object.entries(datos).filter(([, v]) => v));
+    const sufijo = qs.size ? `?${qs}` : "";
+    return request<PortadaPreview>("GET", `/tareas/${tareaId}/portada-preview${sufijo}`);
+  },
+  profesores: () => request<ProfesorSugerido[]>("GET", "/profesores"),
   generacion: (tareaId: string) => request<Generacion | null>("GET", `/tareas/${tareaId}/generacion`),
   generaciones: (tareaId: string) => request<GeneracionHistorial[]>("GET", `/tareas/${tareaId}/generaciones`),
   restaurarGeneracion: (id: number) => request<Generacion>("POST", `/generaciones/${id}/restaurar`),
