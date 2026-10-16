@@ -79,6 +79,21 @@ describe("paleta y filtros en la interfaz", () => {
     expect(await screen.findByRole("button", { name: "Etapas" })).toBeInTheDocument();
   });
 
+  it("la paleta ofrece Calificaciones y Enter abre la vista", async () => {
+    const user = userEvent.setup();
+    montar();
+    await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
+    await screen.findByRole("heading", { name: "Materias" });
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const campo = await screen.findByRole("combobox", { name: "Buscar tareas" });
+    expect(screen.queryByText("Ir a la sección")).not.toBeInTheDocument();
+    await user.type(campo, "calificaciones");
+    expect(await screen.findByText("Ir a la sección")).toBeInTheDocument();
+    await user.keyboard("{Enter}");
+    expect(await screen.findByRole("heading", { name: "Calificaciones" })).toBeInTheDocument();
+  });
+
   it("filtra las próximas entregas por estado", async () => {
     const user = userEvent.setup();
     montar();

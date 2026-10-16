@@ -14,6 +14,7 @@ export const ATAJOS: { teclas: string; descripcion: string }[] = [
   { teclas: "Ctrl + K", descripcion: "Buscar tareas" },
   { teclas: "Ctrl + V", descripcion: "Pegar una imagen como insumo (en cualquier paso de una tarea)" },
   { teclas: "G", descripcion: "En una tarea: ir a Generar; una vez ahí, generar" },
+  { teclas: "C", descripcion: "Ir a Calificaciones" },
   { teclas: "Esc", descripcion: "Cerrar paneles, menús y diálogos" },
   { teclas: "?", descripcion: "Mostrar esta ayuda" },
 ];

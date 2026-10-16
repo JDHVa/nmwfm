@@ -66,6 +66,14 @@ function Shell({ onSalir }: { onSalir: () => void }) {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setBuscando((v) => !v);
+      } else if (
+        e.key.toLowerCase() === "c" &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !estaEscribiendo(e.target)
+      ) {
+        go({ name: "calificaciones" });
       } else if (e.key === "?" && !e.ctrlKey && !e.metaKey && !estaEscribiendo(e.target)) {
         e.preventDefault();
         setAyuda((v) => !v);
@@ -73,7 +81,7 @@ function Shell({ onSalir }: { onSalir: () => void }) {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [go]);
   const { tema, resuelto, setTema } = useTheme();
   const IconoTema = tema === "sistema" ? Monitor : tema === "claro" ? Sun : Moon;
   const enMaterias = view.name === "materias" || view.name === "materia" || view.name === "tarea";
