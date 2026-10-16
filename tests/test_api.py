@@ -59,7 +59,7 @@ def test_settings_roundtrip(client, state):
         "ultima_sync": None,
         "sync_cada_horas": 0,
         "recorte_modelo": "auto",
-        "asistente_modelo": "qwen3:4b",
+        "asistente_modelo": "qwen3:4b-instruct-2507-q4_K_M",
         "asistente_keep_alive_s": 90,
         "modelo_recorte_disponible": False,
     }

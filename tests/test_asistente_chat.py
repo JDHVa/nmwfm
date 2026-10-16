@@ -6,19 +6,21 @@ import pytest
 
 from backend import services
 from backend.asistente import chat
+from backend.asistente import herramientas as h
 from backend.asistente.ollama import (
     FiltroPensamiento,
     OllamaCliente,
     OllamaError,
     OllamaNoDisponible,
 )
+from backend.core.storage import MODELO_ASISTENTE as M
 
 from .asgi_client import MiniClient
 from .test_herramientas_asistente import con_tareas  # noqa: F401
 
 
 class FalsoOllama:
-    def __init__(self, vueltas=None, instalados=None, error=None, cargados=("qwen3:4b",)):
+    def __init__(self, vueltas=None, instalados=None, error=None, cargados=(M,)):
         self.cargados_lista = list(cargados)
         self.precalentados = []
         self.vueltas = list(vueltas or [])
@@ -103,7 +105,7 @@ def test_bucle_tool_call_resultado_y_respuesta_final(con_tareas):  # noqa: F811
     )
 
     primera, segunda = falso.llamadas
-    assert primera["modelo"] == "qwen3:4b" and len(primera["tools"]) == 11
+    assert primera["modelo"] == M and len(primera["tools"]) == 11
     assert primera["mensajes"][0]["role"] == "system"
     assert "español" in primera["mensajes"][0]["content"]
     assert "2026" in primera["mensajes"][0]["content"]
@@ -248,10 +250,10 @@ def test_ollama_apagado_da_error_claro(con_tareas):  # noqa: F811
 
 def test_estado_del_asistente(app, state):
     client = MiniClient(app, headers={"X-Token": "dev"})
-    state.ollama = FalsoOllama(instalados=["qwen3:4b", "llama3.2:3b"])
+    state.ollama = FalsoOllama(instalados=[M, "llama3.2:3b"])
     assert client.get("/asistente/estado").json() == {
         "ollama": True,
-        "modelo": "qwen3:4b",
+        "modelo": M,
         "modelo_instalado": True,
         "error": None,
     }
@@ -263,7 +265,7 @@ def test_estado_del_asistente(app, state):
 
 
 def test_setting_asistente_modelo(client):
-    assert client.get("/settings").json()["asistente_modelo"] == "qwen3:4b"
+    assert client.get("/settings").json()["asistente_modelo"] == M
     r = client.put("/settings", json={"asistente_modelo": " llama3.2:3b "})
     assert r.json()["asistente_modelo"] == "llama3.2:3b"
     assert client.put("/settings", json={"asistente_modelo": ""}).status_code == 422
@@ -378,13 +380,13 @@ def test_primer_mensaje_avisa_que_carga_el_modelo(con_tareas):  # noqa: F811
     assert recolectar(con_tareas, USUARIO)[0]["type"] == "token"
 
 
-def test_el_prompt_lleva_no_think_y_el_contexto_es_corto(con_tareas):  # noqa: F811
+def test_el_contexto_de_la_tarea_es_corto(con_tareas):  # noqa: F811
     con_tareas.storage.set_indicaciones("100-1.1", "x" * 2000)
     falso = FalsoOllama([[texto("ok")]])
     con_tareas.ollama = falso
     recolectar(con_tareas, USUARIO, "100-1.1")
     sistema = falso.llamadas[0]["mensajes"][0]["content"]
-    assert "/no_think" in sistema and len(sistema) < 1500
+    assert len(sistema) < 2400
 
 
 def test_historial_largo_se_recorta_conservando_lo_reciente(con_tareas):  # noqa: F811
@@ -413,8 +415,8 @@ def test_api_precalentar(app, state):
         return r
 
     r = asyncio.run(escenario())
-    assert r.json() == {"cargado": False, "cargando": True, "modelo": "qwen3:4b"}
-    assert frio.precalentados == [("qwen3:4b", "90s")]
+    assert r.json() == {"cargado": False, "cargando": True, "modelo": M}
+    assert frio.precalentados == [(M, "90s")]
     state.ollama = FalsoOllama()
     assert client.post("/asistente/precalentar").json()["cargado"] is True
     state.ollama = FalsoOllama(error=OllamaNoDisponible())
@@ -468,16 +470,16 @@ def test_keep_alive_configurable_llega_al_chat_y_al_precalentado(client, app, st
         return r
 
     asyncio.run(escenario())
-    assert falso.precalentados[-1] == ("qwen3:4b", "30s")
+    assert falso.precalentados[-1] == (M, "30s")
 
 
 def test_liberar_descarga_el_modelo(app, state):
     client = MiniClient(app, headers={"X-Token": "dev"})
     state.ollama = FalsoOllama()
-    assert client.post("/asistente/liberar").json() == {"liberado": True, "modelo": "qwen3:4b"}
-    assert state.ollama.liberados == ["qwen3:4b"]
+    assert client.post("/asistente/liberar").json() == {"liberado": True, "modelo": M}
+    assert state.ollama.liberados == [M]
     state.ollama = FalsoOllama(error=OllamaNoDisponible())
-    assert client.post("/asistente/liberar").json() == {"liberado": False, "modelo": "qwen3:4b"}
+    assert client.post("/asistente/liberar").json() == {"liberado": False, "modelo": M}
 
 
 def test_cliente_liberar_manda_keep_alive_cero():
@@ -489,3 +491,191 @@ def test_cliente_liberar_manda_keep_alive_cero():
 
     asyncio.run(cliente_http(handler).liberar("qwen3:4b"))
     assert cargas == [{"model": "qwen3:4b", "messages": [], "keep_alive": 0}]
+
+
+def test_el_modelo_por_defecto_es_el_instruct_y_se_migra_el_anterior(state):
+    assert state.storage.get_settings()["asistente_modelo"] == "qwen3:4b-instruct-2507-q4_K_M"
+    state.storage.set_settings({"asistente_modelo": "qwen3:4b"})
+    state.storage.reabrir()
+    assert state.storage.get_settings()["asistente_modelo"] == M
+    state.storage.set_settings({"asistente_modelo": "llama3.2:3b"})
+    state.storage.reabrir()
+    assert state.storage.get_settings()["asistente_modelo"] == "llama3.2:3b"
+
+
+def test_no_think_solo_para_modelos_que_razonan(con_tareas):  # noqa: F811
+    instruct = FalsoOllama([[texto("ok")]])
+    con_tareas.ollama = instruct
+    recolectar(con_tareas, USUARIO)
+    assert "/no_think" not in instruct.llamadas[0]["mensajes"][0]["content"]
+    con_tareas.storage.set_settings({"asistente_modelo": "qwen3:4b"})
+    razona = FalsoOllama([[texto("ok")]], cargados=("qwen3:4b",))
+    con_tareas.ollama = razona
+    recolectar(con_tareas, USUARIO)
+    assert "/no_think" in razona.llamadas[0]["mensajes"][0]["content"]
+
+
+def test_el_prompt_y_la_herramienta_prohiben_confirmar_en_texto():
+    assert "Nunca pidas confirmación en texto" in chat.PROMPT_SISTEMA
+    assert "SIEMPRE" in chat.PROMPT_SISTEMA
+    descripcion = h.HERRAMIENTAS["entregar_tarea"].descripcion
+    assert "SIEMPRE llama a esta herramienta" in descripcion
+    assert "Nunca pidas confirmación en texto" in descripcion
+
+
+ENTREGA = [{"rol": "user", "contenido": "entrega la ficha técnica"}]
+
+
+def test_si_pide_entregar_y_el_modelo_pregunta_en_texto_se_reintenta(con_tareas):  # noqa: F811
+    falso = FalsoOllama(
+        [
+            [texto("¿Estás seguro de que quieres entregarla?")],
+            [llamada("entregar_tarea", {"tarea_id": "100-1.1"})],
+        ]
+    )
+    con_tareas.ollama = falso
+    base = con_tareas.paths.generaciones
+    con_tareas.storage.set_generacion("100-1.1", "md", str(base / "a.docx"), str(base / "a.pdf"))
+    eventos = recolectar(con_tareas, ENTREGA)
+    assert [e["type"] for e in eventos] == ["tool_call", "confirmar", "fin"]
+    assert not any("seguro" in e.get("text", "") for e in eventos)
+    segunda = falso.llamadas[1]["mensajes"]
+    assert segunda[-2]["role"] == "assistant" and "seguro" in segunda[-2]["content"]
+    assert segunda[-1]["role"] == "user" and "entregar_tarea" in segunda[-1]["content"]
+
+
+def test_el_reintento_ocurre_una_sola_vez_y_luego_se_muestra_el_texto(con_tareas):  # noqa: F811
+    falso = FalsoOllama([[texto("Primero dime cuál.")], [texto("No sé cuál.")]])
+    con_tareas.ollama = falso
+    eventos = recolectar(con_tareas, ENTREGA)
+    assert len(falso.llamadas) == 2
+    assert [e["type"] for e in eventos] == ["token", "fin"] and eventos[0]["text"] == "No sé cuál."
+
+
+def test_tras_buscar_la_tarea_tambien_se_exige_llamar_a_entregar(con_tareas):  # noqa: F811
+    base = con_tareas.paths.generaciones
+    con_tareas.storage.set_generacion("100-1.1", "md", str(base / "a.docx"), str(base / "a.pdf"))
+    falso = FalsoOllama(
+        [
+            [llamada("buscar_tareas", {"texto": "ficha"})],
+            [texto("Encontré la ficha, ¿la entrego?")],
+            [llamada("entregar_tarea", {"tarea_id": "100-1.1"})],
+        ]
+    )
+    con_tareas.ollama = falso
+    eventos = recolectar(con_tareas, ENTREGA)
+    tipos = [e["type"] for e in eventos]
+    assert tipos == ["tool_call", "tool_result", "tool_call", "confirmar", "fin"]
+    assert len(falso.llamadas) == 3
+
+
+def test_sin_intencion_de_entrega_los_tokens_se_emiten_en_vivo(con_tareas):  # noqa: F811
+    con_tareas.ollama = FalsoOllama([[texto("Hola "), texto("a todos")]])
+    tipos = [e["type"] for e in recolectar(con_tareas, USUARIO)]
+    assert tipos == ["token", "token", "fin"]
+    assert chat.pide_entregar([{"rol": "user", "contenido": "entrega la 1.2"}])
+    assert chat.pide_entregar([{"rol": "user", "contenido": "Quiero entregar la ficha"}])
+    assert not chat.pide_entregar([{"rol": "user", "contenido": "¿Cuándo vence la entrega?"}])
+    assert not chat.pide_entregar([{"rol": "user", "contenido": "¿Qué vence hoy?"}])
+
+
+def test_generar_tarea_se_bloquea_si_el_usuario_no_lo_pidio(con_tareas, monkeypatch):  # noqa: F811
+    lanzados = []
+
+    async def generar(state, ctx, tarea_id, extra=None, portada=None):
+        lanzados.append(tarea_id)
+
+    monkeypatch.setattr(services, "run_generar", generar)
+    con_tareas.ollama = FalsoOllama(
+        [[llamada("generar_tarea", {"tarea_id": "100-1.1"})], [texto("listo")]]
+    )
+    eventos = recolectar(con_tareas, [{"rol": "user", "contenido": "¿qué onda con la 1.1?"}])
+    resultado = next(e for e in eventos if e["type"] == "tool_result")["resultado"]
+    assert "no pidió generar_tarea" in resultado["error"] and lanzados == []
+
+
+def test_generar_tarea_se_permite_si_el_usuario_la_pide(con_tareas, monkeypatch):  # noqa: F811
+    lanzados = []
+
+    async def generar(state, ctx, tarea_id, extra=None, portada=None):
+        lanzados.append(tarea_id)
+
+    monkeypatch.setattr(services, "run_generar", generar)
+    con_tareas.storage.set_settings({"cuenta": "1"})
+    con_tareas.credentials.set("1", "pw")
+    con_tareas.ollama = FalsoOllama(
+        [[llamada("generar_tarea", {"tarea_id": "100-1.1"})], [texto("generando")]]
+    )
+
+    async def escenario():
+        eventos = [
+            e
+            async for e in chat.conversar(
+                con_tareas, [{"rol": "user", "contenido": "genera la ficha técnica"}], None
+            )
+        ]
+        await asyncio.sleep(0.05)
+        return eventos
+
+    eventos = asyncio.run(escenario())
+    assert next(e for e in eventos if e["type"] == "tool_result")["resultado"]["tipo"] == "generar"
+    assert lanzados == ["100-1.1"]
+
+
+def test_acciones_que_piden_permiso_explicito():
+    pide = lambda nombre, texto: chat.accion_permitida(  # noqa: E731
+        nombre, [{"rol": "user", "contenido": texto}]
+    )
+    assert pide("sincronizar", "sincroniza mis tareas") and not pide("sincronizar", "hola")
+    assert pide("revisar_entregas", "revisa qué ya entregué")
+    assert not pide("generar_tarea", "entrega la 1.2")
+    assert pide("buscar_tareas", "lo que sea") and pide("entregar_tarea", "lo que sea")
+    assert "no inventes una" in chat.PROMPT_SISTEMA and "ver_tarea" in chat.PROMPT_SISTEMA
+
+
+def test_intenciones_que_exigen_una_herramienta():
+    def pide(texto):
+        requerida = chat.herramienta_requerida([{"rol": "user", "contenido": texto}])
+        return requerida[0] if requerida else None
+
+    assert pide("El profe dijo que la 1.3 es en equipo de 3") == "agregar_indicaciones"
+    assert pide("la maestra pidió máximo 2 hojas") == "agregar_indicaciones"
+    assert pide("Explícame la 1.2 de Lógica") == "ver_tarea"
+    assert pide("¿de qué trata la ficha?") == "ver_tarea"
+    assert pide("entrega la 1.2") == "entregar_tarea"
+    assert pide("¿Qué vence esta semana?") is None
+
+
+def test_si_cuenta_una_indicacion_y_no_la_guarda_se_reintenta(con_tareas):  # noqa: F811
+    falso = FalsoOllama(
+        [
+            [llamada("buscar_tareas", {"texto": "1.1"})],
+            [texto("Listo, anotado ✅")],
+            [llamada("agregar_indicaciones", {"tarea_id": "100-1.1", "texto": "En equipo de 3"})],
+            [texto("Guardé la indicación.")],
+        ]
+    )
+    con_tareas.ollama = falso
+    eventos = recolectar(
+        con_tareas, [{"rol": "user", "contenido": "El profe dijo que la 1.1 es en equipo de 3"}]
+    )
+    assert con_tareas.storage.get_indicaciones("100-1.1") == "En equipo de 3"
+    assert eventos[-1]["type"] == "fin"
+    assert "anotado" not in "".join(e.get("text", "") for e in eventos)
+    assert "agregar_indicaciones" in falso.llamadas[2]["mensajes"][-1]["content"]
+
+
+def test_si_pide_explicar_y_no_llama_a_ver_tarea_se_reintenta(con_tareas):  # noqa: F811
+    falso = FalsoOllama(
+        [
+            [llamada("buscar_tareas", {"texto": "1.1"})],
+            [texto("Es una ficha.")],
+            [llamada("ver_tarea", {"tarea_id": "100-1.1"})],
+            [texto("Trata de una ficha técnica.")],
+        ]
+    )
+    con_tareas.ollama = falso
+    eventos = recolectar(con_tareas, [{"rol": "user", "contenido": "Explícame la 1.1"}])
+    nombres = [e["nombre"] for e in eventos if e["type"] == "tool_call"]
+    assert nombres == ["buscar_tareas", "ver_tarea"]
+    assert "".join(e.get("text", "") for e in eventos) == "Trata de una ficha técnica."

@@ -112,6 +112,9 @@ CREATE TABLE IF NOT EXISTS settings (
 );
 """
 
+MODELO_ASISTENTE = "qwen3:4b-instruct-2507-q4_K_M"
+MODELO_ASISTENTE_ANTERIOR = "qwen3:4b"
+
 SETTING_DEFAULTS = {
     "cuenta": "",
     "nombre": "",
@@ -122,7 +125,7 @@ SETTING_DEFAULTS = {
     "ultima_sync": None,
     "sync_cada_horas": 0,
     "recorte_modelo": "auto",
-    "asistente_modelo": "qwen3:4b",
+    "asistente_modelo": MODELO_ASISTENTE,
     "asistente_keep_alive_s": 90,
 }
 INT_SETTINGS = {"sync_cada_horas", "asistente_keep_alive_s"}
@@ -180,6 +183,10 @@ class Storage:
         }
         if "ocr_texto" not in insumo_columnas:
             self._db.execute("ALTER TABLE insumos ADD COLUMN ocr_texto TEXT")
+        self._db.execute(
+            "UPDATE settings SET value = ? WHERE key = 'asistente_modelo' AND value = ?",
+            (MODELO_ASISTENTE, MODELO_ASISTENTE_ANTERIOR),
+        )
         if "ocr_editado" not in insumo_columnas:
             self._db.execute(
                 "ALTER TABLE insumos ADD COLUMN ocr_editado INTEGER NOT NULL DEFAULT 0"
