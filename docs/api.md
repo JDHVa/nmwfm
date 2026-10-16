@@ -23,6 +23,15 @@ type Generacion = { id: number; tarea_id: string; markdown: string; docx_url: st
 Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la imagen recortada SIN rotar: la UI aplica `rotacion` con CSS (el PDF sí la aplica). `miniatura_url` es una miniatura de la recortada.
 `Job.progreso` es un entero de 0 a 100. Con `entregar_sin_revisar` activo, el job `generar` encadena la entrega (pasos `generando` y `entregando`); si la entrega falla el job termina en `error` pero la generación queda disponible.
 
+## Instrucciones fijas del prompt
+```ts
+type InstruccionFija = { id: string; texto: string; activa: boolean; sistema: boolean };
+```
+- `Settings` agrega `instrucciones_fijas: InstruccionFija[]`: la lista de instrucciones que se mandan SIEMPRE a Gemini, editable en Configuración (activar/desactivar, editar texto, agregar, borrar, reordenar; el orden del arreglo es el orden en el prompt). Valores por defecto (`sistema: true`, ids fijos): `rubrica_maxima` ("Cumple cada criterio de la rúbrica en su nivel máximo..."), `cubrir_contenido`, `tono_preparatoria`, `no_mencionar_rubrica`, `referencias_apa7` ("Termina con una sección ## Referencias en formato APA 7 con fuentes reales y verificables...; no inventes referencias."). Las `sistema: true` se pueden desactivar y editar pero no borrar; `PUT /settings` con `instrucciones_fijas` reemplaza la lista completa (las de sistema que falten se re-agregan desactivadas). Las nuevas que agregue el usuario llevan `sistema: false` y un id generado por la UI (`u-<aleatorio>`). Las reglas de formato (solo Markdown, sin portada, uso de adjuntos, diagrama Mermaid) NO están en la lista: son internas y siempre se envían.
+- `POST /tareas/{id}/generar` acepta además `instrucciones?: {[id: string]: boolean}`: activa o desactiva instrucciones fijas SOLO para esa generación (p. ej. `{referencias_apa7: false}` para un profe que no pide referencias). Si en la respuesta no hay sección de Referencias, el documento simplemente no la lleva.
+- `GET /prompt-preview/{tarea_id}?instrucciones=<json>` → `{prompt: string}` (opcional para la UI: el prompt exacto que se mandaría).
+- Gemini: tras pegar el prompt (y adjuntar el PDF) se espera `gemini_espera_envio_s` segundos (Setting nuevo, entero 0–15, por defecto 3) antes de pulsar Enviar.
+
 ## Endpoints
 - `GET /health` → `{ok: true, version}`
 - `GET /settings` → `Settings` · `PUT /settings` body `Partial<Settings> & {password?: string}` (`recorte_modelo`: `auto` usa el modelo ONNX de segmentación (GPU con DirectML, CPU como respaldo) para recortar la hoja si el archivo está en `data/models/` y cae al detector OpenCV si falta o falla; `opencv` fuerza solo OpenCV; `modelo_recorte_disponible` es solo lectura e indica si el modelo está descargado. `sync_cada_horas`: entero >= 0; 0 apaga el sync incremental automático del backend, que corre en segundo plano mientras la app esté abierta)
