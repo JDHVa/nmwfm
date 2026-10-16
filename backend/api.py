@@ -36,6 +36,13 @@ class PatchInsumoBody(BaseModel):
     ocr_texto: str | None = None
 
 
+class PortadaSueltaBody(BaseModel):
+    profesor: str
+    materia: str | None = None
+    titulo: str | None = None
+    fecha: str | None = None
+
+
 class IndicacionesBody(BaseModel):
     indicaciones: str
 
@@ -68,6 +75,18 @@ class EntregarBody(BaseModel):
 
 def error_response(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}})
+
+
+def parse_campos(content_type: str, body: bytes) -> dict[str, str]:
+    raw = b"Content-Type: " + content_type.encode("latin-1") + b"\r\n\r\n" + body
+    message = BytesParser(policy=policy.HTTP).parsebytes(raw)
+    campos = {}
+    if message.is_multipart():
+        for part in message.iter_parts():
+            if not part.get_filename():
+                nombre = part.get_param("name", header="content-disposition") or ""
+                campos[str(nombre)] = (part.get_payload(decode=True) or b"").decode("utf-8")
+    return campos
 
 
 def parse_multipart(content_type: str, body: bytes) -> list[tuple[str, str, bytes]]:
@@ -229,6 +248,39 @@ def create_app(
             if not origen.is_file():
                 raise ApiError(404, "respaldo_no_encontrado", "Ese respaldo no existe.")
         return await respaldo.restaurar(state, origen)
+
+    @router.post("/herramientas/pdf")
+    async def herramienta_pdf(request: Request, recortar: bool | None = None):
+        content_type = request.headers.get("content-type", "")
+        if "multipart/form-data" not in content_type:
+            raise ApiError(
+                400, "multipart_requerido", "Envía las imágenes como multipart/form-data."
+            )
+        cuerpo = await request.body()
+        partes = parse_multipart(content_type, cuerpo)
+        if recortar is None:
+            valor = parse_campos(content_type, cuerpo).get("recortar", "true")
+            recortar = valor.strip().lower() not in ("false", "0", "no")
+        carpeta = state.paths.herramientas / f"subida-{uuid.uuid4().hex[:10]}"
+        carpeta.mkdir(parents=True, exist_ok=True)
+        rutas = []
+        for i, (_, nombre, datos) in enumerate(partes):
+            ruta = carpeta / f"{i}_{Path(nombre).name}"
+            ruta.write_bytes(datos)
+            rutas.append(ruta)
+        pdf = await asyncio.to_thread(services.crear_pdf_imagenes, state, rutas, recortar)
+        return {"pdf_url": state.file_url(pdf)}
+
+    @router.post("/herramientas/portada")
+    async def herramienta_portada(body: PortadaSueltaBody):
+        return await asyncio.to_thread(
+            services.generar_portada_suelta,
+            state,
+            body.profesor,
+            body.materia,
+            body.titulo,
+            body.fecha,
+        )
 
     @router.post("/gemini/login")
     async def gemini_login():

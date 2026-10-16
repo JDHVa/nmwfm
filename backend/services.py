@@ -1,6 +1,8 @@
 import asyncio
 import contextlib
 import json
+import shutil
+import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -694,6 +696,77 @@ async def _texto_ocr(state: AppState, ctx: JobContext, tarea_id: str) -> str:
     elif sin_texto:
         await ctx.update("Leyendo el texto de las imágenes", 0.35)
     return "\n\n".join(await asyncio.to_thread(_ocr_pendiente, state, tarea_id))
+
+
+EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
+
+
+def crear_pdf_imagenes(state: AppState, rutas: list[Path], recortar: bool = True) -> Path:
+    if not rutas:
+        raise ApiError(400, "sin_archivos", "No se recibió ninguna imagen.")
+    carpeta = state.paths.herramientas / f"pdf-{uuid.uuid4().hex[:10]}"
+    carpeta.mkdir(parents=True, exist_ok=True)
+    detector = state.detector_recorte() if recortar else None
+    refs = []
+    for i, ruta in enumerate(rutas):
+        ruta = Path(ruta)
+        if ruta.suffix.lower() not in EXTENSIONES_IMAGEN or not ruta.is_file():
+            raise ApiError(400, "imagen_invalida", f"Imagen no válida: {ruta.name}")
+        original = carpeta / f"{i}_orig{ruta.suffix.lower()}"
+        shutil.copyfile(ruta, original)
+        recortada = carpeta / f"{i}_crop.jpg"
+        try:
+            if recortar:
+                images.process_upload(original, recortada, carpeta / f"{i}_thumb.jpg", detector)
+            else:
+                images.load_image(original)
+        except Exception as exc:
+            raise ApiError(400, "imagen_invalida", f"No se pudo leer {ruta.name}.") from exc
+        refs.append(
+            images.InsumoRef(
+                tipo="imagen",
+                original=original,
+                recortada=recortada if recortar else None,
+                usar_recorte=recortar,
+            )
+        )
+    return images.build_pdf(refs, state.paths.herramientas / f"{carpeta.name}.pdf")
+
+
+def generar_portada_suelta(
+    state: AppState,
+    profesor: str,
+    materia: str | None = None,
+    titulo: str | None = None,
+    fecha: str | None = None,
+) -> dict:
+    if not profesor.strip():
+        raise ApiError(422, "validacion", "El profesor es obligatorio.")
+    try:
+        dia = date.fromisoformat(fecha[:10]) if fecha else ahora_monterrey().date()
+    except ValueError as exc:
+        raise ApiError(422, "validacion", "La fecha debe ser ISO (AAAA-MM-DD).") from exc
+    settings = state.storage.get_settings()
+    mapping = documents.marcadores(
+        settings["nombre"] or "NOMBRE DEL ALUMNO",
+        settings["matricula"] or "MATRÍCULA",
+        profesor.strip(),
+        dia,
+    )
+    extra = []
+    if materia and materia.strip():
+        extra.append(f"Materia: {materia.strip()}")
+    if titulo and titulo.strip():
+        extra.append(f"Tarea: {titulo.strip()}")
+    carpeta = state.paths.herramientas / f"portada-{uuid.uuid4().hex[:10]}"
+    docx_path = documents.fill_cover(
+        config.PORTADA_TEMPLATE, carpeta / "portada.docx", mapping, extra
+    )
+    try:
+        pdf_path = documents.export_pdf(docx_path, carpeta / "portada.pdf")
+    except Exception as exc:
+        raise ApiError(502, "sin_word", f"No se pudo generar el PDF: {exc}") from exc
+    return {"docx_url": state.file_url(docx_path), "pdf_url": state.file_url(pdf_path)}
 
 
 def _generacion_dir(state: AppState, tarea_id: str) -> Path:

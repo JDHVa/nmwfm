@@ -131,10 +131,18 @@ def _all_paragraphs(doc: DocumentType):
             yield Paragraph(p, None)
 
 
-def fill_cover(template: Path, out: Path, mapping: dict[str, str]) -> Path:
+def fill_cover(
+    template: Path, out: Path, mapping: dict[str, str], lineas_extra: list[str] | None = None
+) -> Path:
     doc = Document(str(template))
     for paragraph in _all_paragraphs(doc):
         _replace_in_paragraph(paragraph, mapping)
+    for linea in lineas_extra or []:
+        paragraph = doc.add_paragraph()
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        run = paragraph.add_run(linea)
+        run.font.bold = True
+        run.font.size = Pt(14)
     out.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(out))
     return out
