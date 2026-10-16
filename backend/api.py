@@ -290,9 +290,17 @@ def create_app(
             )
         cuerpo = await request.body()
         partes = parse_multipart(content_type, cuerpo)
+        campos = parse_campos(content_type, cuerpo)
         if recortar is None:
-            valor = parse_campos(content_type, cuerpo).get("recortar", "true")
-            recortar = valor.strip().lower() not in ("false", "0", "no")
+            recortar = campos.get("recortar", "true").strip().lower() not in ("false", "0", "no")
+        portada = None
+        if campos.get("portada", "").strip():
+            try:
+                portada = json.loads(campos["portada"])
+            except ValueError as exc:
+                raise ApiError(422, "validacion", "portada debe ser JSON válido.") from exc
+            if not isinstance(portada, dict):
+                raise ApiError(422, "validacion", "portada debe ser un objeto.")
         carpeta = state.paths.herramientas / f"subida-{uuid.uuid4().hex[:10]}"
         carpeta.mkdir(parents=True, exist_ok=True)
         rutas = []
@@ -300,7 +308,7 @@ def create_app(
             ruta = carpeta / f"{i}_{Path(nombre).name}"
             ruta.write_bytes(datos)
             rutas.append(ruta)
-        pdf = await asyncio.to_thread(services.crear_pdf_imagenes, state, rutas, recortar)
+        pdf = await asyncio.to_thread(services.crear_pdf_imagenes, state, rutas, recortar, portada)
         return {"pdf_url": state.file_url(pdf)}
 
     @router.post("/herramientas/portada")

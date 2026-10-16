@@ -20,6 +20,8 @@ def _tipo(propiedad: dict):
         return bool
     if tipo == "array":
         return list[str]
+    if tipo == "object":
+        return dict
     return str
 
 
