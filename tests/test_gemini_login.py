@@ -72,7 +72,7 @@ def test_sesion_ya_iniciada_avisa_y_abre_visible(monkeypatch):
     assert browser.pedidos == [False]
 
 
-def test_run_login_gemini_devuelve_ya_iniciada():
+def test_run_login_gemini_devuelve_ya_iniciada(monkeypatch):
     class Lock:
         async def __aenter__(self):
             return self
@@ -94,6 +94,11 @@ def test_run_login_gemini_devuelve_ya_iniciada():
         class browser_gemini:
             lock = Lock()
 
+            @staticmethod
+            async def close():
+                pass
+
+    monkeypatch.setattr(services, "ESPERA_COOKIES_GEMINI_S", 0)
     res = asyncio.run(services.run_login_gemini(Estado(), Ctx()))
     assert res == {"sesion": True, "ya_iniciada": True}
 

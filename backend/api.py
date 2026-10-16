@@ -338,6 +338,14 @@ def create_app(
         except OllamaError as exc:
             raise ApiError(503, "ollama_no_disponible", str(exc)) from exc
 
+    @router.post("/apagar")
+    async def apagar():
+        await state.cerrar_navegadores()
+        salir = getattr(app.state, "salir", None)
+        if salir is not None:
+            asyncio.get_running_loop().call_later(0.3, salir)
+        return {"ok": True}
+
     @router.post("/asistente/liberar")
     async def asistente_liberar():
         return await asistente.liberar(state)

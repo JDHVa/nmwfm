@@ -2,7 +2,7 @@ use std::io::{Read, Write};
 use std::net::{SocketAddr, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tauri::menu::{Menu, MenuItem};
@@ -45,6 +45,32 @@ fn liberar_asistente(info: &BackendInfo) {
     if flujo.write_all(peticion.as_bytes()).is_ok() {
         let mut respuesta = [0u8; 64];
         let _ = flujo.read(&mut respuesta);
+    }
+}
+
+fn apagar_backend(info: &BackendInfo) {
+    let direccion = SocketAddr::from(([127, 0, 0, 1], info.port));
+    let limite = Duration::from_secs(5);
+    let Ok(mut flujo) = TcpStream::connect_timeout(&direccion, Duration::from_secs(2)) else {
+        return;
+    };
+    let _ = flujo.set_read_timeout(Some(limite));
+    let _ = flujo.set_write_timeout(Some(limite));
+    let peticion = format!(
+        "POST /apagar HTTP/1.1{crlf}Host: 127.0.0.1:{}{crlf}X-Token: {}{crlf}Content-Length: 0{crlf}Connection: close{crlf}{crlf}",
+        info.port, info.token, crlf = "\r\n"
+    );
+    if flujo.write_all(peticion.as_bytes()).is_ok() {
+        let mut respuesta = [0u8; 64];
+        let _ = flujo.read(&mut respuesta);
+    }
+    drop(flujo);
+    let inicio = Instant::now();
+    while inicio.elapsed() < limite {
+        if TcpStream::connect_timeout(&direccion, Duration::from_millis(200)).is_err() {
+            return;
+        }
+        std::thread::sleep(Duration::from_millis(100));
     }
 }
 
@@ -183,6 +209,7 @@ pub fn run() {
                 let info = estado.info.borrow().clone();
                 if let Some(info) = info {
                     liberar_asistente(&info);
+                    apagar_backend(&info);
                 }
                 if let Some(hijo) = estado.child.lock().ok().and_then(|mut g| g.take()) {
                     let _ = hijo.kill();

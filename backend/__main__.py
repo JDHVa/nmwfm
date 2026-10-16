@@ -1,6 +1,7 @@
 import asyncio
 import json
 import secrets
+import signal
 import socket
 import sys
 
@@ -45,8 +46,22 @@ def main() -> None:
         ),
         ready,
     )
+    app.state.salir = lambda: setattr(server, "should_exit", True)
+
+    async def servir() -> None:
+        loop = asyncio.get_running_loop()
+        for nombre in ("SIGTERM", "SIGINT", "SIGBREAK"):
+            numero = getattr(signal, nombre, None)
+            if numero is None:
+                continue
+            try:
+                loop.add_signal_handler(numero, app.state.salir)
+            except NotImplementedError:
+                signal.signal(numero, lambda *_: loop.call_soon_threadsafe(app.state.salir))
+        await server.serve(sockets=[sock])
+
     try:
-        asyncio.run(server.serve(sockets=[sock]))
+        asyncio.run(servir())
     except KeyboardInterrupt:
         sys.exit(0)
 
