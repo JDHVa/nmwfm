@@ -1,8 +1,10 @@
 import json
 from collections.abc import AsyncIterator
 
+from ..core.storage import MODELO_ASISTENTE
+
 OLLAMA_URL = "http://127.0.0.1:11434"
-MODELO_POR_DEFECTO = "qwen3:4b"
+MODELO_POR_DEFECTO = MODELO_ASISTENTE
 KEEP_ALIVE_POR_DEFECTO = "90s"
 ABRE_PENSAR = "<think>"
 CIERRA_PENSAR = "</think>"
