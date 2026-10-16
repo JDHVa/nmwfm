@@ -20,6 +20,7 @@ import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api, fileUrl } from "@/lib/api";
+import { alPulsarEnlace } from "@/lib/opener";
 import { useChat, type Confirmacion, type Herramienta, type ItemChat } from "@/lib/chat";
 import { cn } from "@/lib/utils";
 
@@ -320,6 +321,7 @@ function Burbuja({ item, onConfirmar }: { item: ItemChat; onConfirmar: (aceptar:
           {item.enlace && (
             <a
               href={fileUrl(item.enlace.url)}
+              onClick={(e) => alPulsarEnlace(e, fileUrl(item.enlace!.url))}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-1 font-medium text-primary underline"

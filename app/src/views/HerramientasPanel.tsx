@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { api, fileUrl } from "@/lib/api";
+import { alPulsarEnlace } from "@/lib/opener";
 import { cn } from "@/lib/utils";
 
 const PdfPreview = lazy(() => import("@/views/tarea/PdfPreview"));
@@ -24,6 +25,7 @@ function Descarga({ url, etiqueta, icono }: { url: string; etiqueta: string; ico
   return (
     <a
       href={fileUrl(url)}
+      onClick={(e) => alPulsarEnlace(e, fileUrl(url))}
       download
       target="_blank"
       rel="noopener noreferrer"

@@ -1,5 +1,6 @@
 import ReactMarkdown from "react-markdown";
 import { fileUrl } from "@/lib/api";
+import { alPulsarEnlace } from "@/lib/opener";
 import { cn } from "@/lib/utils";
 
 export function Markdown({ texto, className }: { texto: string; className?: string }) {
@@ -13,15 +14,19 @@ export function Markdown({ texto, className }: { texto: string; className?: stri
       <ReactMarkdown
         urlTransform={(url) => url}
         components={{
-          a: ({ href, children }) => (
-            <a
-              href={href?.startsWith("/files/") ? fileUrl(href) : href}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              {children}
-            </a>
-          ),
+          a: ({ href, children }) => {
+            const destino = href?.startsWith("/files/") ? fileUrl(href) : href;
+            return (
+              <a
+                href={destino}
+                onClick={(e) => alPulsarEnlace(e, destino)}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {children}
+              </a>
+            );
+          },
         }}
       >
         {texto}
