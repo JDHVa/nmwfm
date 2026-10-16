@@ -132,10 +132,14 @@ class AppState:
             "indicaciones": self.storage.get_indicaciones(tarea["id"]),
         }
 
+    async def cerrar_navegadores(self) -> None:
+        for manager in (self.browser, self.browser_gemini):
+            with contextlib.suppress(Exception):
+                await manager.close()
+
     async def close(self) -> None:
         await self.jobs.shutdown()
-        await self.browser.close()
-        await self.browser_gemini.close()
+        await self.cerrar_navegadores()
         self.storage.close()
 
 
@@ -649,9 +653,21 @@ async def traer_detalle(state: AppState, tarea_id: str) -> dict:
     return state.storage.get_detalle(tarea_id)
 
 
+ESPERA_COOKIES_GEMINI_S = 3.0
+
+
+async def _cerrar_gemini(state: AppState) -> None:
+    with contextlib.suppress(Exception):
+        await state.browser_gemini.close()
+
+
 async def run_login_gemini(state: AppState, ctx: JobContext) -> dict:
     async with state.browser_gemini.lock:
-        ya_iniciada = await state.gemini.iniciar_sesion(ctx.hooks())
+        try:
+            ya_iniciada = await state.gemini.iniciar_sesion(ctx.hooks())
+            await asyncio.sleep(ESPERA_COOKIES_GEMINI_S)
+        finally:
+            await _cerrar_gemini(state)
     return {"sesion": True, "ya_iniciada": bool(ya_iniciada)}
 
 
@@ -868,7 +884,10 @@ async def run_generar(
     )
     await ctx.update("generando", 0.45)
     async with state.browser_gemini.lock:
-        markdown = await state.gemini.generar(prompt, pdf_insumos, ctx.hooks())
+        try:
+            markdown = await state.gemini.generar(prompt, pdf_insumos, ctx.hooks())
+        finally:
+            await _cerrar_gemini(state)
 
     await ctx.update("Creando el documento Word", 0.88)
     gen = await asyncio.to_thread(
