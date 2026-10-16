@@ -222,7 +222,12 @@ export function createMockBackend(options: MockOptions = {}) {
         }
         const e = eventos[i++];
         await new Promise((r) =>
-          setTimeout(r, e.type === "estado" ? cargaModeloMs : Math.max(1, Math.round(stepMs / 4))),
+          setTimeout(
+            r,
+            e.type === "estado" && e.estado === "pensando"
+              ? cargaModeloMs
+              : Math.max(1, Math.round(stepMs / 4)),
+          ),
         );
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
       },
@@ -248,8 +253,9 @@ export function createMockBackend(options: MockOptions = {}) {
   function guionAsistente(texto: string, tareaId?: string): EventoChat[] {
     const q = sinAcentos(texto);
     const fin: EventoChat = { type: "fin" };
-    const carga: EventoChat = { type: "estado", estado: "listo", mensaje: "Pensando…" };
-    return [carga, ...guionBase(q, texto, tareaId, fin)];
+    const cargando: EventoChat = { type: "estado", estado: "cargando", mensaje: "Cargando modelo…" };
+    const pensando: EventoChat = { type: "estado", estado: "pensando", mensaje: "Pensando…" };
+    return [cargando, pensando, ...guionBase(q, texto, tareaId, fin)];
   }
 
   function guionBase(q: string, texto: string, tareaId: string | undefined, fin: EventoChat): EventoChat[] {
@@ -381,9 +387,10 @@ export function createMockBackend(options: MockOptions = {}) {
     }
     if (path === "/asistente/precalentar") {
       await new Promise((r) => setTimeout(r, cargaModeloMs));
-      return json({ ok: true });
+      return json({ cargado: true, cargando: false, modelo: settings.asistente_modelo ?? "qwen3:4b" });
     }
-    if (path === "/asistente/liberar") return json({ ok: true });
+    if (path === "/asistente/liberar")
+      return json({ liberado: true, modelo: settings.asistente_modelo ?? "qwen3:4b" });
     if (path === "/asistente/estado") {
       return json({
         ollama: asistenteDisponible,
@@ -418,8 +425,24 @@ export function createMockBackend(options: MockOptions = {}) {
       const form = body as FormData;
       const n = form.getAll("files[]").length;
       if (n === 0) return fallo(400, "sin_archivos", "Sube al menos una imagen");
+      const portadaCruda = form.get("portada");
+      let portadaLinea = "Sin portada";
+      if (typeof portadaCruda === "string") {
+        try {
+          const d = JSON.parse(portadaCruda) as { profesor?: string; titulo?: string };
+          if (!d.profesor) return fallo(422, "validacion", "La portada necesita el profesor");
+          portadaLinea = `Portada: ${d.profesor} ${d.titulo ?? ""}`;
+        } catch {
+          return fallo(422, "validacion", "La portada no es JSON válido");
+        }
+      }
       return json({
-        pdf_url: pdfDe(["Imagenes unidas", `${n} imagen(es)`, `Recorte: ${form.get("recortar")}`]),
+        pdf_url: pdfDe([
+          "Imagenes unidas",
+          `${n} imagen(es)`,
+          `Recorte: ${form.get("recortar")}`,
+          portadaLinea,
+        ]),
       });
     }
     if (path === "/herramientas/portada") {

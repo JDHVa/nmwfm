@@ -123,7 +123,7 @@ export type EventoChat =
   | { type: "tool_call"; nombre: string; args: unknown }
   | { type: "tool_result"; nombre: string; resultado: unknown }
   | { type: "confirmar"; accion: string; args: unknown; id: string }
-  | { type: "estado"; estado?: string; mensaje?: string }
+  | { type: "estado"; estado?: "cargando" | "pensando"; mensaje?: string }
   | { type: "fin" }
   | { type: "error"; message: string };
 export type ConfirmacionResultado = { ok?: boolean; mensaje?: string } & Record<string, unknown>;
@@ -276,7 +276,8 @@ export const api = {
   diagnostico: () => request<Job>("POST", "/diagnostico"),
   calificaciones: (materiaId: string) =>
     request<Calificaciones | null>("GET", `/materias/${materiaId}/calificaciones`),
-  precalentarAsistente: () => request<unknown>("POST", "/asistente/precalentar"),
+  precalentarAsistente: () =>
+    request<{ cargado: boolean; cargando: boolean; modelo: string }>("POST", "/asistente/precalentar"),
   liberarAsistente: (keepalive = false) =>
     connection
       .transport(`${connection.base}/asistente/liberar`, {
@@ -293,10 +294,11 @@ export const api = {
     request<ConfirmacionResultado>("POST", "/asistente/confirmar", { id, aceptar }),
   indicaciones: (tareaId: string, indicaciones: string) =>
     request<TareaDetalle>("PUT", `/tareas/${tareaId}/indicaciones`, { indicaciones }),
-  herramientaPdf: (files: File[], recortar: boolean) => {
+  herramientaPdf: (files: File[], recortar: boolean, portada?: PortadaSuelta) => {
     const form = new FormData();
     files.forEach((f) => form.append("files[]", f, f.name));
     form.append("recortar", recortar ? "true" : "false");
+    if (portada) form.append("portada", JSON.stringify(portada));
     return request<{ pdf_url: string }>("POST", "/herramientas/pdf", form);
   },
   herramientaPortada: (datos: PortadaSuelta) =>

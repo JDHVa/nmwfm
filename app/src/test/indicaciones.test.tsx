@@ -27,6 +27,7 @@ describe("indicaciones del profesor", () => {
 
   async function abrirTarea(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     await user.click(await screen.findByText("Dimensión 2 - Comprensión - Ficha Técnica"));
   }

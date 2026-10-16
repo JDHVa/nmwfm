@@ -27,6 +27,7 @@ describe("atajos de teclado", () => {
 
   async function abrirTarea(user: ReturnType<typeof userEvent.setup>) {
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     await user.click(await screen.findByText("Dimensión 2 - Comprensión - Ficha Técnica"));
     await screen.findByRole("button", { name: "Elegir archivos" });
@@ -36,6 +37,7 @@ describe("atajos de teclado", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await screen.findByRole("heading", { name: "Materias" });
     await user.keyboard("?");
     expect(await screen.findByRole("heading", { name: "Atajos de teclado" })).toBeInTheDocument();
@@ -49,6 +51,7 @@ describe("atajos de teclado", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     const mas = await screen.findByRole("button", { name: "Más opciones de sincronización" });
     await waitFor(() => expect(mas).toBeEnabled());
     await user.click(mas);

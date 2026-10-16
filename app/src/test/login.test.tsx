@@ -52,13 +52,13 @@ describe("login", () => {
     await waitFor(() => expect(screen.queryByText("Bloq Mayús está activado")).not.toBeInTheDocument());
   });
 
-  it("valida con SIASE y entra a Materias", async () => {
+  it("valida con SIASE y entra al Asistente", async () => {
     const user = userEvent.setup();
     montar();
     await llenar(user);
     await user.click(screen.getByRole("button", { name: "Entrar" }));
     expect(await screen.findByText("Verificando con SIASE...")).toBeInTheDocument();
-    expect(await screen.findByRole("heading", { name: "Materias" }, { timeout: 5000 })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Asistente" }, { timeout: 5000 })).toBeInTheDocument();
     expect(localStorage.getItem("nmwfm.recordar")).toBe("1");
   });
 
@@ -70,7 +70,7 @@ describe("login", () => {
     expect(
       await screen.findByText("La cuenta o la contraseña son incorrectas", {}, { timeout: 5000 }),
     ).toBeInTheDocument();
-    expect(screen.queryByRole("heading", { name: "Materias" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Asistente" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
   });
 
@@ -79,16 +79,16 @@ describe("login", () => {
     montar();
     await llenar(user, "mala");
     await user.click(screen.getByRole("button", { name: "Continuar sin verificar" }));
-    expect(await screen.findByRole("heading", { name: "Materias" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Asistente" })).toBeInTheDocument();
   });
 
-  it("con la sesión recordada saluda por el primer nombre y abre Materias", async () => {
+  it("con la sesión recordada saluda por el primer nombre y abre el Asistente", async () => {
     await api.putSettings({ cuenta: "a1", nombre: "Ana María López", matricula: "1", password: "x" });
     const user = userEvent.setup();
     montar();
     const saludo = await screen.findByRole("button", { name: /Hola, Ana/ });
     await user.click(saludo);
-    expect(await screen.findByRole("heading", { name: "Materias" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Asistente" })).toBeInTheDocument();
   });
 
   it("sin recordar muestra el login con la cuenta prellenada", async () => {

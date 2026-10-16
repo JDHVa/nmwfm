@@ -15,7 +15,7 @@ async function entrar(page: Page) {
   await page.getByLabel("Nombre completo").fill("Ana María López");
   await page.getByLabel("Matrícula").fill("1234567");
   await page.getByRole("button", { name: "Entrar" }).click();
-  await expect(page.getByRole("heading", { name: "Materias" })).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("heading", { name: "Asistente" })).toBeVisible({ timeout: 20_000 });
 }
 
 async function minimizarSyncInicial(page: Page) {
@@ -26,6 +26,7 @@ async function minimizarSyncInicial(page: Page) {
 test("login, materias y tarea hasta entregar", async ({ page }) => {
   await entrar(page);
   await minimizarSyncInicial(page);
+  await page.getByRole("button", { name: "Materias" }).click();
   await expect(page.getByText("Algoritmos Bio Inspirados")).toBeVisible();
 
   await page.getByText("Algoritmos Bio Inspirados").click();

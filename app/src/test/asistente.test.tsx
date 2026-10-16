@@ -6,6 +6,13 @@ import App from "@/App";
 import { api, chatAsistente, configureApi, configureSocket, type EventoChat } from "@/lib/api";
 import { createMockBackend, type MockOptions } from "@/mock/backend";
 
+const SUGERENCIAS_TEXTO = [
+  "¿Qué vence esta semana?",
+  "Explícame la 1.4 de Algoritmos",
+  "El profe dijo que la 2.3 es en equipo de 3",
+  "Hazme un PDF con estas fotos",
+];
+
 async function preparar(opciones: MockOptions = {}) {
   localStorage.clear();
   const mock = createMockBackend({ stepMs: 4, ...opciones });
@@ -37,8 +44,8 @@ describe("flujo SSE del cliente", () => {
     await chatAsistente({ mensajes: [{ rol: "user", contenido: "¿Qué vence esta semana?" }] }, (e) =>
       eventos.push(e),
     );
-    expect(eventos[0].type).toBe("estado");
-    expect(eventos[1].type).toBe("tool_call");
+    expect(eventos.slice(0, 2).map((e) => e.type)).toEqual(["estado", "estado"]);
+    expect(eventos[2].type).toBe("tool_call");
     expect(eventos.some((e) => e.type === "token")).toBe(true);
     expect(eventos[eventos.length - 1].type).toBe("fin");
   });
@@ -61,7 +68,7 @@ describe("vista del asistente", () => {
     expect(
       await within(conversacion).findByText(/La más urgente es la/, undefined, { timeout: 5000 }),
     ).toBeInTheDocument();
-    const chip = within(conversacion).getByText("Próximas entregas");
+    const chip = within(conversacion).getByText(/Usó proximas_entregas/);
     expect(chip.closest("details")).not.toHaveAttribute("open");
     await user.click(chip);
     expect(chip.closest("details")).toHaveAttribute("open");
@@ -80,14 +87,14 @@ describe("vista del asistente", () => {
     expect(await within(tarjeta).findByText(/Aceptada: La tarea se entregó/)).toBeInTheDocument();
   });
 
-  it("guarda el historial y «Nueva conversación» lo borra", async () => {
+  it("guarda varias conversaciones y permite volver a una anterior", async () => {
     await preparar();
     const user = userEvent.setup();
     const { unmount } = montar();
     await abrirAsistente(user);
     await user.type(screen.getByLabelText("Mensaje"), "hola{Enter}");
     await screen.findByText(/asistente simulado/, undefined, { timeout: 5000 });
-    expect(localStorage.getItem("nmwfm.chat")).toContain("hola");
+    expect(localStorage.getItem("nmwfm.chats")).toContain("hola");
     unmount();
     cleanup();
 
@@ -97,8 +104,30 @@ describe("vista del asistente", () => {
     expect(await screen.findByText(/asistente simulado/)).toBeInTheDocument();
     await segunda.click(screen.getByRole("button", { name: /Nueva conversación/ }));
     expect(screen.queryByText(/asistente simulado/)).not.toBeInTheDocument();
-    expect(localStorage.getItem("nmwfm.chat")).toBeNull();
+    expect(screen.getByText(/¿En qué te ayudo/)).toBeInTheDocument();
+
+    await segunda.click(screen.getByRole("button", { name: "Mostrar historial" }));
+    const historial = screen.getByRole("complementary", { name: "Historial de conversaciones" });
+    await segunda.click(within(historial).getByRole("button", { name: /^hola/ }));
+    expect(await screen.findByText(/asistente simulado/)).toBeInTheDocument();
+
+    await segunda.click(within(historial).getByRole("button", { name: /Borrar conversación: hola/ }));
+    expect(screen.queryByText(/asistente simulado/)).not.toBeInTheDocument();
+    expect(localStorage.getItem("nmwfm.chats")).toBeNull();
   }, 20000);
+
+  it("saluda por el primer nombre y ofrece cuatro sugerencias", async () => {
+    await preparar();
+    await api.putSettings({ nombre: "Ana María López" });
+    const user = userEvent.setup();
+    montar();
+    await abrirAsistente(user);
+    expect(await screen.findByText("¿En qué te ayudo, Ana?")).toBeInTheDocument();
+    expect(
+      screen.getAllByRole("button").filter((b) => SUGERENCIAS_TEXTO.includes(b.textContent ?? "")),
+    ).toHaveLength(4);
+    expect(screen.getByText("Shift+Enter nueva línea")).toBeInTheDocument();
+  });
 
   it("adjunta imágenes, crea el PDF y muestra el enlace", async () => {
     await preparar();
@@ -137,6 +166,7 @@ describe("preguntar al asistente desde una tarea", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     await user.click(await screen.findByText("Dimensión 2 - Comprensión - Ficha Técnica"));
     await user.click(await screen.findByRole("button", { name: "Preguntar al asistente" }));

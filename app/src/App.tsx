@@ -11,7 +11,6 @@ import {
   Sun,
 } from "lucide-react";
 import Dock from "@/components/Dock";
-import { Background } from "@/components/Background";
 import { AyudaAtajos } from "@/components/AyudaAtajos";
 import { Campanita } from "@/components/Campanita";
 import { LogPanel } from "@/components/LogPanel";
@@ -87,6 +86,12 @@ function Shell({ onSalir }: { onSalir: () => void }) {
             showLabels
             items={[
               {
+                label: "Asistente",
+                icon: <Bot className="size-5" />,
+                active: view.name === "asistente",
+                onClick: () => go({ name: "asistente" }),
+              },
+              {
                 label: "Materias",
                 icon: <BookOpen className="size-5" />,
                 active: enMaterias,
@@ -97,12 +102,6 @@ function Shell({ onSalir }: { onSalir: () => void }) {
                 icon: <CalendarClock className="size-5" />,
                 active: view.name === "proximas",
                 onClick: () => go({ name: "proximas" }),
-              },
-              {
-                label: "Asistente",
-                icon: <Bot className="size-5" />,
-                active: view.name === "asistente",
-                onClick: () => go({ name: "asistente" }),
               },
               {
                 label: "Configuración",
@@ -173,12 +172,11 @@ function Raiz({ settings }: { settings: Settings }) {
 
   return (
     <div className="relative h-full overflow-hidden">
-      <Background />
       <div className="relative z-10 h-full">
         {fase === "login" && <LoginView settings={settings} onEntrar={() => setFase("app")} />}
         {fase === "saludo" && <SaludoView nombre={settings.nombre} onTerminar={() => setFase("app")} />}
         {fase === "app" && (
-          <NavProvider initial={{ name: "materias" }}>
+          <NavProvider initial={{ name: "asistente" }}>
             <SyncProvider>
               <Shell onSalir={() => setFase("login")} />
               <SyncOverlay />

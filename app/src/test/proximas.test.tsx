@@ -88,6 +88,7 @@ describe("vista de próximas entregas", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByRole("button", { name: "Próximas entregas" }));
     expect(await screen.findByRole("heading", { name: "Próximas entregas" })).toBeInTheDocument();
     const hoy = await screen.findByRole("region", { name: /Hoy/ });
@@ -102,6 +103,7 @@ describe("vista de próximas entregas", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByRole("button", { name: "Próximas entregas" }));
     await screen.findByRole("heading", { name: "Próximas entregas" });
     const boton = await screen.findByRole("button", { name: "Revisar tareas entregadas" });

@@ -34,6 +34,7 @@ describe("novedades y alertas", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     const campana = await screen.findByRole("button", { name: "Novedades: 3 sin leer" });
     await user.click(campana);
     expect(
@@ -49,11 +50,13 @@ describe("novedades y alertas", () => {
     const user = userEvent.setup();
     const { unmount } = montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await waitFor(() => expect(enviar).toHaveBeenCalledTimes(1));
     expect(enviar.mock.calls[0][0]).toMatch(/vencen? hoy/);
     unmount();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await screen.findByRole("heading", { name: "Materias" });
     await new Promise((r) => setTimeout(r, 300));
     expect(enviar).toHaveBeenCalledTimes(1);

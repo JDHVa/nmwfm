@@ -1,120 +1,214 @@
-import { useEffect, useRef, useState, type ClipboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ClipboardEvent } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   AlertTriangle,
-  Bot,
+  ArrowUp,
   Check,
-  ChevronDown,
+  ChevronRight,
   FileDown,
   Loader2,
   MessageSquarePlus,
+  PanelLeft,
   Paperclip,
-  Send,
   Square,
-  Wrench,
+  Trash2,
   X,
 } from "lucide-react";
 import { Markdown } from "@/components/Markdown";
-import { HerramientasPanel } from "@/views/HerramientasPanel";
-import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { api, fileUrl } from "@/lib/api";
 import { alPulsarEnlace } from "@/lib/opener";
 import { useChat, type Confirmacion, type Herramienta, type ItemChat } from "@/lib/chat";
+import { useSettings } from "@/lib/queries";
+import { haceTiempo } from "@/lib/sync";
 import { cn } from "@/lib/utils";
+import { HerramientasPanel } from "@/views/HerramientasPanel";
 
 const SUGERENCIAS = [
   "¿Qué vence esta semana?",
   "Explícame la 1.4 de Algoritmos",
   "El profe dijo que la 2.3 es en equipo de 3",
   "Hazme un PDF con estas fotos",
-  "Portada para el profe Rafael Cavazos",
 ];
 
-const NOMBRES_HERRAMIENTAS: Record<string, string> = {
-  buscar_tareas: "Buscar tareas",
-  ver_tarea: "Ver tarea",
-  proximas_entregas: "Próximas entregas",
-  agregar_indicaciones: "Agregar indicaciones",
-  reemplazar_indicaciones: "Reemplazar indicaciones",
-  crear_pdf_imagenes: "Crear PDF de imágenes",
-  generar_portada: "Generar portada",
-  sincronizar: "Sincronizar",
-  revisar_entregas: "Revisar entregas",
-  generar_tarea: "Generar tarea",
-  entregar_tarea: "Entregar tarea",
-};
+const CLAVE_BARRA = "nmwfm.chat.historial";
 
-const nombreHerramienta = (n: string) => NOMBRES_HERRAMIENTAS[n] ?? n.replace(/_/g, " ");
+function leerBarra(): boolean {
+  try {
+    return localStorage.getItem(CLAVE_BARRA) === "1";
+  } catch {
+    return false;
+  }
+}
+
+function guardarBarra(v: boolean) {
+  try {
+    localStorage.setItem(CLAVE_BARRA, v ? "1" : "0");
+  } catch {
+    return;
+  }
+}
 
 export function AsistenteView({ tareaId }: { tareaId?: string }) {
   const [pestana, setPestana] = useState<"chat" | "herramientas">("chat");
   const [precalentando, setPrecalentando] = useState(true);
+  const chat = useChat(tareaId);
+  const [barra, setBarra] = useState(leerBarra);
 
   useEffect(() => {
     let vivo = true;
+    let temporizador: ReturnType<typeof setTimeout> | undefined;
     api
       .precalentarAsistente()
-      .catch(() => undefined)
-      .finally(() => vivo && setPrecalentando(false));
+      .then((r) => {
+        const cargando = (r as { cargando?: boolean } | null)?.cargando;
+        if (vivo && cargando) temporizador = setTimeout(() => vivo && setPrecalentando(false), 25_000);
+        else if (vivo) setPrecalentando(false);
+      })
+      .catch(() => vivo && setPrecalentando(false));
     return () => {
       vivo = false;
+      if (temporizador) clearTimeout(temporizador);
       void api.liberarAsistente();
     };
   }, []);
 
+  function alternarBarra() {
+    setBarra((v) => {
+      guardarBarra(!v);
+      return !v;
+    });
+  }
+
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 p-8">
-      <div
-        role="tablist"
-        aria-label="Asistente y herramientas"
-        className="inline-flex w-fit rounded-lg border bg-muted p-1"
-      >
-        {(["chat", "herramientas"] as const).map((p) => (
-          <button
-            key={p}
-            type="button"
-            role="tab"
-            aria-selected={pestana === p}
-            onClick={() => setPestana(p)}
-            className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
-              pestana === p
-                ? "bg-card text-foreground shadow-card"
-                : "text-muted-foreground hover:text-foreground",
+    <div className="flex h-full min-h-0">
+      {barra && (
+        <aside
+          aria-label="Historial de conversaciones"
+          className="flex w-64 shrink-0 flex-col border-r bg-card/50"
+        >
+          <div className="p-3">
+            <Button variant="secondary" className="w-full justify-start" onClick={chat.nueva}>
+              <MessageSquarePlus /> Nueva conversación
+            </Button>
+          </div>
+          <ul className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 pb-3">
+            {chat.historial.length === 0 && (
+              <li className="px-3 py-4 text-xs text-muted-foreground">Aún no hay conversaciones.</li>
             )}
-          >
-            {p === "chat" ? "Chat" : "Herramientas"}
-          </button>
-        ))}
-      </div>
-      {precalentando && (
-        <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
-          <Loader2 className="size-3 animate-spin" /> Cargando modelo…
-        </p>
+            {chat.historial.map((c) => (
+              <li key={c.id} className="group relative">
+                <button
+                  type="button"
+                  onClick={() => chat.seleccionar(c.id)}
+                  aria-current={c.id === chat.actualId}
+                  className={cn(
+                    "w-full rounded-lg px-3 py-2 pr-9 text-left text-sm outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
+                    c.id === chat.actualId && "bg-accent",
+                  )}
+                >
+                  <span className="block truncate">{c.titulo}</span>
+                  <span className="block text-[11px] text-muted-foreground">
+                    {haceTiempo(new Date(c.actualizada).toISOString())}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={`Borrar conversación: ${c.titulo}`}
+                  onClick={() => chat.borrar(c.id)}
+                  className="absolute right-2 top-2.5 rounded p-1 text-muted-foreground opacity-0 outline-none hover:text-danger focus-visible:opacity-100 group-hover:opacity-100"
+                >
+                  <Trash2 className="size-3.5" />
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
       )}
-      {pestana === "chat" ? <ChatPanel tareaId={tareaId} /> : <HerramientasPanel />}
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <h1 className="sr-only">Asistente</h1>
+        <div className="flex items-center gap-2 px-4 pt-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={barra ? "Ocultar historial" : "Mostrar historial"}
+            aria-pressed={barra}
+            onClick={alternarBarra}
+          >
+            <PanelLeft />
+          </Button>
+          <div
+            role="tablist"
+            aria-label="Asistente y herramientas"
+            className="inline-flex rounded-lg bg-muted p-1"
+          >
+            {(["chat", "herramientas"] as const).map((p) => (
+              <button
+                key={p}
+                type="button"
+                role="tab"
+                aria-selected={pestana === p}
+                onClick={() => setPestana(p)}
+                className={cn(
+                  "rounded-md px-3 py-1 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  pestana === p
+                    ? "bg-card text-foreground shadow-card"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {p === "chat" ? "Chat" : "Herramientas"}
+              </button>
+            ))}
+          </div>
+          {pestana === "chat" && !barra && (
+            <Button variant="ghost" size="sm" onClick={chat.nueva}>
+              <MessageSquarePlus /> Nueva conversación
+            </Button>
+          )}
+          {precalentando && (
+            <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3 animate-spin" /> Cargando modelo…
+            </p>
+          )}
+        </div>
+
+        {pestana === "chat" ? (
+          <ChatPanel chat={chat} />
+        ) : (
+          <div className="mx-auto flex min-h-0 w-full flex-1 flex-col px-4 pb-6 pt-4 min-[1000px]:w-[70%] max-w-[900px]">
+            <HerramientasPanel />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
 
-function ChatPanel({ tareaId }: { tareaId?: string }) {
-  const chat = useChat(tareaId);
+function ChatPanel({ chat }: { chat: ReturnType<typeof useChat> }) {
   const { data: estado } = useQuery({
     queryKey: ["asistente-estado"],
     queryFn: api.asistenteEstado,
     retry: false,
   });
+  const { data: ajustes } = useSettings();
   const disponible = !estado || (estado.ollama && estado.modelo_instalado);
   const [texto, setTexto] = useState("");
   const [adjuntos, setAdjuntos] = useState<File[]>([]);
   const fin = useRef<HTMLDivElement>(null);
+  const area = useRef<HTMLTextAreaElement>(null);
   const input = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fin.current?.scrollIntoView?.({ block: "end" });
   }, [chat.items]);
+
+  useLayoutEffect(() => {
+    const el = area.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${Math.min(el.scrollHeight, 200)}px`;
+  }, [texto]);
 
   const tareaDeContexto = useQuery({
     queryKey: ["tarea", chat.tareaId ?? ""],
@@ -137,120 +231,82 @@ function ChatPanel({ tareaId }: { tareaId?: string }) {
     }
   }
 
+  const primerNombre = (ajustes?.nombre ?? "").trim().split(/\s+/)[0];
+  const vacio = chat.items.length === 0;
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <PageHeader
-        titulo="Asistente"
-        descripcion="Pregunta, pide resúmenes o delega tareas sencillas. Todo corre en tu equipo."
-        acciones={
-          <Button
-            variant="secondary"
-            onClick={chat.nueva}
-            disabled={chat.items.length === 0 && !chat.tareaId}
-          >
-            <MessageSquarePlus /> Nueva conversación
-          </Button>
-        }
-      />
-
-      {estado && !disponible && <TarjetaSinOllama estado={estado} />}
-
-      {tareaDeContexto && (
-        <p className="rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground">
-          Contexto: tarea <strong className="text-foreground">{tareaDeContexto.numero}</strong> ·{" "}
-          {tareaDeContexto.titulo}
-        </p>
-      )}
-
-      <div
-        role="log"
-        aria-label="Conversación"
-        aria-live="polite"
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto rounded-xl border bg-card/60 p-4"
-      >
-        {chat.items.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center gap-4 text-center">
-            <span className="flex size-12 items-center justify-center rounded-2xl bg-accent text-primary">
-              <Bot className="size-6" />
-            </span>
-            <p className="text-sm text-muted-foreground">Prueba con una de estas ideas:</p>
-            <div className="flex flex-wrap justify-center gap-2">
-              {SUGERENCIAS.map((s) => (
-                <button
-                  key={s}
-                  type="button"
-                  disabled={!disponible}
-                  onClick={() => enviar(s)}
-                  className="rounded-full border bg-card px-3 py-1.5 text-xs outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
-                >
-                  {s}
-                </button>
-              ))}
-            </div>
+    <div className="flex min-h-0 flex-1 flex-col">
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="mx-auto w-full px-4 pb-6 pt-4 min-[1000px]:w-[70%] max-w-[900px]">
+          {estado && !disponible && <TarjetaSinOllama estado={estado} />}
+          {tareaDeContexto && (
+            <p className="mb-4 rounded-lg border bg-card px-3 py-2 text-xs text-muted-foreground">
+              Contexto: tarea <strong className="text-foreground">{tareaDeContexto.numero}</strong> ·{" "}
+              {tareaDeContexto.titulo}
+            </p>
+          )}
+          <div role="log" aria-label="Conversación" aria-live="polite" className="space-y-6">
+            {vacio ? (
+              <div className="flex min-h-[50vh] flex-col items-center justify-center gap-8 text-center">
+                <h2 className="font-serif text-3xl tracking-tight">
+                  ¿En qué te ayudo{primerNombre ? `, ${primerNombre}` : ""}?
+                </h2>
+                <div className="grid w-full gap-3 sm:grid-cols-2">
+                  {SUGERENCIAS.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      disabled={!disponible}
+                      onClick={() => enviar(s)}
+                      className="rounded-xl border bg-card px-4 py-3 text-left text-sm text-muted-foreground outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-50"
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              chat.items.map((it) => (
+                <Mensaje
+                  key={it.id}
+                  item={it}
+                  onConfirmar={(aceptar) => chat.resolverConfirmacion(it.id, aceptar)}
+                />
+              ))
+            )}
           </div>
-        ) : (
-          chat.items.map((it) => (
-            <Burbuja
-              key={it.id}
-              item={it}
-              onConfirmar={(aceptar) => chat.resolverConfirmacion(it.id, aceptar)}
-            />
-          ))
-        )}
-        <div ref={fin} />
+          <div ref={fin} />
+        </div>
       </div>
 
-      <div className="space-y-2 rounded-xl border bg-card p-3 shadow-card">
-        {adjuntos.length > 0 && (
-          <ul className="flex flex-wrap gap-2" aria-label="Adjuntos">
-            {adjuntos.map((f, i) => (
-              <li
-                key={`${f.name}-${i}`}
-                className="flex items-center gap-1 rounded-full border bg-muted px-2 py-1 text-xs"
-              >
-                {f.name}
-                <button
-                  type="button"
-                  aria-label={`Quitar ${f.name}`}
-                  onClick={() => setAdjuntos((a) => a.filter((_, j) => j !== i))}
-                  className="rounded-full hover:text-danger"
+      <div className="mx-auto w-full px-4 pb-5 min-[1000px]:w-[70%] max-w-[900px]">
+        <div className="rounded-2xl border bg-card p-3 shadow-card focus-within:border-ring">
+          {adjuntos.length > 0 && (
+            <ul className="mb-2 flex flex-wrap gap-2" aria-label="Adjuntos">
+              {adjuntos.map((f, i) => (
+                <li
+                  key={`${f.name}-${i}`}
+                  className="flex items-center gap-1 rounded-full border bg-muted px-2 py-1 text-xs"
                 >
-                  <X className="size-3" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <div className="flex items-end gap-2">
-          <input
-            ref={input}
-            type="file"
-            accept="image/*"
-            multiple
-            hidden
-            data-testid="adjuntar-chat"
-            onChange={(e) => {
-              setAdjuntos((a) => [...a, ...Array.from(e.target.files ?? [])]);
-              e.target.value = "";
-            }}
-          />
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label="Adjuntar imágenes"
-            onClick={() => input.current?.click()}
-            disabled={!disponible}
-          >
-            <Paperclip />
-          </Button>
-          <Textarea
+                  {f.name}
+                  <button
+                    type="button"
+                    aria-label={`Quitar ${f.name}`}
+                    onClick={() => setAdjuntos((a) => a.filter((_, j) => j !== i))}
+                    className="rounded-full hover:text-danger"
+                  >
+                    <X className="size-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <textarea
+            ref={area}
             aria-label="Mensaje"
-            rows={2}
+            rows={1}
             value={texto}
-            placeholder={
-              disponible ? "Escribe un mensaje… (Enter para enviar)" : "El asistente no está disponible"
-            }
+            placeholder={disponible ? "Escribe un mensaje…" : "El asistente no está disponible"}
             disabled={!disponible}
             onChange={(e) => setTexto(e.target.value)}
             onPaste={pegar}
@@ -260,23 +316,58 @@ function ChatPanel({ tareaId }: { tareaId?: string }) {
                 enviar();
               }
             }}
-            className="resize-none"
+            className="block max-h-[200px] min-h-[52px] w-full resize-none bg-transparent px-1 py-1 text-[15px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-60"
           />
-          {chat.enCurso ? (
-            <Button type="button" variant="secondary" size="icon" aria-label="Detener" onClick={chat.detener}>
-              <Square />
-            </Button>
-          ) : (
+          <div className="mt-1 flex items-center gap-2">
+            <input
+              ref={input}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              data-testid="adjuntar-chat"
+              onChange={(e) => {
+                setAdjuntos((a) => [...a, ...Array.from(e.target.files ?? [])]);
+                e.target.value = "";
+              }}
+            />
             <Button
               type="button"
+              variant="ghost"
               size="icon"
-              aria-label="Enviar"
-              onClick={() => enviar()}
-              disabled={!disponible || (!texto.trim() && adjuntos.length === 0)}
+              aria-label="Adjuntar imágenes"
+              onClick={() => input.current?.click()}
+              disabled={!disponible}
             >
-              <Send />
+              <Paperclip />
             </Button>
-          )}
+            <span className="hidden text-xs text-muted-foreground sm:block">Shift+Enter nueva línea</span>
+            <div className="ml-auto">
+              {chat.enCurso ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="icon"
+                  className="rounded-full"
+                  aria-label="Detener"
+                  onClick={chat.detener}
+                >
+                  <Square />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  size="icon"
+                  className="rounded-full"
+                  aria-label="Enviar"
+                  onClick={() => enviar()}
+                  disabled={!disponible || (!texto.trim() && adjuntos.length === 0)}
+                >
+                  <ArrowUp />
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -287,7 +378,7 @@ function TarjetaSinOllama({ estado }: { estado: { error: string | null; modelo: 
   return (
     <section
       aria-label="Asistente no disponible"
-      className="space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm"
+      className="mb-4 space-y-2 rounded-xl border border-warning/40 bg-warning/10 p-4 text-sm"
     >
       <p className="flex items-center gap-2 font-semibold text-warning">
         <AlertTriangle className="size-4" />
@@ -303,11 +394,11 @@ function TarjetaSinOllama({ estado }: { estado: { error: string | null; modelo: 
   );
 }
 
-function Burbuja({ item, onConfirmar }: { item: ItemChat; onConfirmar: (aceptar: boolean) => void }) {
+function Mensaje({ item, onConfirmar }: { item: ItemChat; onConfirmar: (aceptar: boolean) => void }) {
   if (item.tipo === "usuario") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-4 py-2 text-sm text-primary-foreground">
+        <div className="max-w-[80%] rounded-2xl bg-secondary px-4 py-2.5 text-[15px] leading-6">
           <p className="whitespace-pre-wrap">{item.texto}</p>
         </div>
       </div>
@@ -315,82 +406,69 @@ function Burbuja({ item, onConfirmar }: { item: ItemChat; onConfirmar: (aceptar:
   }
   if (item.tipo === "sistema") {
     return (
-      <div className="flex justify-center">
-        <p className="flex items-center gap-2 rounded-full border bg-muted px-3 py-1 text-xs text-muted-foreground">
-          {item.texto}
-          {item.enlace && (
-            <a
-              href={fileUrl(item.enlace.url)}
-              onClick={(e) => alPulsarEnlace(e, fileUrl(item.enlace!.url))}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1 font-medium text-primary underline"
-            >
-              <FileDown className="size-3" /> {item.enlace.etiqueta}
-            </a>
-          )}
-        </p>
-      </div>
+      <p className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+        {item.texto}
+        {item.enlace && (
+          <a
+            href={fileUrl(item.enlace.url)}
+            onClick={(e) => alPulsarEnlace(e, fileUrl(item.enlace!.url))}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 font-medium text-primary underline underline-offset-2"
+          >
+            <FileDown className="size-3" /> {item.enlace.etiqueta}
+          </a>
+        )}
+      </p>
     );
   }
   return (
-    <div className="flex gap-2">
-      <span className="mt-1 flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-primary">
-        <Bot className="size-4" />
-      </span>
-      <div className="min-w-0 max-w-[85%] space-y-2">
-        {item.herramientas.map((h) => (
-          <ChipHerramienta key={h.id} h={h} />
-        ))}
-        {item.texto ? (
-          <div className="rounded-2xl rounded-tl-sm border bg-card px-4 py-2">
-            <Markdown texto={item.texto} />
-          </div>
-        ) : (
-          !item.completo &&
-          item.herramientas.length === 0 && (
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="size-3 animate-spin" /> {item.estado ?? "Cargando modelo…"}
-            </p>
-          )
-        )}
-        {item.confirmacion && <TarjetaConfirmacion c={item.confirmacion} onResolver={onConfirmar} />}
-        {item.error && (
-          <p
-            role="alert"
-            className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-xs text-danger"
-          >
-            {item.error}
+    <div className="space-y-2">
+      {item.herramientas.map((h) => (
+        <ChipHerramienta key={h.id} h={h} />
+      ))}
+      {item.texto ? (
+        <Markdown texto={item.texto} />
+      ) : (
+        !item.completo &&
+        item.herramientas.length === 0 && (
+          <p className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" /> {item.estado ?? "Pensando…"}
           </p>
-        )}
-      </div>
+        )
+      )}
+      {item.confirmacion && <TarjetaConfirmacion c={item.confirmacion} onResolver={onConfirmar} />}
+      {item.error && (
+        <p
+          role="alert"
+          className="rounded-lg border border-danger/30 bg-danger/10 px-3 py-2 text-sm text-danger"
+        >
+          {item.error}
+        </p>
+      )}
     </div>
   );
 }
 
 function ChipHerramienta({ h }: { h: Herramienta }) {
   return (
-    <details className="group rounded-lg border bg-muted/50 text-xs">
-      <summary className="flex cursor-pointer list-none items-center gap-2 px-3 py-1.5 font-medium">
-        {h.terminada ? (
-          <Wrench className="size-3.5 text-primary" />
-        ) : (
-          <Loader2 className="size-3.5 animate-spin" />
-        )}
-        {nombreHerramienta(h.nombre)}
-        <ChevronDown className="ml-auto size-3.5 transition-transform group-open:rotate-180" />
+    <details className="group text-xs text-muted-foreground">
+      <summary className="flex w-fit cursor-pointer list-none items-center gap-1 rounded px-1 py-0.5 hover:text-foreground">
+        {h.terminada ? null : <Loader2 className="size-3 animate-spin" />}
+        Usó {h.nombre}
+        <ChevronRight className="size-3 transition-transform group-open:rotate-90" />
       </summary>
-      <div className="space-y-2 border-t px-3 py-2">
+      <div className="mt-1 space-y-2 border-l pl-3">
         <div>
-          <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Argumentos</p>
-          <pre className="overflow-x-auto rounded bg-background/60 p-2">
+          <p className="mb-1 uppercase tracking-wide">Argumentos</p>
+          <pre className="overflow-x-auto rounded bg-muted p-2 text-foreground">
             {JSON.stringify(h.args, null, 2)}
           </pre>
         </div>
         {h.terminada && (
           <div>
-            <p className="mb-1 text-[11px] uppercase tracking-wide text-muted-foreground">Resultado</p>
-            <pre className="max-h-48 overflow-auto rounded bg-background/60 p-2">
+            <p className="mb-1 uppercase tracking-wide">Resultado</p>
+            <pre className="max-h-48 overflow-auto rounded bg-muted p-2 text-foreground">
               {JSON.stringify(h.resultado, null, 2)}
             </pre>
           </div>
@@ -406,8 +484,8 @@ function TarjetaConfirmacion({ c, onResolver }: { c: Confirmacion; onResolver: (
     <section
       aria-label="Confirmación"
       className={cn(
-        "space-y-2 rounded-xl border p-3 text-sm",
-        c.estado === "pendiente" ? "border-warning/40 bg-warning/10" : "bg-card",
+        "space-y-2 rounded-xl border bg-card p-4 text-sm",
+        c.estado === "pendiente" && "border-primary/50",
       )}
     >
       <p className="font-medium">
