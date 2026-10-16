@@ -184,7 +184,7 @@ def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
             for e in elementos:
                 if e["calificacion"] is not None:
                     obs_tarea.append(e["calificacion"])
-                elif not e.get("perdida"):
+                else:
                     pendientes.append(
                         {"clave": "portafolio", "titulo": e["titulo"], "peso": e["valor"]}
                     )
@@ -203,9 +203,7 @@ def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
     )
     comp_port = next((c for c in componentes if c["clave"] == "portafolio"), None)
     if elementos:
-        evaluado += sum(
-            e["valor"] for e in elementos if e["calificacion"] is not None or e.get("perdida")
-        )
+        evaluado += sum(e["valor"] for e in elementos if e["calificacion"] is not None)
     elif comp_port and comp_port["puntos"] is not None:
         evaluado += comp_port["puntos"]
     hay_datos = bool(obs_examen or obs_tarea) or any(c["puntos"] is not None for c in componentes)

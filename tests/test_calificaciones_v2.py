@@ -210,15 +210,31 @@ def test_alerta_puntos_perdidos_con_y_sin_historial():
     assert not any(a["tipo"] == "puntos_perdidos" for a in r["materias"][0]["alertas"])
 
 
-def test_tareas_perdidas_cuentan_como_puntos_perdidos():
+def test_tareas_perdidas_no_cuentan_como_puntos_perdidos():
     elementos = [
         {"titulo": "Hecha", "valor": 20, "calificacion": 100, "puntos": 20, "perdida": False},
         {"titulo": "Vencida", "valor": 20, "calificacion": None, "puntos": None, "perdida": True},
     ]
     entrada = {**materia("P", {}), "portafolio": elementos}
     r = c.calcular([entrada], {"P": "carrera"})["materias"][0]
-    assert r["evaluado_pts"] == 40 and r["total_pts"] == 20
-    assert any(a["tipo"] == "puntos_perdidos" for a in r["alertas"])
+    assert r["evaluado_pts"] == 20 and r["total_pts"] == 20 and r["pct_evaluado"] == 100
+    assert not any(a["tipo"] == "puntos_perdidos" for a in r["alertas"])
+
+
+def test_portafolio_cinco_de_cinco_con_examenes():
+    elementos = [
+        {"titulo": "A", "valor": 2.5, "calificacion": 100, "puntos": 2.5, "perdida": False},
+        {"titulo": "B", "valor": 2.5, "calificacion": 100, "puntos": 2.5, "perdida": False},
+    ] + [
+        {"titulo": "Manual", "valor": 2.5, "calificacion": None, "puntos": None, "perdida": True}
+        for _ in range(8)
+    ]
+    entrada = {**carrera("Q", par1=95.2, par2=95.2), "portafolio": elementos}
+    r = c.calcular([entrada], {"Q": "carrera"})["materias"][0]
+    assert r["portafolio_pts"] == 5
+    assert abs(r["pct_evaluado"] - r["total_pts"] / r["evaluado_pts"] * 100) < 0.01
+    assert r["pct_evaluado"] > 90
+    assert not any(a["tipo"] == "puntos_perdidos" for a in r["alertas"])
 
 
 def test_campos_de_la_tabla():
