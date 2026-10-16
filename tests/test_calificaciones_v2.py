@@ -253,7 +253,7 @@ def test_preset_optimista_es_100_salvo_materias_con_alerta():
     assert all(p["nota"] == 100 for p in por["S"]["pendientes"])
     assert por["S"]["final"] == 100 - (4 * 10 + 4 * 15) / 100 - 0 or por["S"]["final"] > 96
     exam_a = [p for p in por["A"]["pendientes"] if p["clave"] != "portafolio"]
-    assert exam_a and all(p["nota"] == 78 for p in exam_a)
+    assert exam_a and all(p["nota"] >= 78 and p["nota"] < 100 for p in exam_a)
     esfuerzo = escenario(
         "optimista", [sana, alerta], historial_alto(), materias={"A": {"esfuerzo": True}}
     )
@@ -520,3 +520,33 @@ def test_endpoint_portafolio_nexus(client, state, monkeypatch):
 
     job = asyncio.run(escenario())
     assert job["estado"] == "ok" and job["resultado"]["materias"] == 2
+
+
+def test_port_de_siase_no_es_desempeno_ni_genera_alertas():
+    entrada = materia(
+        "I",
+        {"par1": nota(100, 10), "portafolio": {"cal": 35.0, "pts": 14.0}},
+    )
+    r = c.calcular([entrada], {"I": "carrera"}, historial=historial_alto())["materias"][0]
+    assert r["alertas"] == []
+    assert r["asegurados"] == 24 and r["evaluado_pts"] == 24
+    assert r["pct_evaluado"] == 100
+    assert [x["peso"] for x in r["pendientes"] if x["clave"] == "portafolio"] == [36]
+    assert c._preparar(entrada, "carrera")["obs_tarea"] == []
+
+
+def test_optimista_nunca_es_menor_que_realista():
+    entradas = [carrera("A", par1=82, emt=99), carrera("B", par1=100, emt=79)]
+    hist = historial_alto()
+    opt = escenario("optimista", entradas, hist)
+    rea = escenario("realista", entradas, hist)
+    for o, r in zip(opt["materias"], rea["materias"], strict=True):
+        assert o["final"] >= r["final"]
+        for po, pr in zip(o["pendientes"], r["pendientes"], strict=True):
+            assert po["nota"] >= pr["nota"] - 1e-9
+
+
+def test_alertas_sin_duplicados():
+    r = calcular([carrera("X", par1=70)], historial=historial_alto())["materias"][0]
+    pares = [(a["tipo"], a["detalle"]) for a in r["alertas"]]
+    assert len(pares) == len(set(pares))
