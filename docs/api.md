@@ -70,6 +70,11 @@ type InstruccionFija = { id: string; texto: string; activa: boolean; sistema: bo
 - `WS /ws?token=...` → mensajes `{"type":"job","job":Job}` y `{"type":"log","level":str,"message":str}`
 - `GET /files/{path}` → archivos dentro de `data/` (miniaturas, PDFs, docx); acepta el token también como `?token=...` para usarlo en `<img src>`
 
+## Estado de la sesión de Gemini
+- `Settings` agrega (solo lectura) `gemini_sesion: boolean | null` y `gemini_sesion_verificada_en: string | null`. `null` = nunca verificada. Se actualizan solos: el job `login_gemini` deja `true` al detectar sesión (también con `ya_iniciada`); `generar` deja `true` cuando Gemini abre con sesión y `false` si encuentra la pantalla de login de Google o los marcadores de bloqueo; `verificar_gemini` deja lo que detecte. Se guardan en SQLite (no son credenciales: solo un booleano y una fecha).
+- `POST /gemini/verificar` → `Job` (tipo nuevo `"verificar_gemini"`): abre el perfil de Gemini, comprueba la sesión con `sesion_activa()` sin pedir nada al usuario, cierra el contexto ordenadamente y termina `ok` con `resultado: {sesion: boolean}`. Al arrancar el backend NO se verifica sola.
+- UI (Configuración → Gemini): si `gemini_sesion` es `true` muestra «Sesión de Gemini guardada» con la fecha de verificación y los botones «Verificar sesión» y «Volver a iniciar sesión»; si es `false` muestra «La sesión de Gemini se cerró» y «Iniciar sesión en Gemini»; si es `null` muestra «Sesión sin verificar» con «Verificar sesión» (principal) e «Iniciar sesión en Gemini».
+
 ## Asistente (chat local) y herramientas sueltas
 Motor: Ollama local (`http://127.0.0.1:11434`), modelo por defecto `qwen3:4b-instruct-2507-q4_K_M` (sin razonamiento, responde rápido y cabe en 6 GB de VRAM), configurable. Todo es local.
 ```ts
