@@ -56,6 +56,7 @@ Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la 
 - `POST /tareas/{id}/reconstruir-pdf` → `Generacion` (tras editar el .docx a mano)
 - `POST /tareas/{id}/entregar` body `{confirmar: true}` → `Job`
 - `GET /jobs/{id}` → `Job`
+- `POST /jobs/{id}/cancelar` → `Job` (detiene un job `en_cola`, `corriendo` o `esperando_usuario`: cancela su tarea, cierra ordenadamente el navegador que usaba (Gemini o NEXUS) para no dejarlo trabado y lo deja en `estado: "error"` con `mensaje: "Cancelado por el usuario"` y `resultado: {cancelado: true}`; si ya terminó, lo devuelve tal cual. Funciona para todos los tipos de job)
 - `POST /jobs/{id}/continuar` → `Job` (cuando estaba `esperando_usuario`, p. ej. captcha)
 - `WS /ws?token=...` → mensajes `{"type":"job","job":Job}` y `{"type":"log","level":str,"message":str}`
 - `GET /files/{path}` → archivos dentro de `data/` (miniaturas, PDFs, docx); acepta el token también como `?token=...` para usarlo en `<img src>`
