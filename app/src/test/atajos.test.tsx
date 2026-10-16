@@ -62,6 +62,16 @@ describe("atajos de teclado", () => {
     );
   });
 
+  it("C lleva a Calificaciones", async () => {
+    const user = userEvent.setup();
+    montar();
+    await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
+    await screen.findByRole("heading", { name: "Materias" });
+    await user.keyboard("c");
+    expect(await screen.findByRole("heading", { name: "Calificaciones" })).toBeInTheDocument();
+  });
+
   it("G lleva a Generar desde Insumos", async () => {
     const user = userEvent.setup();
     montar();

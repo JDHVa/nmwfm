@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
-import { Search } from "lucide-react";
+import { GraduationCap, Search } from "lucide-react";
 import { useQueries } from "@tanstack/react-query";
 import { TipoBadge } from "@/components/EstadoBadge";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
-import { useNav } from "@/lib/app-context";
-import { buscarTareas, type ResultadoBusqueda } from "@/lib/filtros";
+import { useNav, type View } from "@/lib/app-context";
+import { buscarTareas, normalizar, type ResultadoBusqueda } from "@/lib/filtros";
 import { keys, useMaterias } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -23,18 +23,39 @@ export function useTodasLasTareas(): ResultadoBusqueda[] {
   );
 }
 
+type Comando = { id: string; titulo: string; palabras: string; vista: View };
+
+const COMANDOS: Comando[] = [
+  {
+    id: "cmd-calificaciones",
+    titulo: "Calificaciones",
+    palabras: "calificaciones prediccion promedio revisar siase",
+    vista: { name: "calificaciones" },
+  },
+];
+
+type Entrada = { tipo: "comando"; comando: Comando } | { tipo: "tarea"; resultado: ResultadoBusqueda };
+
 export function PaletaBusqueda({ abierto, onCerrar }: { abierto: boolean; onCerrar: () => void }) {
   const { go } = useNav();
   const todas = useTodasLasTareas();
   const [consulta, setConsulta] = useState("");
   const [activo, setActivo] = useState(0);
-  const resultados = useMemo(() => buscarTareas(todas, consulta), [todas, consulta]);
+  const resultados = useMemo<Entrada[]>(() => {
+    const q = normalizar(consulta.trim());
+    const comandos = COMANDOS.filter((c) =>
+      q.split(/\s+/).every((t) => normalizar(`${c.titulo} ${c.palabras}`).includes(t)),
+    ).map((comando): Entrada => ({ tipo: "comando", comando }));
+    const tareas = buscarTareas(todas, consulta).map((resultado): Entrada => ({ tipo: "tarea", resultado }));
+    return [...comandos, ...tareas];
+  }, [todas, consulta]);
   const indice = Math.min(activo, Math.max(0, resultados.length - 1));
 
-  function abrir(r: ResultadoBusqueda | undefined) {
+  function abrir(r: Entrada | undefined) {
     if (!r) return;
     onCerrar();
-    go({ name: "tarea", materiaId: r.tarea.materia_id, id: r.tarea.id });
+    if (r.tipo === "comando") go(r.comando.vista);
+    else go({ name: "tarea", materiaId: r.resultado.tarea.materia_id, id: r.resultado.tarea.id });
   }
 
   return (
@@ -87,7 +108,11 @@ export function PaletaBusqueda({ abierto, onCerrar }: { abierto: boolean; onCerr
             <li className="px-3 py-6 text-center text-sm text-muted-foreground">Sin resultados.</li>
           )}
           {resultados.map((r, i) => (
-            <li key={r.tarea.id} role="option" aria-selected={i === indice}>
+            <li
+              key={r.tipo === "comando" ? r.comando.id : r.resultado.tarea.id}
+              role="option"
+              aria-selected={i === indice}
+            >
               <button
                 type="button"
                 onMouseEnter={() => setActivo(i)}
@@ -97,14 +122,28 @@ export function PaletaBusqueda({ abierto, onCerrar }: { abierto: boolean; onCerr
                   i === indice && "bg-accent",
                 )}
               >
-                <span className="w-10 shrink-0 font-semibold tabular-nums text-primary">
-                  {r.tarea.numero}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate font-medium">{r.tarea.titulo}</span>
-                  <span className="block truncate text-xs text-muted-foreground">{r.materia}</span>
-                </span>
-                <TipoBadge tarea={r.tarea} />
+                {r.tipo === "comando" ? (
+                  <>
+                    <GraduationCap className="size-4 w-10 shrink-0 text-primary" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{r.comando.titulo}</span>
+                      <span className="block truncate text-xs text-muted-foreground">Ir a la sección</span>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-10 shrink-0 font-semibold tabular-nums text-primary">
+                      {r.resultado.tarea.numero}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{r.resultado.tarea.titulo}</span>
+                      <span className="block truncate text-xs text-muted-foreground">
+                        {r.resultado.materia}
+                      </span>
+                    </span>
+                    <TipoBadge tarea={r.resultado.tarea} />
+                  </>
+                )}
               </button>
             </li>
           ))}
