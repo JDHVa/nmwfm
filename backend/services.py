@@ -54,7 +54,9 @@ class AppState:
         self.jobs = JobManager()
         self.browser = BrowserManager(self.paths.browser_profile, dev)
         self.browser_gemini = BrowserManager(self.paths.gemini_profile, dev)
-        self.gemini: LLMProvider = gemini or GeminiWeb(self.browser_gemini)
+        self.gemini: LLMProvider = gemini or GeminiWeb(
+            self.browser_gemini, lambda: self.storage.get_settings()["gemini_espera_envio_s"]
+        )
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
         self._detector: images.DetectorModelo | None = None
@@ -842,12 +844,44 @@ def _generacion_dir(state: AppState, tarea_id: str) -> Path:
     return state.paths.generaciones / tarea_id
 
 
+def armar_prompt(
+    state: AppState,
+    tarea: dict,
+    materia: dict,
+    detalle: dict,
+    instrucciones_extra: str | None,
+    tiene_insumos: bool,
+    texto_ocr: str,
+    instrucciones: dict[str, bool] | None,
+) -> str:
+    return build_prompt(
+        PromptData(
+            materia=materia["nombre"],
+            titulo=tarea["titulo"],
+            numero=tarea["numero"],
+            tipo=tarea["tipo"],
+            puntos=tarea["puntos"],
+            actividades=detalle["actividades"],
+            contenido=detalle["contenido"],
+            criterios_desempeno=detalle["criterios_desempeno"],
+            rubrica=Rubrica.from_dict(detalle["rubrica"]) if detalle["rubrica"] else None,
+            instrucciones_extra=instrucciones_extra,
+            tiene_insumos=tiene_insumos,
+            texto_ocr=texto_ocr,
+            indicaciones=state.storage.get_indicaciones(tarea["id"]),
+            instrucciones_fijas=state.storage.get_settings()["instrucciones_fijas"],
+            instrucciones=instrucciones,
+        )
+    )
+
+
 async def run_generar(
     state: AppState,
     ctx: JobContext,
     tarea_id: str,
     instrucciones_extra: str | None,
     portada: dict | None = None,
+    instrucciones: dict[str, bool] | None = None,
 ) -> dict:
     tarea = state.storage.get_tarea(tarea_id)
     materia = state.storage.get_materia(tarea["materia_id"])
@@ -870,22 +904,15 @@ async def run_generar(
         pdf_insumos = await asyncio.to_thread(images.build_pdf, refs, out_dir / "insumos.pdf")
 
     texto_ocr = await _texto_ocr(state, ctx, tarea_id)
-    prompt = build_prompt(
-        PromptData(
-            materia=materia["nombre"],
-            titulo=tarea["titulo"],
-            numero=tarea["numero"],
-            tipo=tarea["tipo"],
-            puntos=tarea["puntos"],
-            actividades=detalle["actividades"],
-            contenido=detalle["contenido"],
-            criterios_desempeno=detalle["criterios_desempeno"],
-            rubrica=Rubrica.from_dict(detalle["rubrica"]) if detalle["rubrica"] else None,
-            instrucciones_extra=instrucciones_extra,
-            tiene_insumos=pdf_insumos is not None,
-            texto_ocr=texto_ocr,
-            indicaciones=state.storage.get_indicaciones(tarea_id),
-        )
+    prompt = armar_prompt(
+        state,
+        tarea,
+        materia,
+        detalle,
+        instrucciones_extra,
+        pdf_insumos is not None,
+        texto_ocr,
+        instrucciones,
     )
     await ctx.update("generando", 0.45)
     async with state.browser_gemini.lock:

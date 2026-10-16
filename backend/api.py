@@ -21,6 +21,7 @@ from . import check, config, respaldo, services
 from .asistente import chat as asistente
 from .asistente.ollama import OllamaError
 from .core import images
+from .core.prompt_builder import validar_instrucciones_fijas
 from .scheduler import Programador
 from .services import ApiError, AppState
 
@@ -79,6 +80,7 @@ class PortadaBody(BaseModel):
 class GenerarBody(BaseModel):
     instrucciones_extra: str | None = None
     portada: PortadaBody | None = None
+    instrucciones: dict[str, bool] | None = None
 
 
 class SyncBody(BaseModel):
@@ -234,6 +236,20 @@ def create_app(
             if isinstance(horas, bool) or not isinstance(horas, int) or horas < 0:
                 raise ApiError(422, "validacion", "sync_cada_horas debe ser un entero >= 0.")
             values["sync_cada_horas"] = horas
+        if "instrucciones_fijas" in body:
+            try:
+                values["instrucciones_fijas"] = validar_instrucciones_fijas(
+                    body["instrucciones_fijas"]
+                )
+            except ValueError as e:
+                raise ApiError(422, "validacion", str(e)) from e
+        if "gemini_espera_envio_s" in body:
+            espera = body["gemini_espera_envio_s"]
+            if isinstance(espera, bool) or not isinstance(espera, int) or not 0 <= espera <= 15:
+                raise ApiError(
+                    422, "validacion", "gemini_espera_envio_s debe ser un entero entre 0 y 15."
+                )
+            values["gemini_espera_envio_s"] = espera
         state.storage.set_settings(values)
         if password:
             cuenta = state.storage.get_settings()["cuenta"]
@@ -548,9 +564,37 @@ def create_app(
         need_tarea(tarea_id)
         extra = body.instrucciones_extra if body else None
         portada = body.portada.model_dump() if body and body.portada else None
+        overrides = body.instrucciones if body else None
         return state.jobs.start(
-            "generar", lambda ctx: services.run_generar(state, ctx, tarea_id, extra, portada)
+            "generar",
+            lambda ctx: services.run_generar(state, ctx, tarea_id, extra, portada, overrides),
         ).to_dict()
+
+    @router.get("/prompt-preview/{tarea_id}")
+    async def prompt_preview(tarea_id: str, instrucciones: str | None = None):
+        tarea = need_tarea(tarea_id)
+        overrides = None
+        if instrucciones:
+            try:
+                overrides = json.loads(instrucciones)
+            except ValueError as e:
+                raise ApiError(422, "validacion", "instrucciones debe ser JSON válido.") from e
+            if not isinstance(overrides, dict) or not all(
+                isinstance(v, bool) for v in overrides.values()
+            ):
+                raise ApiError(422, "validacion", "instrucciones debe ser {id: booleano}.")
+        materia = state.storage.get_materia(tarea["materia_id"])
+        detalle = state.storage.get_detalle(tarea_id)
+        if detalle is None:
+            raise ApiError(400, "sin_detalle", "Lee la tarea en NEXUS antes de ver el prompt.")
+        insumos = state.storage.list_insumos(tarea_id)
+        texto_ocr = "\n\n".join(
+            f["ocr_texto"] for f in insumos if f["tipo"] == "imagen" and f.get("ocr_texto")
+        )
+        prompt = services.armar_prompt(
+            state, tarea, materia, detalle, None, bool(insumos), texto_ocr, overrides
+        )
+        return {"prompt": prompt}
 
     @router.get("/tareas/{tarea_id}/generacion")
     async def generacion(tarea_id: str):

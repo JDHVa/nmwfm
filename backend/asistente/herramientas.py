@@ -208,8 +208,17 @@ async def generar_tarea(state: AppState, args: dict) -> dict:
     tarea = _necesita_tarea(state, args.get("tarea_id", ""))
     extra = args.get("instrucciones_extra")
     portada = _datos_portada(args["portada"]) if isinstance(args.get("portada"), dict) else None
+    overrides = {}
+    if isinstance(args.get("instrucciones"), dict):
+        overrides = {k: v for k, v in args["instrucciones"].items() if isinstance(v, bool)}
+    if args.get("sin_referencias") is True:
+        overrides["referencias_apa7"] = False
     return _iniciar_job(
-        state, "generar", lambda ctx: services.run_generar(state, ctx, tarea["id"], extra, portada)
+        state,
+        "generar",
+        lambda ctx: services.run_generar(
+            state, ctx, tarea["id"], extra, portada, overrides or None
+        ),
     )
 
 
@@ -323,6 +332,16 @@ HERRAMIENTAS: dict[str, Herramienta] = {
             {
                 "tarea_id": TAREA_ID,
                 "instrucciones_extra": {"type": "string", "description": "Indicaciones extra."},
+                "sin_referencias": {
+                    "type": "boolean",
+                    "description": "Si es true, no pide la sección de Referencias APA 7.",
+                },
+                "instrucciones": {
+                    "type": "object",
+                    "description": "Activa o desactiva instrucciones fijas por id solo para esta "
+                    'generación, p. ej. {"referencias_apa7": false}.',
+                    "additionalProperties": {"type": "boolean"},
+                },
                 "portada": {
                     "type": "object",
                     "description": "Datos de portada a cambiar; los omitidos usan los ajustes.",

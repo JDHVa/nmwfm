@@ -213,7 +213,7 @@ def test_revisar_y_generar_lanzan_sus_jobs(con_tareas, monkeypatch):
     async def revisar(state, ctx):
         llamadas.append("revisar")
 
-    async def generar(state, ctx, tarea_id, extra=None, portada=None):
+    async def generar(state, ctx, tarea_id, extra=None, portada=None, instrucciones=None):
         llamadas.append(("generar", tarea_id, extra))
 
     monkeypatch.setattr(services, "run_revisar_entregas", revisar)

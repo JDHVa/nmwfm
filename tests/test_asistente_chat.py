@@ -582,7 +582,7 @@ def test_sin_intencion_de_entrega_los_tokens_se_emiten_en_vivo(con_tareas):  # n
 def test_generar_tarea_se_bloquea_si_el_usuario_no_lo_pidio(con_tareas, monkeypatch):  # noqa: F811
     lanzados = []
 
-    async def generar(state, ctx, tarea_id, extra=None, portada=None):
+    async def generar(state, ctx, tarea_id, extra=None, portada=None, instrucciones=None):
         lanzados.append(tarea_id)
 
     monkeypatch.setattr(services, "run_generar", generar)
@@ -597,7 +597,7 @@ def test_generar_tarea_se_bloquea_si_el_usuario_no_lo_pidio(con_tareas, monkeypa
 def test_generar_tarea_se_permite_si_el_usuario_la_pide(con_tareas, monkeypatch):  # noqa: F811
     lanzados = []
 
-    async def generar(state, ctx, tarea_id, extra=None, portada=None):
+    async def generar(state, ctx, tarea_id, extra=None, portada=None, instrucciones=None):
         lanzados.append(tarea_id)
 
     monkeypatch.setattr(services, "run_generar", generar)
