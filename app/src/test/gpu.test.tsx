@@ -36,7 +36,6 @@ describe("memoria de video del asistente", () => {
     const user = userEvent.setup();
     montar();
     await entrar(user);
-    await user.click(await screen.findByRole("button", { name: "Asistente" }));
     expect(await screen.findByText("Cargando modelo…")).toBeInTheDocument();
     expect(mock.llamadas).toContain("POST /asistente/precalentar");
     await waitFor(() => expect(screen.queryByText("Cargando modelo…")).not.toBeInTheDocument());
@@ -67,7 +66,7 @@ describe("memoria de video del asistente", () => {
     const user = userEvent.setup();
     montar();
     await entrar(user);
-    await screen.findByRole("heading", { name: "Materias" });
+    await screen.findByRole("heading", { name: "Asistente" });
     window.dispatchEvent(new Event("pagehide"));
     await waitFor(() => expect(mock.llamadas).toContain("POST /asistente/liberar"));
   });

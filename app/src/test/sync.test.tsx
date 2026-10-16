@@ -32,6 +32,7 @@ describe("sync automático", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     expect(await screen.findByText("Preparando todo por primera vez")).toBeInTheDocument();
     expect(screen.getByText(/solo se hace una vez/)).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Seguir en segundo plano" }));
@@ -44,6 +45,7 @@ describe("sync automático", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     expect(await screen.findByRole("button", { name: /Al día/ }, { timeout: 8000 })).toBeInTheDocument();
     expect((await api.getSettings()).sync_inicial_hecha).toBe(true);
     expect(screen.queryByText("Preparando todo por primera vez")).not.toBeInTheDocument();
@@ -56,6 +58,7 @@ describe("sync automático", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     expect(await screen.findByRole("heading", { name: "Materias" })).toBeInTheDocument();
     expect(screen.queryByText("Preparando todo por primera vez")).not.toBeInTheDocument();
   });
@@ -67,6 +70,7 @@ describe("sync automático", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     const mas = await screen.findByRole("button", { name: "Más opciones de sincronización" });
     await waitFor(() => expect(mas).toBeEnabled());
     await user.click(mas);
@@ -81,6 +85,7 @@ describe("sync automático", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     expect(await screen.findByRole("button", { name: /Al día/ })).toBeInTheDocument();
     await new Promise((r) => setTimeout(r, 300));
     expect(espia).not.toHaveBeenCalled();

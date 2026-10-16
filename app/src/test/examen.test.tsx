@@ -33,6 +33,7 @@ describe("exámenes y PIA", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     expect((await screen.findAllByText("Examen en NEXUS")).length).toBeGreaterThan(0);
     await user.click(await screen.findByText("Examen Etapa 1"));
@@ -47,6 +48,7 @@ describe("exámenes y PIA", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByRole("button", { name: "Próximas entregas" }));
     await screen.findByRole("heading", { name: "Próximas entregas" });
     expect((await screen.findAllByText("Examen en NEXUS")).length).toBeGreaterThan(0);
@@ -58,6 +60,7 @@ describe("exámenes y PIA", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByRole("button", { name: "Próximas entregas" }));
     const filas = await screen.findAllByRole("button", { name: /PIA - Informe/ });
     await user.click(filas[0]);

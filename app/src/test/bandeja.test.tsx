@@ -50,6 +50,7 @@ describe("bandeja del sistema", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await waitFor(() => expect(captura.alPedir).not.toBeNull());
     await waitFor(() => expect(sync).toHaveBeenCalledTimes(1));
     await waitFor(async () => expect((await api.getSettings()).sync_inicial_hecha).toBe(true), {
@@ -63,6 +64,7 @@ describe("bandeja del sistema", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByRole("button", { name: "Configuración" }));
     const interruptor = await screen.findByRole("switch", { name: "Minimizar a la bandeja al cerrar" });
     expect(interruptor).toBeChecked();

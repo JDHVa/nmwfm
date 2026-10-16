@@ -137,6 +137,7 @@ describe("preguntar al asistente desde una tarea", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     await user.click(await screen.findByText("Dimensión 2 - Comprensión - Ficha Técnica"));
     await user.click(await screen.findByRole("button", { name: "Preguntar al asistente" }));

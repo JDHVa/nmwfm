@@ -42,6 +42,7 @@ describe("vistas con backend simulado", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
 
     expect(await screen.findByRole("heading", { name: "Materias" })).toBeInTheDocument();
     expect(await screen.findByText("Algoritmos Bio Inspirados")).toBeInTheDocument();
@@ -63,6 +64,7 @@ describe("vistas con backend simulado", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     const filas = await screen.findAllByText("Evidencia de Aprendizaje - Informe");
     await user.click(filas[0]);
@@ -76,6 +78,7 @@ describe("vistas con backend simulado", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
     await user.click(await screen.findByText("Dimensión 2 - Comprensión - Ficha Técnica"));
     const input = await screen.findByTestId("input-archivos");

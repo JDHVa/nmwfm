@@ -69,6 +69,7 @@ describe("paleta y filtros en la interfaz", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await screen.findByRole("heading", { name: "Materias" });
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const campo = await screen.findByRole("combobox", { name: "Buscar tareas" });
@@ -82,6 +83,7 @@ describe("paleta y filtros en la interfaz", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByRole("button", { name: "Próximas entregas" }));
     await screen.findByRole("region", { name: /Hoy/ });
     await user.selectOptions(screen.getByLabelText("Estado"), "vencida");
