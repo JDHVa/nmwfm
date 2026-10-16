@@ -53,7 +53,8 @@ class AppState:
         self.credentials = credentials or Credentials()
         self.jobs = JobManager()
         self.browser = BrowserManager(self.paths.browser_profile, dev)
-        self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
+        self.browser_gemini = BrowserManager(self.paths.gemini_profile, dev)
+        self.gemini: LLMProvider = gemini or GeminiWeb(self.browser_gemini)
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
         self._detector: images.DetectorModelo | None = None
@@ -134,6 +135,7 @@ class AppState:
     async def close(self) -> None:
         await self.jobs.shutdown()
         await self.browser.close()
+        await self.browser_gemini.close()
         self.storage.close()
 
 
@@ -648,7 +650,7 @@ async def traer_detalle(state: AppState, tarea_id: str) -> dict:
 
 
 async def run_login_gemini(state: AppState, ctx: JobContext) -> dict:
-    async with state.browser.lock:
+    async with state.browser_gemini.lock:
         await state.gemini.iniciar_sesion(ctx.hooks())
     return {"sesion": True}
 
@@ -861,7 +863,7 @@ async def run_generar(
         )
     )
     await ctx.update("generando", 0.45)
-    async with state.browser.lock:
+    async with state.browser_gemini.lock:
         markdown = await state.gemini.generar(prompt, pdf_insumos, ctx.hooks())
 
     await ctx.update("Creando el documento Word", 0.88)
