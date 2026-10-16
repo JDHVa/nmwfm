@@ -307,7 +307,7 @@ function Burbuja({ item, onConfirmar }: { item: ItemChat; onConfirmar: (aceptar:
   if (item.tipo === "usuario") {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-4 py-2 text-sm text-primary-foreground">
+        <div className="max-w-[85%] rounded-2xl rounded-br-sm bg-primary px-4 py-2 text-sm text-primary-foreground">
           <p className="whitespace-pre-wrap">{item.texto}</p>
         </div>
       </div>

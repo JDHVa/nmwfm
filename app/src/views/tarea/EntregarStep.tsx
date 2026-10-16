@@ -46,7 +46,7 @@ export function EntregarStep({ tarea, onAtras }: { tarea: TareaDetalle; onAtras:
 
   return (
     <ClickSpark
-      sparkColor={[token("--primary"), token("--mint"), token("--grad-to")]}
+      sparkColor={[token("--primary"), token("--success"), token("--foreground")]}
       sparkCount={14}
       sparkRadius={60}
       disabled={reducido}

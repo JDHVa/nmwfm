@@ -87,7 +87,7 @@ export function LoginView({ settings, onEntrar }: { settings: Settings; onEntrar
       <section className="relative flex flex-col justify-center gap-8 px-8 py-12 lg:px-16">
         <div className="flex items-center gap-3">
           <Logo className="size-12" />
-          <span className="text-brand text-3xl font-bold tracking-tight">nmwfm</span>
+          <span className="text-foreground text-3xl font-bold tracking-tight">nmwfm</span>
         </div>
         <div className="max-w-xl text-4xl font-semibold leading-tight tracking-tight lg:text-5xl">
           {reducido ? <span>{FRASES[0]}</span> : <FrasesRotativas frases={FRASES} />}
@@ -113,7 +113,7 @@ export function LoginView({ settings, onEntrar }: { settings: Settings; onEntrar
           <div className="space-y-1">
             <h1 id="titulo-login" className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
               Iniciar sesión
-              <Rocket className="size-5 text-mint" />
+              <Rocket className="size-5 text-primary" />
             </h1>
             <p className="text-sm text-muted-foreground">Usa tu cuenta de SIASE para continuar.</p>
           </div>

@@ -11,7 +11,6 @@ import {
   Sun,
 } from "lucide-react";
 import Dock from "@/components/Dock";
-import { Background } from "@/components/Background";
 import { AyudaAtajos } from "@/components/AyudaAtajos";
 import { Campanita } from "@/components/Campanita";
 import { LogPanel } from "@/components/LogPanel";
@@ -173,7 +172,6 @@ function Raiz({ settings }: { settings: Settings }) {
 
   return (
     <div className="relative h-full overflow-hidden">
-      <Background />
       <div className="relative z-10 h-full">
         {fase === "login" && <LoginView settings={settings} onEntrar={() => setFase("app")} />}
         {fase === "saludo" && <SaludoView nombre={settings.nombre} onTerminar={() => setFase("app")} />}

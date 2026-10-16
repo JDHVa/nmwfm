@@ -9,7 +9,7 @@ export default tseslint.config(
       "dist",
       "src-tauri",
       "node_modules",
-      "src/components/{SpotlightCard,Dock,DecryptedText,RotatingText,ClickSpark,Stepper,Silk,BlurText}.tsx",
+      "src/components/{SpotlightCard,Dock,DecryptedText,RotatingText,ClickSpark,Stepper,BlurText}.tsx",
       "src/components/ui",
     ],
   },
