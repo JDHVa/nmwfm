@@ -35,7 +35,7 @@ CORS_ORIGINS = [
 
 MODELO_RECORTE_ARCHIVO = "u2netp.onnx"
 MODELO_RECORTE_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx"
-MODELO_RECORTE_SHA256 = ""
+MODELO_RECORTE_SHA256 = "309c8469258dda742793dce0ebea8e6dd393174f89934733ecc8b14c76f4ddd8"
 
 SIASE_URL = "https://www.uanl.mx/enlinea/"
 NEXUS_URL_FRAGMENT = "plataformanexus.uanl.mx/#/App/UnidadesAprendizaje"
