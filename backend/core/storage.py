@@ -88,6 +88,23 @@ CREATE TABLE IF NOT EXISTS calificaciones_tipos (
     clave TEXT PRIMARY KEY,
     tipo TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS historial_calificaciones (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    periodo TEXT NOT NULL,
+    nombre TEXT,
+    clave TEXT,
+    origen TEXT NOT NULL DEFAULT 'manual',
+    tipo TEXT,
+    par1 REAL,
+    par2 REAL,
+    emt REAL,
+    eg REAL,
+    port REAL,
+    total REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS historial_importado (
+    id INTEGER PRIMARY KEY CHECK (id = 1)
+);
 CREATE TABLE IF NOT EXISTS novedades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
@@ -129,6 +146,8 @@ CREATE TABLE IF NOT EXISTS settings (
 
 MODELO_ASISTENTE = "qwen3:4b-instruct-2507-q4_K_M"
 MODELO_ASISTENTE_ANTERIOR = "qwen3:4b"
+
+CAMPOS_HISTORIAL = ("par1", "par2", "emt", "eg", "port", "total")
 
 SETTING_DEFAULTS = {
     "cuenta": "",
@@ -731,6 +750,54 @@ class Storage:
                 "ON CONFLICT(clave) DO UPDATE SET tipo = excluded.tipo",
                 (clave, tipo),
             )
+
+    def historial_importado(self) -> bool:
+        return self._one("SELECT id FROM historial_importado WHERE id = 1") is not None
+
+    def get_historial_calificaciones(self) -> list[dict]:
+        filas = self._all("SELECT * FROM historial_calificaciones ORDER BY id")
+        semestres: list[dict] = []
+        for fila in filas:
+            materia = {
+                k: fila[k]
+                for k in ("nombre", "clave", "tipo", *CAMPOS_HISTORIAL)
+                if fila[k] is not None or k in ("nombre", "tipo")
+            }
+            if not semestres or semestres[-1]["periodo"] != fila["periodo"]:
+                semestres.append({"periodo": fila["periodo"], "materias": []})
+            semestres[-1]["materias"].append(materia)
+        return semestres
+
+    def _insertar_historial(self, periodo: str, m: dict, origen: str) -> None:
+        self._db.execute(
+            "INSERT INTO historial_calificaciones"
+            "(periodo, nombre, clave, origen, tipo, par1, par2, emt, eg, port, total) "
+            "VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (
+                periodo,
+                m.get("nombre"),
+                m.get("clave"),
+                origen,
+                m.get("tipo"),
+                *(m.get(k) for k in CAMPOS_HISTORIAL),
+            ),
+        )
+
+    def set_historial_calificaciones(self, semestres: list[dict]) -> None:
+        with self._lock:
+            self._db.execute("DELETE FROM historial_calificaciones")
+            for semestre in semestres:
+                for m in semestre["materias"]:
+                    self._insertar_historial(semestre["periodo"], {**m, "clave": None}, "manual")
+            self._db.execute("INSERT OR IGNORE INTO historial_importado(id) VALUES(1)")
+            self._db.commit()
+
+    def set_kardex(self, filas: list[dict]) -> None:
+        with self._lock:
+            self._db.execute("DELETE FROM historial_calificaciones WHERE origen = 'kardex'")
+            for fila in filas:
+                self._insertar_historial(fila["periodo"], fila, "kardex")
+            self._db.commit()
 
     def get_indicaciones(self, tarea_id: str) -> str:
         fila = self._one("SELECT texto FROM indicaciones WHERE tarea_id = ?", (tarea_id,))

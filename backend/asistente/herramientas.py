@@ -180,6 +180,17 @@ async def generar_portada(state: AppState, args: dict) -> dict:
     return {**resultado, "ruta_pdf": str(carpeta)}
 
 
+CAMPOS_TABLA = (
+    "portafolio_pts",
+    "portafolio_max",
+    "examenes_pts",
+    "examenes_max",
+    "total_pts",
+    "evaluado_pts",
+    "pct_evaluado",
+)
+
+
 async def ver_calificaciones(state: AppState, args: dict) -> dict:
     resumen = services.resumen_calificaciones(state)
     buscada = _plano(args.get("materia", ""))
@@ -187,9 +198,19 @@ async def ver_calificaciones(state: AppState, args: dict) -> dict:
         resumen["materias"] = [m for m in resumen["materias"] if buscada in _plano(m["nombre"])]
     else:
         resumen["materias"] = [
-            {k: v for k, v in m.items() if k not in ("componentes", "portafolio", "pendientes")}
+            {
+                **{
+                    k: v
+                    for k, v in m.items()
+                    if k not in ("componentes", "portafolio", "pendientes")
+                },
+                "tabla": {k: m[k] for k in CAMPOS_TABLA},
+            }
             for m in resumen["materias"]
         ]
+        for m in resumen["materias"]:
+            for k in CAMPOS_TABLA:
+                del m[k]
     return resumen
 
 

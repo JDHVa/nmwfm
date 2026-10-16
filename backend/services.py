@@ -16,7 +16,7 @@ from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
 from .core.prompt_builder import PromptData, build_prompt
-from .core.storage import SETTING_DEFAULTS, Credentials, Storage, now_iso
+from .core.storage import CAMPOS_HISTORIAL, SETTING_DEFAULTS, Credentials, Storage, now_iso
 from .core.types import Hooks, Rubrica
 from .jobs import JobContext, JobManager
 
@@ -66,6 +66,7 @@ class AppState:
         self.asistente_pendientes: dict = {}
         self.catalogo = Catalogo(self.paths.debug / "api" if dev else None)
         limpiar_autoevaluaciones(self.storage)
+        importar_historial(self)
 
     def file_url(self, path: str | Path | None) -> str | None:
         if not path:
@@ -212,11 +213,98 @@ async def run_calificaciones_siase(state: AppState, ctx: JobContext) -> dict:
     cuenta, password = require_credentials(state)
     async with state.browser.lock:
         browser_ctx = await state.browser.context()
-        materias = await siase.leer_calificaciones(browser_ctx, cuenta, password, ctx.hooks())
+        materias, kardex = await siase.leer_calificaciones(
+            browser_ctx, cuenta, password, ctx.hooks()
+        )
     if not materias:
         raise ApiError(502, "siase_sin_materias", "SIASE no devolvio materias con calificaciones.")
     state.storage.set_siase_calificaciones(materias)
-    return {"materias": len(materias)}
+    if kardex:
+        state.storage.set_kardex(
+            [
+                {
+                    "periodo": f"Semestre {fila['semestre']}",
+                    "nombre": fila["nombre"],
+                    "clave": fila["clave"],
+                    "tipo": None,
+                    "total": fila["calificacion"],
+                }
+                for fila in kardex
+            ]
+        )
+    return {"materias": len(materias), "kardex": len(kardex)}
+
+
+async def run_portafolio_nexus(state: AppState, ctx: JobContext) -> dict:
+    acum = _acumulador()
+    async with state.browser.lock:
+        n, fallidas = await _secuencial(state, ctx, _portafolio_materia, "portafolio", False, acum)
+    return {"materias": n - fallidas, "errores": acum["errores"]}
+
+
+async def _portafolio_materia(
+    state: AppState,
+    ctx: JobContext,
+    page: Page,
+    modo: str,
+    reanudar: bool,
+    i: int,
+    n: int,
+    materia,
+    acum: dict,
+) -> None:
+    await ctx.update(f"Materia {i + 1}/{n}: {materia.nombre}", 0.08 + 0.9 * i / n)
+    portada = await nexus.abrir_materia(page, i, materia.nombre)
+    state.storage.set_portada(materia.id, portada.profesor, portada.periodo)
+    html = await nexus.abrir_calificaciones(page)
+    datos = nexus.parse_calificaciones(html)
+    if datos is None:
+        acum["errores"].append(f"{materia.nombre}: formato de calificaciones no reconocido")
+        await ctx.log(f"Calificaciones de {materia.nombre}: formato no reconocido", "error")
+        await guardar_snapshot(state, page, f"calificaciones-{materia.id}")
+    else:
+        state.storage.set_calificaciones(materia.id, datos)
+    await nexus.volver_a_lista(page)
+
+
+def importar_historial(state: AppState) -> None:
+    ruta = state.paths.data / "historial_semestres.json"
+    if (
+        state.storage.historial_importado()
+        or state.storage.get_historial_calificaciones()
+        or not ruta.exists()
+    ):
+        return
+    with contextlib.suppress(OSError, ValueError, KeyError, TypeError):
+        crudo = json.loads(ruta.read_text(encoding="utf-8"))
+        semestres = []
+        for semestre in crudo["semestres"]:
+            materias = [
+                {k: v for k, v in m.items() if k in ("nombre", "tipo", *CAMPOS_HISTORIAL)}
+                for m in semestre["materias"]
+                if m.get("total") is not None
+            ]
+            semestres.append({"periodo": semestre["periodo"], "materias": materias})
+        state.storage.set_historial_calificaciones(semestres)
+
+
+def historial_semestres(state: AppState) -> list[dict]:
+    return calificaciones.fusionar_kardex(state.storage.get_historial_calificaciones())
+
+
+def _historial_plano(state: AppState) -> list[dict]:
+    return [m for s in historial_semestres(state) for m in s["materias"]]
+
+
+def get_historial(state: AppState) -> dict:
+    semestres = historial_semestres(state)
+    plano = [m for s in semestres for m in s["materias"]]
+    return {"semestres": semestres, "resumen": calificaciones.resumen_historial(plano)}
+
+
+def guardar_historial(state: AppState, semestres: list[dict]) -> dict:
+    state.storage.set_historial_calificaciones(semestres)
+    return get_historial(state)
 
 
 def _tareas_vencidas_por_materia(state: AppState) -> dict[str, list[str]]:
@@ -239,11 +327,10 @@ def _portafolio_nexus(state: AppState, materia_id: str, vencidas: list[str]) -> 
     return elementos or None
 
 
-def resumen_calificaciones(state: AppState) -> dict:
+def _entradas_calificaciones(state: AppState) -> tuple[list[dict], dict | None, str | None]:
     siase_guardado = state.storage.get_siase_calificaciones()
-    objetivos = state.storage.get_objetivos()
-    objetivo_semestre = objetivos.pop(OBJETIVO_SEMESTRE, None)
     entradas = []
+    nexus_leido_en = None
     if siase_guardado:
         nexus_materias = state.storage.list_materias()
         vencidas = _tareas_vencidas_por_materia(state)
@@ -259,21 +346,41 @@ def resumen_calificaciones(state: AppState) -> dict:
                 ),
                 None,
             )
+            portafolio = None
+            if par:
+                portafolio = _portafolio_nexus(state, par["id"], vencidas.get(par["id"], []))
+                leida = (state.storage.get_calificaciones(par["id"]) or {}).get("actualizada_en")
+                if portafolio and leida and (nexus_leido_en is None or leida > nexus_leido_en):
+                    nexus_leido_en = leida
             entradas.append(
-                {
-                    **fila,
-                    "materia_id": par["id"] if par else None,
-                    "portafolio": _portafolio_nexus(state, par["id"], vencidas.get(par["id"], []))
-                    if par
-                    else None,
-                }
+                {**fila, "materia_id": par["id"] if par else None, "portafolio": portafolio}
             )
+    return entradas, siase_guardado, nexus_leido_en
+
+
+def resumen_calificaciones(state: AppState) -> dict:
+    entradas, siase_guardado, nexus_leido_en = _entradas_calificaciones(state)
+    objetivos = state.storage.get_objetivos()
+    objetivo_semestre = objetivos.pop(OBJETIVO_SEMESTRE, None)
     return calificaciones.calcular(
         entradas,
         state.storage.get_tipos_manuales(),
         objetivos,
         objetivo_semestre,
         siase_guardado["leida_en"] if siase_guardado else None,
+        historial=_historial_plano(state),
+        nexus_leido_en=nexus_leido_en,
+    )
+
+
+def escenario_calificaciones(state: AppState, escenario: dict) -> dict:
+    entradas, _, _ = _entradas_calificaciones(state)
+    conocidas = {e["clave"] for e in entradas}
+    for clave in escenario.get("materias") or {}:
+        if clave not in conocidas:
+            raise ApiError(404, "materia_no_encontrada", "La materia no existe en SIASE.")
+    return calificaciones.calcular_escenario(
+        entradas, escenario, state.storage.get_tipos_manuales(), _historial_plano(state)
     )
 
 

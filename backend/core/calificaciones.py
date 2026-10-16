@@ -33,6 +33,21 @@ PESOS = {
 TIPOS = tuple(PESOS)
 SUMA_POR_TIPO = {"bachillerato": 40, "carrera": 50, "portafolio": 100}
 RAZON_POR_TIPO = {"bachillerato": 0.4, "carrera": 0.5, "portafolio": 1.0}
+EXAMENES = ("par1", "emt", "par2", "eg")
+CAMPO_HISTORIAL = {
+    "par1": "par1",
+    "par2": "par2",
+    "emt": "emt",
+    "eg": "eg",
+    "portafolio": "port",
+    "total": "total",
+}
+MIN_OBSERVACIONES_HISTORIAL = 3
+SESGO = 0.5
+UMBRAL_BAJO_HISTORICO = 5.0
+UMBRAL_EXAMEN_BAJO = 80.0
+PERDIDOS_SIN_HISTORIAL = 6.0
+PROB_MINIMA = 0.5 / MUESTRAS
 
 
 def normalizar(texto: str) -> str:
@@ -181,6 +196,18 @@ def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
                 )
 
     asegurados = sum(c["puntos"] for c in componentes if c["puntos"] is not None)
+    evaluado = sum(
+        c["peso"]
+        for c in componentes
+        if c["clave"] != "portafolio" and c["calificacion"] is not None
+    )
+    comp_port = next((c for c in componentes if c["clave"] == "portafolio"), None)
+    if elementos:
+        evaluado += sum(
+            e["valor"] for e in elementos if e["calificacion"] is not None or e.get("perdida")
+        )
+    elif comp_port and comp_port["puntos"] is not None:
+        evaluado += comp_port["puntos"]
     hay_datos = bool(obs_examen or obs_tarea) or any(c["puntos"] is not None for c in componentes)
     return {
         "entrada": entrada,
@@ -198,6 +225,7 @@ def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
         ],
         "pendientes": pendientes,
         "asegurados": asegurados,
+        "evaluado": evaluado,
         "obs_examen": obs_examen,
         "obs_tarea": obs_tarea,
         "hay_datos": hay_datos,
@@ -215,10 +243,97 @@ def _mezclar(n: int, media: float, prior: float, peso_prior: float) -> float:
     return (n * media + peso_prior * prior) / (n + peso_prior)
 
 
-def _simular(p: dict, media_global: float, desv_global: float) -> np.ndarray:
+def _estadisticas(valores: list[float]) -> dict:
+    if not valores:
+        return {"media": 0.0, "desv": 0.0, "n": 0, "prob_100": 0.0}
+    arreglo = np.array(valores, dtype=float)
+    return {
+        "media": float(arreglo.mean()),
+        "desv": float(arreglo.std()),
+        "n": len(valores),
+        "prob_100": float(np.mean(arreglo >= 100 - 1e-9)),
+    }
+
+
+def _contexto_historial(historial: list[dict] | None) -> dict | None:
+    if not historial:
+        return None
+    valores: dict[str, list[float]] = {clave: [] for clave in CAMPO_HISTORIAL}
+    for materia in historial:
+        for clave, campo in CAMPO_HISTORIAL.items():
+            if materia.get(campo) is not None:
+                valores[clave].append(float(materia[campo]))
+    if not any(valores.values()):
+        return None
+    return {
+        "valores": valores,
+        "stats": {clave: _estadisticas(v) for clave, v in valores.items()},
+        "examenes": _estadisticas([x for clave in EXAMENES for x in valores[clave]]),
+        "tareas": _estadisticas(valores["portafolio"]),
+        "min_total": min(valores["total"]) if valores["total"] else None,
+    }
+
+
+def resumen_historial(historial: list[dict] | None) -> dict:
+    contexto = _contexto_historial(historial)
+    resumen = {}
+    for clave in CAMPO_HISTORIAL:
+        e = contexto["stats"][clave] if contexto else _estadisticas([])
+        resumen[clave] = {
+            "media": _redondear(e["media"]),
+            "desv": _redondear(e["desv"]),
+            "n": e["n"],
+            "prob_100": _redondear(e["prob_100"], 3),
+        }
+    return resumen
+
+
+def numero_semestre(periodo: str) -> int | None:
+    plano = normalizar(periodo)
+    encontrado = re.fullmatch(r"semestre (\d+)", plano) or re.fullmatch(
+        r"(\d+) ?(?:er|ro|do|to|vo|mo|no|o|a)? semestre", plano
+    )
+    return int(encontrado.group(1)) if encontrado else None
+
+
+def fusionar_kardex(semestres: list[dict]) -> list[dict]:
+    propios = [{**s, "materias": [m for m in s["materias"] if "clave" not in m]} for s in semestres]
+    sin_nombre = {
+        numero_semestre(s["periodo"])
+        for s in propios
+        if s["materias"] and all(not m.get("nombre") for m in s["materias"])
+    }
+    por_nombre = {
+        normalizar(m["nombre"]): m for s in propios for m in s["materias"] if m.get("nombre")
+    }
+    nuevos = []
+    for s in semestres:
+        agregadas = []
+        for m in s["materias"]:
+            if "clave" not in m:
+                continue
+            existente = por_nombre.get(normalizar(m.get("nombre") or ""))
+            if existente is not None:
+                existente["total"] = m["total"]
+            elif numero_semestre(s["periodo"]) not in sin_nombre:
+                agregadas.append({k: v for k, v in m.items() if k != "clave"})
+        if agregadas:
+            nuevos.append({"periodo": s["periodo"], "materias": agregadas})
+    return [s for s in propios if s["materias"]] + nuevos
+
+
+def _remuestreo(valores: list[float], rng: np.random.Generator) -> np.ndarray:
+    arreglo = np.array(valores, dtype=float)
+    n = len(arreglo)
+    ancho = max(1.0, 1.06 * float(arreglo.std()) * n**-0.2)
+    elegidos = arreglo[rng.integers(0, n, size=MUESTRAS)]
+    ruido = rng.normal(size=MUESTRAS) * ancho
+    suavizados = np.where(elegidos >= 100 - 1e-9, elegidos, elegidos + ruido)
+    return np.where(suavizados > 100, 200 - suavizados, suavizados)
+
+
+def _notas(p: dict, media_global: float, desv_global: float, hist: dict | None) -> np.ndarray:
     pendientes = p["pendientes"]
-    if not pendientes:
-        return np.full(MUESTRAS, min(100.0, p["asegurados"]))
     rng = np.random.default_rng(SEMILLA + zlib.crc32(p["entrada"]["clave"].encode()))
     todas = p["obs_examen"] + p["obs_tarea"]
     n = len(todas)
@@ -235,10 +350,37 @@ def _simular(p: dict, media_global: float, desv_global: float) -> np.ndarray:
         medias.append(
             _mezclar(len(grupo), float(np.mean(grupo)), mu, PESO_PRIOR_GRUPO) if grupo else mu
         )
-    pesos = np.array([x["peso"] for x in pendientes], dtype=float)
     ruido = rng.normal(size=(MUESTRAS, len(pendientes))) * desv
-    sesgo = rng.normal(size=(MUESTRAS, 1)) * desv / math.sqrt(n + PESO_PRIOR)
-    notas = np.clip(np.array(medias) + sesgo + ruido, 0, 100)
+    aleatorio = rng.normal(size=(MUESTRAS, 1))
+    notas = np.array(medias) + aleatorio * desv / math.sqrt(n + PESO_PRIOR) + ruido
+    if hist is not None:
+        factor = np.exp(SESGO * aleatorio[:, 0] / math.sqrt(n + PESO_PRIOR))
+        for j, pendiente in enumerate(pendientes):
+            valores = hist["valores"][pendiente["clave"]]
+            if len(valores) < MIN_OBSERVACIONES_HISTORIAL:
+                continue
+            tarea = pendiente["clave"] == "portafolio"
+            obs = p["obs_tarea"] if tarea else p["obs_examen"]
+            referencia = hist["tareas" if tarea else "examenes"]["media"]
+            desplazamiento = (
+                (float(np.mean(obs)) - referencia) * len(obs) / (len(obs) + PESO_PRIOR)
+                if obs
+                else 0.0
+            )
+            muestra = _remuestreo(valores, rng)
+            base = 100 - (100 - muestra) * factor
+            notas[:, j] = np.where(
+                (desplazamiento < 0) & (muestra >= 100 - 1e-9), base, base + desplazamiento
+            )
+    return np.clip(notas, 0, 100)
+
+
+def _simular(p: dict, media_global: float, desv_global: float, hist: dict | None) -> np.ndarray:
+    pendientes = p["pendientes"]
+    if not pendientes:
+        return np.full(MUESTRAS, min(100.0, p["asegurados"]))
+    pesos = np.array([x["peso"] for x in pendientes], dtype=float)
+    notas = _notas(p, media_global, desv_global, hist)
     return np.clip(p["asegurados"] + notas @ pesos / 100, 0, 100)
 
 
@@ -248,7 +390,63 @@ def _necesario(objetivo: float | None, asegurados: float, peso_pendiente: float)
     return max(0.0, 100 * (objetivo - asegurados) / peso_pendiente)
 
 
-def _estado(p: dict, prob_aprobar: float, prob_objetivo: float | None) -> str:
+def _probabilidad(muestras: np.ndarray, umbral: float, alcanzable: bool) -> float:
+    if not alcanzable:
+        return 0.0
+    prob = float(np.mean(muestras >= umbral - 1e-9))
+    return max(prob, PROB_MINIMA)
+
+
+def _redondear_prob(prob: float | None) -> float | None:
+    if prob is None:
+        return None
+    return round(prob, 6) if 0 < prob < 0.005 else round(prob, 3)
+
+
+def _alertas(p: dict, hist: dict | None) -> list[dict]:
+    alertas = []
+    componentes = {c["clave"]: c for c in p["componentes"]}
+    if hist is not None:
+        revisados = [
+            (c["nombre"], c["clave"], c["calificacion"])
+            for c in p["componentes"]
+            if c["calificacion"] is not None
+        ]
+        if len(p["obs_examen"]) > 1:
+            revisados.append(("Promedio de exámenes", "examenes", float(np.mean(p["obs_examen"]))))
+        for nombre, clave, cal in revisados:
+            referencia = hist["examenes"] if clave == "examenes" else hist["stats"][clave]
+            if referencia["n"] and cal < referencia["media"] - UMBRAL_BAJO_HISTORICO:
+                alertas.append(
+                    {
+                        "tipo": "bajo_historico",
+                        "detalle": f"{nombre}: {cal:.0f}, tu media histórica es "
+                        f"{referencia['media']:.0f}",
+                    }
+                )
+    for clave in EXAMENES:
+        c = componentes.get(clave)
+        if c and c["calificacion"] is not None and c["calificacion"] <= UMBRAL_EXAMEN_BAJO + 1e-9:
+            alertas.append(
+                {"tipo": "examen_bajo", "detalle": f"{c['nombre']}: {c['calificacion']:.0f}"}
+            )
+    perdidos = p["evaluado"] - p["asegurados"]
+    limite = (
+        100 - hist["min_total"]
+        if hist is not None and hist["min_total"] is not None
+        else PERDIDOS_SIN_HISTORIAL
+    )
+    if perdidos > limite + 1e-9:
+        alertas.append(
+            {
+                "tipo": "puntos_perdidos",
+                "detalle": f"Perdiste {perdidos:.1f} puntos de lo evaluado (límite {limite:.1f})",
+            }
+        )
+    return alertas
+
+
+def _estado(p: dict, prob_aprobar: float, prob_objetivo: float | None, alertas: list) -> str:
     if not p["hay_datos"]:
         return "sin_datos"
     peso_pendiente = sum(x["peso"] for x in p["pendientes"])
@@ -258,19 +456,37 @@ def _estado(p: dict, prob_aprobar: float, prob_objetivo: float | None) -> str:
         necesario_aprobar = 0.0 if p["asegurados"] >= APROBATORIA else math.inf
     if prob_aprobar < 0.6 or necesario_aprobar > 90:
         return "riesgo"
-    if prob_objetivo is not None and prob_objetivo < 0.5:
+    if alertas or (prob_objetivo is not None and prob_objetivo < 0.5):
         return "atento"
     return "bien"
 
 
-def _materia(p: dict, muestras: np.ndarray, objetivo: float | None) -> dict:
+def _tabla(p: dict) -> dict:
+    comp_port = next((c for c in p["componentes"] if c["clave"] == "portafolio"), None)
+    examenes = [c for c in p["componentes"] if c["clave"] != "portafolio"]
+    total = p["asegurados"]
+    evaluado = p["evaluado"]
+    return {
+        "portafolio_pts": _redondear((comp_port["puntos"] or 0.0) if comp_port else 0.0),
+        "portafolio_max": _redondear(comp_port["peso"] if comp_port else 0.0),
+        "examenes_pts": _redondear(sum(c["puntos"] or 0.0 for c in examenes)),
+        "examenes_max": _redondear(sum(c["peso"] for c in examenes)),
+        "total_pts": _redondear(total),
+        "evaluado_pts": _redondear(evaluado),
+        "pct_evaluado": _redondear(total / evaluado * 100) if evaluado > 0 else None,
+    }
+
+
+def _materia(p: dict, muestras: np.ndarray, objetivo: float | None, hist: dict | None) -> dict:
     entrada = p["entrada"]
     peso_pendiente = sum(x["peso"] for x in p["pendientes"])
     maximo = p["asegurados"] + peso_pendiente
     necesario = _necesario(objetivo, p["asegurados"], peso_pendiente)
-    prob_objetivo = None if objetivo is None else float(np.mean(muestras >= objetivo - 1e-9))
+    alcanzable = objetivo is None or maximo >= objetivo - 1e-9
+    prob_objetivo = None if objetivo is None else _probabilidad(muestras, objetivo, alcanzable)
     prob_aprobar = float(np.mean(muestras >= APROBATORIA - 1e-9))
     bajo, alto = np.percentile(muestras, [10, 90])
+    alertas = _alertas(p, hist)
     return {
         "clave": entrada["clave"],
         "nombre": entrada["nombre"],
@@ -286,10 +502,13 @@ def _materia(p: dict, muestras: np.ndarray, objetivo: float | None) -> dict:
         "rango": [_redondear(bajo), _redondear(alto)],
         "objetivo": objetivo,
         "necesario": _redondear(necesario, 1),
-        "alcanzable": objetivo is None or maximo >= objetivo - 1e-9,
-        "prob_objetivo": _redondear(prob_objetivo, 3),
+        "alcanzable": alcanzable,
+        "prob_objetivo": _redondear_prob(prob_objetivo),
         "prob_aprobar": _redondear(prob_aprobar, 3),
-        "estado": _estado(p, prob_aprobar, prob_objetivo),
+        "estado": _estado(p, prob_aprobar, prob_objetivo, alertas),
+        "alertas": alertas,
+        "en_cuidado": bool(alertas),
+        **_tabla(p),
     }
 
 
@@ -299,14 +518,17 @@ def calcular(
     objetivos: dict[str, float] | None = None,
     objetivo_semestre: float | None = None,
     siase_leida_en: str | None = None,
+    historial: list[dict] | None = None,
+    nexus_leido_en: str | None = None,
 ) -> dict:
     tipos_manuales = tipos_manuales or {}
     objetivos = objetivos or {}
+    hist = _contexto_historial(historial)
     preparadas = [_preparar(e, tipos_manuales.get(e["clave"])) for e in entradas]
     media_global, desv_global = _estadisticas_globales(preparadas)
-    muestras = [_simular(p, media_global, desv_global) for p in preparadas]
+    muestras = [_simular(p, media_global, desv_global, hist) for p in preparadas]
     materias = [
-        _materia(p, m, objetivos.get(p["entrada"]["clave"]))
+        _materia(p, m, objetivos.get(p["entrada"]["clave"]), hist)
         for p, m in zip(preparadas, muestras, strict=True)
     ]
 
@@ -319,17 +541,20 @@ def calcular(
         if objetivo_semestre is not None and pendiente_total > 0:
             necesario = max(0.0, 100 * (objetivo_semestre - actual) * cantidad / pendiente_total)
         bajo, alto = np.percentile(promedio, [10, 90])
+        maximo_semestre = actual + pendiente_total / cantidad
         prob_objetivo = (
             None
             if objetivo_semestre is None
-            else float(np.mean(promedio >= objetivo_semestre - 1e-9))
+            else _probabilidad(
+                promedio, objetivo_semestre, maximo_semestre >= objetivo_semestre - 1e-9
+            )
         )
         semestre = {
             "actual": _redondear(actual),
             "proyectada": _redondear(np.mean(promedio)),
             "rango": [_redondear(bajo), _redondear(alto)],
             "objetivo": objetivo_semestre,
-            "prob_objetivo": _redondear(prob_objetivo, 3),
+            "prob_objetivo": _redondear_prob(prob_objetivo),
             "necesario_promedio": _redondear(necesario, 1),
         }
     else:
@@ -341,4 +566,108 @@ def calcular(
             "prob_objetivo": None,
             "necesario_promedio": None,
         }
-    return {"materias": materias, "semestre": semestre, "siase_leida_en": siase_leida_en}
+    return {
+        "materias": materias,
+        "semestre": semestre,
+        "siase_leida_en": siase_leida_en,
+        "nexus_leido_en": nexus_leido_en,
+    }
+
+
+def _nota_preset(
+    preset: str,
+    p: dict,
+    tarea: bool,
+    hist: dict | None,
+    alertas: list,
+    esfuerzo: bool,
+    media_mio: float,
+    media_global: float,
+    desv_global: float,
+) -> float:
+    observadas = p["obs_tarea"] if tarea else p["obs_examen"]
+    obs = float(np.mean(observadas)) if observadas else None
+    if preset == "pesimista":
+        grupo = hist["tareas" if tarea else "examenes"] if hist else None
+        if grupo is not None and grupo["n"]:
+            base = grupo["media"] if obs is None else min(obs, grupo["media"])
+            return base - grupo["desv"]
+        return (media_global if obs is None else obs) - desv_global
+    if preset == "optimista":
+        if alertas and not esfuerzo and obs is not None:
+            return obs
+        return 100.0
+    return media_mio
+
+
+def _acotar(valor: float) -> float:
+    return float(min(100.0, max(0.0, valor)))
+
+
+def calcular_escenario(
+    entradas: list[dict],
+    escenario: dict,
+    tipos_manuales: dict[str, str] | None = None,
+    historial: list[dict] | None = None,
+) -> dict:
+    tipos_manuales = tipos_manuales or {}
+    hist = _contexto_historial(historial)
+    preparadas = [_preparar(e, tipos_manuales.get(e["clave"])) for e in entradas]
+    media_global, desv_global = _estadisticas_globales(preparadas)
+    preset = escenario["preset"]
+    globales = {"examenes": escenario.get("examenes"), "tareas": escenario.get("tareas")}
+    por_materia = escenario.get("materias") or {}
+    resultado = []
+    for p in preparadas:
+        clave = p["entrada"]["clave"]
+        pendientes = p["pendientes"]
+        propios = por_materia.get(clave) or {}
+        por_pendiente = {int(k): v for k, v in (propios.get("pendientes") or {}).items()}
+        alertas = _alertas(p, hist)
+        medias = (
+            _notas(p, media_global, desv_global, hist).mean(axis=0) if pendientes else np.array([])
+        )
+        notas = []
+        con_ajuste = False
+        for j, pendiente in enumerate(pendientes):
+            tarea = pendiente["clave"] == "portafolio"
+            grupo = "tareas" if tarea else "examenes"
+            nota = _nota_preset(
+                preset,
+                p,
+                tarea,
+                hist,
+                alertas,
+                bool(propios.get("esfuerzo")),
+                float(medias[j]),
+                media_global,
+                desv_global,
+            )
+            for fijo in (globales[grupo], propios.get(grupo), por_pendiente.get(j)):
+                if fijo is not None:
+                    nota = fijo
+                    con_ajuste = True
+            notas.append(_acotar(nota))
+        if preset == "mio" and not con_ajuste:
+            final = float(np.mean(_simular(p, media_global, desv_global, hist)))
+        else:
+            final = p["asegurados"] + sum(
+                n * x["peso"] / 100 for n, x in zip(notas, pendientes, strict=True)
+            )
+        resultado.append(
+            {
+                "clave": clave,
+                "final": _redondear(_acotar(final)),
+                "pendientes": [
+                    {
+                        "clave": x["clave"],
+                        "titulo": x["titulo"],
+                        "peso": _redondear(x["peso"]),
+                        "nota": _redondear(n),
+                    }
+                    for x, n in zip(pendientes, notas, strict=True)
+                ],
+            }
+        )
+    semestre = sum(m["final"] for m in resultado) / len(resultado) if resultado else 0.0
+    return {"materias": resultado, "semestre": _redondear(semestre)}
