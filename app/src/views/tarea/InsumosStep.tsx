@@ -32,7 +32,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api, fileUrl, type Insumo } from "@/lib/api";
-import { RecursosNexus } from "@/views/tarea/RecursosNexus";
 import { keys, useInsumos, usePatchInsumo } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -124,8 +123,6 @@ export function InsumosStep({ tareaId, onContinuar }: { tareaId: string; onConti
         />
         {subir.error && <p className="text-sm text-destructive">{subir.error.message}</p>}
       </div>
-
-      <RecursosNexus tareaId={tareaId} />
 
       {insumos.length > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
