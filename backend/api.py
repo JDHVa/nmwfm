@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import secrets
 import uuid
@@ -11,11 +12,12 @@ from typing import Literal
 from fastapi import APIRouter, Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import check, config, respaldo, services
+from .asistente import chat as asistente
 from .core import images
 from .scheduler import Programador
 from .services import ApiError, AppState
@@ -41,6 +43,22 @@ class PortadaSueltaBody(BaseModel):
     materia: str | None = None
     titulo: str | None = None
     fecha: str | None = None
+
+
+class MensajeChat(BaseModel):
+    rol: Literal["user", "assistant", "tool"]
+    contenido: str = ""
+    herramienta: str | None = None
+
+
+class ChatBody(BaseModel):
+    mensajes: list[MensajeChat]
+    tarea_id: str | None = None
+
+
+class ConfirmarBody(BaseModel):
+    id: str
+    aceptar: bool
 
 
 class IndicacionesBody(BaseModel):
@@ -189,6 +207,11 @@ def create_app(
                 if not isinstance(body[key], bool):
                     raise ApiError(422, "validacion", f"{key} debe ser booleano.")
                 values[key] = body[key]
+        if "asistente_modelo" in body:
+            modelo = body["asistente_modelo"]
+            if not isinstance(modelo, str) or not modelo.strip():
+                raise ApiError(422, "validacion", "asistente_modelo debe ser texto.")
+            values["asistente_modelo"] = modelo.strip()
         if "recorte_modelo" in body:
             if body["recorte_modelo"] not in ("auto", "opencv"):
                 raise ApiError(422, "validacion", "recorte_modelo debe ser 'auto' u 'opencv'.")
@@ -281,6 +304,33 @@ def create_app(
             body.titulo,
             body.fecha,
         )
+
+    @router.get("/asistente/estado")
+    async def asistente_estado():
+        return await asistente.estado(state)
+
+    @router.post("/asistente/chat")
+    async def asistente_chat(body: ChatBody):
+        mensajes = [m.model_dump() for m in body.mensajes]
+
+        async def eventos():
+            async for evento in asistente.conversar(state, mensajes, body.tarea_id):
+                yield f"data: {json.dumps(evento, ensure_ascii=False)}\n\n"
+
+        return StreamingResponse(
+            eventos(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    @router.post("/asistente/confirmar")
+    async def asistente_confirmar(body: ConfirmarBody):
+        resultado = await asistente.confirmar(state, body.id, body.aceptar)
+        if resultado is None:
+            raise ApiError(
+                404, "confirmacion_no_encontrada", "La confirmación no existe o ya se usó."
+            )
+        return resultado
 
     @router.post("/gemini/login")
     async def gemini_login():

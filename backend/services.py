@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from playwright.async_api import Page
 
 from . import config
+from .asistente.ollama import OllamaCliente
 from .core import documents, images, metricas, modelos, nexus, ocr, selectors, siase
 from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
@@ -56,6 +57,8 @@ class AppState:
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
         self._detector: images.DetectorModelo | None = None
+        self.ollama = OllamaCliente()
+        self.asistente_pendientes: dict = {}
         self.catalogo = Catalogo(self.paths.debug / "api" if dev else None)
         limpiar_autoevaluaciones(self.storage)
 

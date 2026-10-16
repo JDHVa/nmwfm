@@ -122,6 +122,7 @@ SETTING_DEFAULTS = {
     "ultima_sync": None,
     "sync_cada_horas": 0,
     "recorte_modelo": "auto",
+    "asistente_modelo": "qwen3:4b",
 }
 INT_SETTINGS = {"sync_cada_horas"}
 BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}
