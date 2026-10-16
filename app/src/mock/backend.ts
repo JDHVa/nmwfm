@@ -191,6 +191,10 @@ export function createMockBackend(options: MockOptions = {}) {
     return undefined;
   }
 
+  function marcarSesionGemini(sesion: boolean) {
+    settings = { ...settings, gemini_sesion: sesion, gemini_sesion_verificada_en: new Date().toISOString() };
+    return { sesion };
+  }
   function lanzarJob(
     tipo: JobTipo,
     pasos: string[],
@@ -538,11 +542,18 @@ export function createMockBackend(options: MockOptions = {}) {
     }
     if (path === "/gemini/login") {
       return json(
-        lanzarJob("login_gemini", [
-          "Abriendo Chrome",
-          "Esperando inicio de sesión en Gemini",
-          "Sesión detectada",
-        ]),
+        lanzarJob(
+          "login_gemini",
+          ["Abriendo Chrome", "Esperando inicio de sesión en Gemini", "Sesión detectada"],
+          () => marcarSesionGemini(true),
+        ),
+      );
+    }
+    if (path === "/gemini/verificar") {
+      return json(
+        lanzarJob("verificar_gemini", ["Abriendo Gemini", "Comprobando la sesión"], () =>
+          marcarSesionGemini(true),
+        ),
       );
     }
     if (path === "/sync") {
