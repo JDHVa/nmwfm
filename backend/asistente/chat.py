@@ -56,6 +56,10 @@ ACCIONES_SOLO_SI_SE_PIDEN = {
 LIMITE_RESULTADO = 1500
 PRESUPUESTO_HISTORIAL = 5000
 LIMITE_INDICACIONES = 300
+EMOJIS = re.compile(
+    r"[\U0001F000-\U0001FAFF☀-➿⬀-⯿⌚⌛⏩-⏺"
+    r"‼⁉‍︎️⃣\U000E0020-\U000E007F]"
+)
 
 PROMPT_SISTEMA = (
     "Eres el asistente de tareas de un estudiante de preparatoria de la UANL que usa la "
@@ -74,8 +78,13 @@ PROMPT_SISTEMA = (
     "generar_tarea solo se usan cuando el usuario las pide explícitamente; para entregar "
     "NO generes nada antes. "
     "En buscar_tareas, materia es el nombre de la materia y texto son palabras del título "
-    "de la tarea; no mezcles ambos. Fecha y hora actual (Monterrey): {ahora}.{sufijo}"
+    "de la tarea; no mezcles ambos. No uses emojis ni emoticonos en ninguna respuesta; "
+    "escribe solo texto normal. Fecha y hora actual (Monterrey): {ahora}.{sufijo}"
 )
+
+
+def quitar_emojis(texto: str) -> str:
+    return EMOJIS.sub("", texto)
 
 
 def es_instruct(modelo: str) -> bool:
@@ -206,6 +215,7 @@ async def conversar(
                     yield estado_evento("pensando", "Pensando…")
                 if mensaje.get("content"):
                     visible, pensando = filtro.procesar(mensaje["content"])
+                    visible = quitar_emojis(visible)
                     if pensando and not aviso_pensando:
                         aviso_pensando = True
                         yield estado_evento("pensando", "Pensando…")
@@ -216,7 +226,7 @@ async def conversar(
                         else:
                             yield {"type": "token", "text": visible}
                 llamadas.extend(mensaje.get("tool_calls") or [])
-            resto = filtro.finalizar()
+            resto = quitar_emojis(filtro.finalizar())
             if resto:
                 texto += resto
                 if retener:
