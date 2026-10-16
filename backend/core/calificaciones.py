@@ -410,7 +410,7 @@ def _alertas(p: dict, hist: dict | None) -> list[dict]:
         revisados = [
             (c["nombre"], c["clave"], c["calificacion"])
             for c in p["componentes"]
-            if c["calificacion"] is not None
+            if c["calificacion"] is not None and (c["clave"] != "portafolio" or p["obs_tarea"])
         ]
         if len(p["obs_examen"]) > 1:
             revisados.append(("Promedio de exámenes", "examenes", float(np.mean(p["obs_examen"]))))
@@ -443,7 +443,8 @@ def _alertas(p: dict, hist: dict | None) -> list[dict]:
                 "detalle": f"Perdiste {perdidos:.1f} puntos de lo evaluado (límite {limite:.1f})",
             }
         )
-    return alertas
+    unicas = {(a["tipo"], a["detalle"]): a for a in alertas}
+    return list(unicas.values())
 
 
 def _estado(p: dict, prob_aprobar: float, prob_objetivo: float | None, alertas: list) -> str:
@@ -595,7 +596,7 @@ def _nota_preset(
         return (media_global if obs is None else obs) - desv_global
     if preset == "optimista":
         if alertas and not esfuerzo and obs is not None:
-            return obs
+            return max(obs, media_mio)
         return 100.0
     return media_mio
 
