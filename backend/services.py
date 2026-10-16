@@ -57,7 +57,9 @@ class AppState:
         self.browser = BrowserManager(self.paths.browser_profile, dev)
         self.browser_gemini = BrowserManager(self.paths.gemini_profile, dev)
         self.gemini: LLMProvider = gemini or GeminiWeb(
-            self.browser_gemini, lambda: self.storage.get_settings()["gemini_espera_envio_s"]
+            self.browser_gemini,
+            lambda: self.storage.get_settings()["gemini_espera_envio_s"],
+            lambda activa: self.storage.set_gemini_sesion(activa),
         )
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
@@ -145,7 +147,11 @@ class AppState:
     async def cerrar_navegador_de(self, tipo: str) -> None:
         if tipo == "calificaciones_siase":
             return
-        manager = self.browser_gemini if tipo in ("generar", "login_gemini") else self.browser
+        manager = (
+            self.browser_gemini
+            if tipo in ("generar", "login_gemini", "verificar_gemini")
+            else self.browser
+        )
         with contextlib.suppress(Exception):
             await manager.close()
 
@@ -887,10 +893,22 @@ async def run_login_gemini(state: AppState, ctx: JobContext) -> dict:
     async with state.browser_gemini.lock:
         try:
             ya_iniciada = await state.gemini.iniciar_sesion(ctx.hooks())
+            state.storage.set_gemini_sesion(True)
             await asyncio.sleep(ESPERA_COOKIES_GEMINI_S)
         finally:
             await _cerrar_gemini(state)
     return {"sesion": True, "ya_iniciada": bool(ya_iniciada)}
+
+
+async def run_verificar_gemini(state: AppState, ctx: JobContext) -> dict:
+    async with state.browser_gemini.lock:
+        try:
+            await ctx.update("Verificando la sesión de Gemini", 0.3)
+            sesion = bool(await state.gemini.sesion_activa())
+            state.storage.set_gemini_sesion(sesion)
+        finally:
+            await _cerrar_gemini(state)
+    return {"sesion": sesion}
 
 
 def _insumo_refs(state: AppState, tarea_id: str) -> list[images.InsumoRef]:

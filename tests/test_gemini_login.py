@@ -88,8 +88,14 @@ def test_run_login_gemini_devuelve_ya_iniciada(monkeypatch):
         def hooks(self):
             return Hooks()
 
+    class Almacen:
+        @staticmethod
+        def set_gemini_sesion(activa):
+            pass
+
     class Estado:
         gemini = Gem()
+        storage = Almacen()
 
         class browser_gemini:
             lock = Lock()

@@ -63,6 +63,8 @@ def test_settings_roundtrip(client, state):
         "asistente_modelo": "qwen3:4b-instruct-2507-q4_K_M",
         "asistente_keep_alive_s": 90,
         "gemini_espera_envio_s": 3,
+        "gemini_sesion": None,
+        "gemini_sesion_verificada_en": None,
         "instrucciones_fijas": instrucciones_por_defecto(),
         "aula": "144",
         "grupo": "5V1",
