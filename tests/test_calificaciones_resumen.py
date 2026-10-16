@@ -56,13 +56,30 @@ def test_tarea_vencida_y_no_entregada_es_perdida(client, seeded):
     logica = materia(client.get("/calificaciones").json(), "033")
     perdidas = {x["titulo"]: x["perdida"] for x in logica["portafolio"]}
     assert perdidas == {"Dimensión 1 - Algo": True, "Otra tarea": False, "Hecha": False}
-    assert [p["titulo"] for p in logica["pendientes"] if p["clave"] == "portafolio"] == [
-        "Otra tarea"
+    assert sorted(p["titulo"] for p in logica["pendientes"] if p["clave"] == "portafolio") == [
+        "Dimensión 1 - Algo",
+        "Otra tarea",
     ]
 
     seeded.storage._run("UPDATE tareas SET estado = 'entregada'")
     logica = materia(client.get("/calificaciones").json(), "033")
     assert not any(x["perdida"] for x in logica["portafolio"])
+
+
+def test_homonimos_se_emparejan_uno_a_uno(client, seeded):
+    seeded.storage.set_siase_calificaciones(SIASE)
+    tabla = {
+        "columnas": ["Trabajo", "Elemento Evaluable", "", "Calificacion", "Valor", "Puntos"],
+        "filas": [["", "Manual Técnico", "", "-", "10", "0"] for _ in range(3)],
+    }
+    seeded.storage.set_calificaciones("100", tabla)
+    seeded.storage._run("UPDATE tareas SET hasta = ?", ("2999-01-01T10:00",))
+    seeded.storage._run(
+        "UPDATE tareas SET titulo = 'Manual Técnico', hasta = '2020-01-01T10:00' "
+        "WHERE id = (SELECT id FROM tareas LIMIT 1)"
+    )
+    logica = materia(client.get("/calificaciones").json(), "033")
+    assert [x["perdida"] for x in logica["portafolio"]] == [True, False, False]
 
 
 def test_tarea_con_plazo_futuro_no_es_perdida(client, seeded):

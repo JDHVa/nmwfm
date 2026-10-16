@@ -309,21 +309,31 @@ def guardar_historial(state: AppState, semestres: list[dict]) -> dict:
 
 def _tareas_vencidas_por_materia(state: AppState) -> dict[str, list[str]]:
     vencidas: dict[str, list[str]] = {}
-    for tarea in tareas_proximas(state):
-        if tarea["vencida"]:
-            vencidas.setdefault(tarea["materia_id"], []).append(
-                calificaciones.normalizar(tarea["titulo"])
-            )
+    ordenadas = sorted(
+        (t for t in tareas_proximas(state) if t["vencida"]), key=lambda t: t["hasta"] or ""
+    )
+    for tarea in ordenadas:
+        vencidas.setdefault(tarea["materia_id"], []).append(
+            calificaciones.normalizar(tarea["titulo"])
+        )
     return vencidas
 
 
 def _portafolio_nexus(state: AppState, materia_id: str, vencidas: list[str]) -> list[dict] | None:
     elementos = calificaciones.elementos_portafolio(state.storage.get_calificaciones(materia_id))
+    disponibles = list(vencidas)
     for elemento in elementos:
+        elemento["perdida"] = False
+        if elemento["calificacion"] is not None:
+            continue
         titulo = calificaciones.normalizar(elemento["titulo"])
-        elemento["perdida"] = elemento["calificacion"] is None and any(
-            calificaciones.mismo_nombre(titulo, v, 5) for v in vencidas
+        par = next(
+            (i for i, v in enumerate(disponibles) if calificaciones.mismo_nombre(titulo, v, 5)),
+            None,
         )
+        if par is not None:
+            disponibles.pop(par)
+            elemento["perdida"] = True
     return elementos or None
 
 

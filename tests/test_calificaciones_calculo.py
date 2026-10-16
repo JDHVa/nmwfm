@@ -140,16 +140,15 @@ def test_portafolio_de_nexus_reemplaza_al_port_de_siase():
     }
 
 
-def test_tarea_perdida_cuenta_cero_pero_no_es_asegurada_ni_pendiente():
+def test_tarea_perdida_no_resta_y_sigue_pendiente():
     base = c.elementos_portafolio(NEXUS)
     perdida = [dict(e, perdida=e["titulo"].endswith("report")) for e in base]
     sin = una("095", base)
     con = una("095", perdida)
-    assert con["asegurados"] == sin["asegurados"]
-    assert con["maximo_posible"] == sin["maximo_posible"] - 8
-    assert len(con["pendientes"]) == len(sin["pendientes"]) - 1
+    for campo in ("asegurados", "maximo_posible", "proyectada", "pct_evaluado", "evaluado_pts"):
+        assert con[campo] == sin[campo]
+    assert len(con["pendientes"]) == len(sin["pendientes"])
     assert next(p for p in con["portafolio"] if p["perdida"])["titulo"].endswith("report")
-    assert con["proyectada"] < sin["proyectada"]
 
 
 def test_necesario_y_alcanzable():
