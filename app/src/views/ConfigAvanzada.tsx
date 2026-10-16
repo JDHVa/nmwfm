@@ -51,7 +51,7 @@ function SincronizacionPeriodica({ settings }: { settings: Settings }) {
         </div>
         <select
           id="sync-horas"
-          className="h-9 rounded-md border border-input bg-background/50 px-2 text-sm"
+          className="h-9 rounded-md border border-input bg-background px-2 text-sm"
           value={settings.sync_cada_horas ?? 0}
           onChange={(e) => guardar.mutate({ sync_cada_horas: Number(e.target.value) })}
         >
@@ -108,7 +108,7 @@ function AsistenteSeccion({ settings }: { settings: Settings }) {
           <input
             id="asistente-modelo"
             list="modelos-asistente"
-            className="h-9 w-56 rounded-md border border-input bg-background/50 px-3 text-sm"
+            className="h-9 w-56 rounded-md border border-input bg-background px-3 text-sm"
             value={modelo}
             onChange={(ev) => setEdicion(ev.target.value)}
             onBlur={aplicar}
@@ -135,7 +135,7 @@ function AsistenteSeccion({ settings }: { settings: Settings }) {
           type="number"
           min={0}
           step={10}
-          className="h-9 w-28 rounded-md border border-input bg-background/50 px-3 text-sm"
+          className="h-9 w-28 rounded-md border border-input bg-background px-3 text-sm"
           value={keepAlive}
           onChange={(ev) => setSegundos(ev.target.value)}
           onBlur={() => {

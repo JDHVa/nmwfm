@@ -26,7 +26,7 @@ export function TablaRubrica({ rubrica }: { rubrica: Rubrica }) {
       <table className="w-full min-w-[720px] border-collapse text-sm">
         <thead>
           <tr>
-            <th className="w-1/5 border-b bg-muted/40 p-3 text-left font-medium">Criterios</th>
+            <th className="w-1/5 border-b bg-muted p-3 text-left font-medium">Criterios</th>
             {rubrica.niveles.map((n, i) => (
               <th
                 key={n}
@@ -44,7 +44,7 @@ export function TablaRubrica({ rubrica }: { rubrica: Rubrica }) {
         <tbody>
           {rubrica.criterios.map((c) => (
             <tr key={c.criterio} className="align-top">
-              <th scope="row" className="border-b bg-muted/20 p-3 text-left font-medium last:border-b-0">
+              <th scope="row" className="border-b bg-muted p-3 text-left font-medium last:border-b-0">
                 {c.criterio}
               </th>
               {c.niveles.map((n, i) => (
