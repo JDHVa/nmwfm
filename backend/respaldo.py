@@ -8,7 +8,7 @@ from pathlib import Path, PurePosixPath
 from .services import ApiError, AppState
 
 BASE_DATOS = "nmwfm.db"
-EXCLUIDOS = ("browser_profile", "respaldos", "debug")
+EXCLUIDOS = ("browser_profile", "gemini_profile", "respaldos", "debug")
 JOBS_ACTIVOS = ("en_cola", "corriendo", "esperando_usuario")
 
 

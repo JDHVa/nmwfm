@@ -51,6 +51,7 @@ class Paths:
         self.data = Path(data_dir)
         self.db = self.data / "nmwfm.db"
         self.browser_profile = self.data / "browser_profile"
+        self.gemini_profile = self.data / "gemini_profile"
         self.insumos = self.data / "insumos"
         self.generaciones = self.data / "generaciones"
         self.debug = self.data / "debug"
