@@ -300,7 +300,8 @@ HERRAMIENTAS: dict[str, Herramienta] = {
         ),
         Herramienta(
             "generar_tarea",
-            "Genera con Gemini el Word y PDF (con portada) de una tarea, en segundo plano.",
+            "Genera con Gemini el Word y PDF (con portada) de una tarea, en segundo plano. Solo "
+            "si el usuario lo pide explícitamente.",
             {
                 "tarea_id": TAREA_ID,
                 "instrucciones_extra": {"type": "string", "description": "Indicaciones extra."},
@@ -310,7 +311,9 @@ HERRAMIENTAS: dict[str, Herramienta] = {
         ),
         Herramienta(
             "entregar_tarea",
-            "Entrega en NEXUS el PDF generado de una tarea. SIEMPRE pide confirmación al usuario.",
+            "Entrega en NEXUS el PDF generado de una tarea. Para entregar, SIEMPRE llama a esta "
+            "herramienta; la app mostrará la confirmación al usuario. Nunca pidas confirmación "
+            "en texto.",
             {"tarea_id": TAREA_ID},
             entregar_tarea,
             peligrosa=True,
