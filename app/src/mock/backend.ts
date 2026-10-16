@@ -2,6 +2,7 @@ import type {
   DatosPortada,
   PortadaSuelta,
   EventoChat,
+  Escenario,
   Novedad,
   Respaldo,
   EtapaConTareas,
@@ -15,7 +16,7 @@ import type {
   Transport,
   WsMessage,
 } from "@/lib/api";
-import { calcularResumen, type EstadoCalificaciones } from "./calificaciones";
+import { calcularEscenario, calcularHistorial, calcularResumen, type EstadoCalificaciones } from "./calificaciones";
 import { MATERIAS, crearEtapas, detalleDe, marcarVencida } from "./data";
 
 type Emitter = (msg: WsMessage) => void;
@@ -172,6 +173,7 @@ export function createMockBackend(options: MockOptions = {}) {
     tipos: {},
     objetivoSemestre: 90,
     leidaEn: new Date(Date.now() - 3 * 3600_000).toISOString(),
+    nexusLeidoEn: null,
   };
   let seq = 0;
   let hue = 200;
@@ -713,6 +715,22 @@ export function createMockBackend(options: MockOptions = {}) {
         ),
       );
     }
+    if (path === "/nexus/portafolio") {
+      return json(
+        lanzarJob(
+          "portafolio_nexus",
+          ["Abriendo NEXUS", "Entrando a Calificaciones de cada materia", "Guardando portafolio"],
+          () => {
+            califs.nexusLeidoEn = new Date().toISOString();
+            return { materias: calcularResumen(califs).materias.length, errores: [] };
+          },
+        ),
+      );
+    }
+    if (path === "/calificaciones/escenario" && method === "POST") {
+      return json(calcularEscenario(califs, body as Escenario));
+    }
+    if (path === "/calificaciones/historial" && method === "GET") return json(calcularHistorial());
     if (path === "/calificaciones/objetivos" && method === "PUT") {
       const b = body as { semestre?: number | null; materias?: Record<string, number | null> };
       if (b.semestre !== undefined) califs.objetivoSemestre = b.semestre;

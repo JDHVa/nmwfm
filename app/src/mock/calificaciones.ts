@@ -1,13 +1,19 @@
 import type {
+  AlertaMateria,
   ClaveComponente,
   ComponenteNota,
   ElementoPortafolio,
+  Escenario,
   EstadoMateria,
+  Historial,
+  MateriaHistorial,
   MateriaCalificacion,
   Pendiente,
+  ResultadoEscenario,
   ResumenCalificaciones,
   TipoMateria,
 } from "@/lib/api";
+import { nota as formatoNota } from "@/lib/calificaciones";
 
 type Tarea = { titulo: string; valor: number; cal: number | null; perdida: boolean };
 type Base = {
@@ -211,6 +217,7 @@ export type EstadoCalificaciones = {
   tipos: Record<string, TipoMateria | null>;
   objetivoSemestre: number | null;
   leidaEn: string | null;
+  nexusLeidoEn: string | null;
 };
 
 function calcularMateria(base: Base, est: EstadoCalificaciones): MateriaCalificacion {
@@ -222,6 +229,8 @@ function calcularMateria(base: Base, est: EstadoCalificaciones): MateriaCalifica
   const portafolio: ElementoPortafolio[] = [];
   const notas: number[] = [];
   let asegurados = 0;
+  let evaluado = 0;
+  let portafolioPts = 0;
 
   for (const clave of ORDEN) {
     const peso = pesos[clave];
@@ -245,6 +254,8 @@ function calcularMateria(base: Base, est: EstadoCalificaciones): MateriaCalifica
         }
       }
       asegurados += ganados;
+      portafolioPts = ganados;
+      evaluado += (peso * calificados) / 100;
       componentes.push({
         clave,
         nombre: NOMBRES[clave],
@@ -261,6 +272,7 @@ function calcularMateria(base: Base, est: EstadoCalificaciones): MateriaCalifica
       pendientes.push({ clave, titulo: NOMBRES[clave], peso });
     } else {
       asegurados += puntos;
+      evaluado += peso;
       notas.push(cal!);
     }
   }
@@ -284,11 +296,32 @@ function calcularMateria(base: Base, est: EstadoCalificaciones): MateriaCalifica
   const necesarioAprobar = pesoPendiente === 0 ? 0 : ((70 - asegurados) / pesoPendiente) * 100;
   const probAprobar = hayDatos ? probSuperar(70, proyectada, sd) : 0;
   const probObjetivo = objetivo === null ? null : probSuperar(objetivo, proyectada, sd);
+  const alertas: AlertaMateria[] = [];
+  const examenes = componentes.filter((c) => c.clave !== "portafolio" && c.calificacion !== null);
+  const mediaExamenes = examenes.length
+    ? examenes.reduce((a, c) => a + (c.calificacion ?? 0), 0) / examenes.length
+    : null;
+  if (mediaExamenes !== null && mediaExamenes < HISTORICO_EXAMENES - 5) {
+    alertas.push({
+      tipo: "bajo_historico",
+      detalle: `Tus exámenes promedian ${formatoNota(mediaExamenes)} y tu media histórica es ${HISTORICO_EXAMENES}`,
+    });
+  }
+  const bajo = examenes.find((c) => (c.calificacion ?? 100) <= 80);
+  if (bajo) {
+    alertas.push({ tipo: "examen_bajo", detalle: `${bajo.nombre}: ${bajo.calificacion}` });
+  }
+  const perdidos = redondear(evaluado - asegurados);
+  if (perdidos > 100 - MINIMO_HISTORICO) {
+    alertas.push({ tipo: "puntos_perdidos", detalle: `Llevas ${perdidos} puntos perdidos` });
+  }
   let estado: EstadoMateria;
   if (!hayDatos) estado = "sin_datos";
-  else if (probAprobar < 0.6 || necesarioAprobar > 90) estado = "riesgo";
-  else if (probObjetivo !== null && probObjetivo < 0.5) estado = "atento";
+  else if ((alertas.length > 0 && probAprobar < 0.6) || necesarioAprobar > 90) estado = "riesgo";
+  else if (alertas.length > 0 || (probObjetivo !== null && probObjetivo < 0.5)) estado = "atento";
   else estado = "bien";
+  const portafolioMax = pesos.portafolio;
+  const examenesMax = pesos.par1 + pesos.emt + pesos.par2 + pesos.eg;
 
   return {
     clave: base.clave,
@@ -309,6 +342,82 @@ function calcularMateria(base: Base, est: EstadoCalificaciones): MateriaCalifica
     prob_objetivo: probObjetivo,
     prob_aprobar: probAprobar,
     estado,
+    alertas,
+    en_cuidado: alertas.length > 0,
+    portafolio_pts: redondear(portafolioPts),
+    portafolio_max: portafolioMax,
+    examenes_pts: redondear(asegurados - portafolioPts),
+    examenes_max: examenesMax,
+    total_pts: asegurados,
+    evaluado_pts: redondear(evaluado),
+    pct_evaluado: evaluado > 0 ? redondear((asegurados / evaluado) * 100) : null,
+  };
+}
+
+const HISTORICO_EXAMENES = 88;
+const MINIMO_HISTORICO = 82;
+
+const NOTA_PRESET = { pesimista: 70, realista: 85, optimista: 100, mio: 85, personalizado: 85 } as const;
+
+export function calcularEscenario(est: EstadoCalificaciones, esc: Escenario): ResultadoEscenario {
+  const materias = BASES.map((b) => {
+    const m = calcularMateria(b, est);
+    const ajuste = esc.materias?.[m.clave];
+    const pendientes = m.pendientes.map((p, i) => {
+      const grupo = p.clave === "portafolio" ? "tareas" : "examenes";
+      const cuidado = esc.preset === "optimista" && m.en_cuidado && !ajuste?.esfuerzo;
+      const base = cuidado ? 90 : NOTA_PRESET[esc.preset];
+      const nota = ajuste?.pendientes?.[i] ?? ajuste?.[grupo] ?? esc[grupo] ?? base;
+      return { ...p, nota };
+    });
+    const final = redondear(m.asegurados + pendientes.reduce((a, p) => a + (p.nota * p.peso) / 100, 0));
+    return { clave: m.clave, final, pendientes };
+  });
+  return { materias, semestre: redondear(materias.reduce((a, m) => a + m.final, 0) / materias.length) };
+}
+
+const SEMESTRES_HISTORIAL: { periodo: string; materias: MateriaHistorial[] }[] = [
+  {
+    periodo: "2024-1",
+    materias: [
+      { nombre: "Matemáticas I", tipo: "bachillerato", par1: 100, par2: 90, emt: 85, eg: 80, port: 95, total: 90 },
+      { nombre: "Taller de Lectura", tipo: "bachillerato", par1: 100, par2: 100, emt: 92, eg: 88, port: 100, total: 96 },
+    ],
+  },
+  {
+    periodo: "2024-2",
+    materias: [
+      { nombre: "Física I", tipo: "bachillerato", par1: 96, par2: 84, emt: 78, eg: 70, port: 90, total: 84 },
+      { nombre: "Programación", tipo: "carrera", par1: 100, par2: 100, emt: 100, eg: 92, port: 98, total: 98 },
+    ],
+  },
+];
+
+export function calcularHistorial(): Historial {
+  const todas = SEMESTRES_HISTORIAL.flatMap((s) => s.materias);
+  const resumenDe = (valores: number[]) => {
+    const n = valores.length;
+    const media = n ? valores.reduce((a, v) => a + v, 0) / n : 0;
+    const desv = n ? Math.sqrt(valores.reduce((a, v) => a + (v - media) ** 2, 0) / n) : 0;
+    return {
+      media: redondear(media),
+      desv: redondear(desv),
+      n,
+      prob_100: n ? valores.filter((v) => v === 100).length / n : 0,
+    };
+  };
+  const de = (f: (m: MateriaHistorial) => number | null | undefined) =>
+    resumenDe(todas.map(f).filter((v): v is number => typeof v === "number"));
+  return {
+    semestres: SEMESTRES_HISTORIAL,
+    resumen: {
+      par1: de((m) => m.par1),
+      par2: de((m) => m.par2),
+      emt: de((m) => m.emt),
+      eg: de((m) => m.eg),
+      portafolio: de((m) => m.port),
+      total: de((m) => m.total),
+    },
   };
 }
 
@@ -336,5 +445,6 @@ export function calcularResumen(est: EstadoCalificaciones): ResumenCalificacione
         objetivo === null || pendiente <= 0 ? null : Math.max(0, redondear(((objetivo - actual) / pendiente) * 100)),
     },
     siase_leida_en: est.leidaEn,
+    nexus_leido_en: est.nexusLeidoEn,
   };
 }

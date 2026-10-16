@@ -1,4 +1,12 @@
-import type { EstadoMateria, MateriaCalificacion, TipoMateria } from "@/lib/api";
+import type {
+  ClaveHistorial,
+  Escenario,
+  EstadoMateria,
+  MateriaCalificacion,
+  PresetEscenario,
+  TipoAlerta,
+  TipoMateria,
+} from "@/lib/api";
 
 export const APROBATORIA = 70;
 
@@ -37,7 +45,9 @@ export function finalSimulada(m: MateriaCalificacion, valores: Record<number, nu
 }
 
 export function porcentaje(p: number | null): string {
-  return p === null ? "—" : `${Math.round(p * 100)} %`;
+  if (p === null) return "—";
+  if (p > 0 && p < 0.005) return "<1 %";
+  return `${Math.round(p * 100)} %`;
 }
 
 export function nota(n: number): string {
@@ -53,3 +63,40 @@ export function segmentosBarra(m: MateriaCalificacion): {
   const pendiente = Math.min(100 - asegurado, Math.max(0, m.maximo_posible - m.asegurados));
   return { asegurado, pendiente, perdido: Math.max(0, 100 - asegurado - pendiente) };
 }
+
+export const ETIQUETA_ALERTA: Record<TipoAlerta, string> = {
+  bajo_historico: "Por debajo de tu histórico",
+  examen_bajo: "Examen bajo",
+  puntos_perdidos: "Puntos perdidos",
+};
+
+export const ETIQUETA_PRESET: Record<PresetEscenario, string> = {
+  pesimista: "Pesimista",
+  realista: "Realista",
+  optimista: "Optimista",
+  mio: "Mío",
+  personalizado: "Personalizado",
+};
+
+export const ETIQUETA_HISTORIAL: Record<ClaveHistorial, string> = {
+  par1: "Parcial 1",
+  par2: "Parcial 2",
+  emt: "Medio término",
+  eg: "Examen global",
+  portafolio: "Portafolio",
+  total: "Total",
+};
+
+export function textoAlertas(m: MateriaCalificacion): string {
+  return m.alertas.map((a) => `${ETIQUETA_ALERTA[a.tipo]}: ${a.detalle}`).join(" · ");
+}
+
+export function puntosDeMaximo(pts: number, max: number): string {
+  return max === 0 ? "—" : `${nota(pts)} / ${nota(max)}`;
+}
+
+export function promedio(valores: number[]): number | null {
+  return valores.length === 0 ? null : Math.round((valores.reduce((s, v) => s + v, 0) / valores.length) * 100) / 100;
+}
+
+export const ESCENARIO_INICIAL: Escenario = { preset: "mio" };

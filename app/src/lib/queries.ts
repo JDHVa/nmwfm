@@ -10,6 +10,8 @@ export const keys = {
   respaldos: ["respaldos"] as const,
   alertas: ["alertas"] as const,
   resumenCalificaciones: ["calificaciones-resumen"] as const,
+  escenario: ["calificaciones-escenario"] as const,
+  historial: ["calificaciones-historial"] as const,
   etapas: (id: string) => ["etapas", id] as const,
   calificaciones: (id: string) => ["calificaciones", id] as const,
   tarea: (id: string) => ["tarea", id] as const,
