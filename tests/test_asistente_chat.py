@@ -354,7 +354,7 @@ def test_el_chat_no_emite_los_bloques_think(con_tareas):  # noqa: F811
         [[texto("<think>\nplan"), texto(" secreto</think>\n\n"), texto("Hola"), texto("!")]]
     )
     eventos = recolectar(con_tareas, USUARIO)
-    assert [e["type"] for e in eventos] == ["pensando", "token", "token", "fin"]
+    assert [e["type"] for e in eventos] == ["estado", "token", "token", "fin"]
     assert "".join(e.get("text", "") for e in eventos) == "Hola!"
     assert "secreto" not in json.dumps(eventos)
 
@@ -372,7 +372,8 @@ def test_el_historial_guardado_no_trae_el_pensamiento(con_tareas):  # noqa: F811
 def test_primer_mensaje_avisa_que_carga_el_modelo(con_tareas):  # noqa: F811
     con_tareas.ollama = FalsoOllama([[texto("hola")]], cargados=())
     eventos = recolectar(con_tareas, USUARIO)
-    assert eventos[0] == {"type": "estado", "text": "Cargando modelo…"}
+    assert eventos[0] == chat.estado_evento("cargando", "Cargando modelo…")
+    assert eventos[0]["mensaje"] == "Cargando modelo…" and "text" not in eventos[0]
     con_tareas.ollama = FalsoOllama([[texto("hola")]])
     assert recolectar(con_tareas, USUARIO)[0]["type"] == "token"
 
@@ -446,7 +447,7 @@ def test_el_campo_thinking_de_ollama_solo_avisa_que_piensa(con_tareas):  # noqa:
     razonando = {"message": {"role": "assistant", "content": "", "thinking": "plan secreto"}}
     con_tareas.ollama = FalsoOllama([[razonando, razonando, texto("Hola")]])
     eventos = recolectar(con_tareas, USUARIO)
-    assert [e["type"] for e in eventos] == ["pensando", "token", "fin"]
+    assert [e["type"] for e in eventos] == ["estado", "token", "fin"]
     assert "secreto" not in json.dumps(eventos)
 
 

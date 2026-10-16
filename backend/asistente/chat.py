@@ -26,6 +26,10 @@ PROMPT_SISTEMA = (
 )
 
 
+def estado_evento(clave: str, mensaje: str) -> dict:
+    return {"type": "estado", "estado": clave, "mensaje": mensaje}
+
+
 def pendientes(state: AppState) -> dict:
     if not hasattr(state, "asistente_pendientes"):
         state.asistente_pendientes = {}
@@ -99,7 +103,7 @@ async def conversar(
     try:
         with contextlib.suppress(OllamaError):
             if modelo not in await state.ollama.cargados():
-                yield {"type": "estado", "text": "Cargando modelo…"}
+                yield estado_evento("cargando", "Cargando modelo…")
         for _ in range(MAX_VUELTAS):
             texto, llamadas = "", []
             filtro = FiltroPensamiento()
@@ -108,12 +112,12 @@ async def conversar(
                 mensaje = trozo.get("message") or {}
                 if mensaje.get("thinking") and not aviso_pensando:
                     aviso_pensando = True
-                    yield {"type": "pensando"}
+                    yield estado_evento("pensando", "Pensando…")
                 if mensaje.get("content"):
                     visible, pensando = filtro.procesar(mensaje["content"])
                     if pensando and not aviso_pensando:
                         aviso_pensando = True
-                        yield {"type": "pensando"}
+                        yield estado_evento("pensando", "Pensando…")
                     if visible:
                         texto += visible
                         yield {"type": "token", "text": visible}
