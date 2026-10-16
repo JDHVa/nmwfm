@@ -81,7 +81,8 @@ export type JobTipo =
   | "validar_siase"
   | "revisar_entregas"
   | "diagnostico"
-  | "calificaciones_siase";
+  | "calificaciones_siase"
+  | "portafolio_nexus";
 export type TipoMateria = "bachillerato" | "carrera" | "portafolio";
 export type ClaveComponente = "par1" | "emt" | "par2" | "eg" | "portafolio";
 export type ComponenteNota = {
@@ -94,6 +95,8 @@ export type ComponenteNota = {
 export type ElementoPortafolio = { titulo: string; valor: number; puntos: number | null; perdida: boolean };
 export type Pendiente = { clave: ClaveComponente; titulo: string; peso: number };
 export type EstadoMateria = "bien" | "atento" | "riesgo" | "sin_datos";
+export type TipoAlerta = "bajo_historico" | "examen_bajo" | "puntos_perdidos";
+export type AlertaMateria = { tipo: TipoAlerta; detalle: string };
 export type MateriaCalificacion = {
   clave: string;
   nombre: string;
@@ -113,6 +116,52 @@ export type MateriaCalificacion = {
   prob_objetivo: number | null;
   prob_aprobar: number;
   estado: EstadoMateria;
+  alertas: AlertaMateria[];
+  en_cuidado: boolean;
+  portafolio_pts: number;
+  portafolio_max: number;
+  examenes_pts: number;
+  examenes_max: number;
+  total_pts: number;
+  evaluado_pts: number;
+  pct_evaluado: number | null;
+};
+export type PresetEscenario = "pesimista" | "realista" | "optimista" | "mio" | "personalizado";
+export type AjusteMateria = {
+  examenes?: number;
+  tareas?: number;
+  pendientes?: Record<number, number>;
+  esfuerzo?: boolean;
+};
+export type Escenario = {
+  preset: PresetEscenario;
+  examenes?: number;
+  tareas?: number;
+  materias?: Record<string, AjusteMateria>;
+};
+export type ResultadoEscenario = {
+  materias: {
+    clave: string;
+    final: number;
+    pendientes: { clave: ClaveComponente; titulo: string; peso: number; nota: number }[];
+  }[];
+  semestre: number;
+};
+export type ClaveHistorial = "par1" | "par2" | "emt" | "eg" | "portafolio" | "total";
+export type MateriaHistorial = {
+  periodo?: string;
+  nombre: string | null;
+  tipo: TipoMateria;
+  par1?: number | null;
+  par2?: number | null;
+  emt?: number | null;
+  eg?: number | null;
+  port?: number | null;
+  total: number;
+};
+export type Historial = {
+  semestres: { periodo: string; materias: MateriaHistorial[] }[];
+  resumen: Record<ClaveHistorial, { media: number; desv: number; n: number; prob_100: number }>;
 };
 export type ResumenCalificaciones = {
   materias: MateriaCalificacion[];
@@ -125,6 +174,7 @@ export type ResumenCalificaciones = {
     necesario_promedio: number | null;
   };
   siase_leida_en: string | null;
+  nexus_leido_en: string | null;
 };
 export type JobEstado = "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error";
 export type Job = {
@@ -365,6 +415,9 @@ export const api = {
     request<Calificaciones | null>("GET", `/materias/${materiaId}/calificaciones`),
   resumenCalificaciones: () => request<ResumenCalificaciones>("GET", "/calificaciones"),
   calificacionesSiase: () => request<Job>("POST", "/siase/calificaciones"),
+  portafolioNexus: () => request<Job>("POST", "/nexus/portafolio"),
+  escenario: (body: Escenario) => request<ResultadoEscenario>("POST", "/calificaciones/escenario", body),
+  historial: () => request<Historial>("GET", "/calificaciones/historial"),
   putObjetivos: (body: { semestre?: number | null; materias?: Record<string, number | null> }) =>
     request<ResumenCalificaciones>("PUT", "/calificaciones/objetivos", body),
   putTipoMateria: (clave: string, tipo: TipoMateria | null) =>

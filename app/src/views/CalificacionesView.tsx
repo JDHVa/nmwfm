@@ -1,14 +1,21 @@
-import { useState } from "react";
-import { ChevronDown, GraduationCap, RefreshCw } from "lucide-react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { ChevronDown, GraduationCap, RefreshCw, TriangleAlert } from "lucide-react";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HistorialSeccion } from "@/components/calificaciones/HistorialSeccion";
+import { NumeroEditable } from "@/components/calificaciones/NumeroEditable";
+import { PanelEscenarios } from "@/components/calificaciones/PanelEscenarios";
+import { TablaResumen } from "@/components/calificaciones/TablaResumen";
 import { JobProgress } from "@/components/JobProgress";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { api, type EstadoMateria, type MateriaCalificacion, type ResumenCalificaciones, type TipoMateria } from "@/lib/api";
+import { api, type Escenario, type EstadoMateria, type MateriaCalificacion, type ResumenCalificaciones, type TipoMateria } from "@/lib/api";
 import {
   APROBATORIA,
+  ESCENARIO_INICIAL,
+  ETIQUETA_ALERTA,
   ETIQUETA_ESTADO,
+  ETIQUETA_PRESET,
   ETIQUETA_TIPO,
   finalSimulada,
   nota,
@@ -18,6 +25,7 @@ import {
   type OrdenCalificaciones,
 } from "@/lib/calificaciones";
 import { keys, useJobRunner, useResumenCalificaciones } from "@/lib/queries";
+import { useDebounced } from "@/lib/debounce";
 import { haceTiempo } from "@/lib/sync";
 import { cn } from "@/lib/utils";
 
@@ -31,59 +39,6 @@ const COLOR_ESTADO: Record<EstadoMateria, string> = {
 function useActualizarResumen() {
   const qc = useQueryClient();
   return (data: ResumenCalificaciones) => qc.setQueryData(keys.resumenCalificaciones, data);
-}
-
-function NumeroEditable({
-  etiqueta,
-  valor,
-  onGuardar,
-  placeholder = "—",
-}: {
-  etiqueta: string;
-  valor: number | null;
-  onGuardar: (v: number | null) => void;
-  placeholder?: string;
-}) {
-  const [texto, setTexto] = useState(valor === null ? "" : String(valor));
-  const [previo, setPrevio] = useState(valor);
-  if (previo !== valor) {
-    setPrevio(valor);
-    setTexto(valor === null ? "" : String(valor));
-  }
-
-  function guardar() {
-    const limpio = texto.trim();
-    if (limpio === "") {
-      if (valor !== null) onGuardar(null);
-      return;
-    }
-    const n = Number(limpio);
-    if (!Number.isFinite(n)) {
-      setTexto(valor === null ? "" : String(valor));
-      return;
-    }
-    const acotado = Math.min(100, Math.max(0, n));
-    setTexto(String(acotado));
-    if (acotado !== valor) onGuardar(acotado);
-  }
-
-  return (
-    <input
-      type="number"
-      inputMode="decimal"
-      min={0}
-      max={100}
-      aria-label={etiqueta}
-      placeholder={placeholder}
-      value={texto}
-      onChange={(e) => setTexto(e.target.value)}
-      onBlur={guardar}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") e.currentTarget.blur();
-      }}
-      className="h-8 w-20 rounded-md border bg-background px-2 text-sm tabular-nums outline-none focus-visible:ring-2 focus-visible:ring-ring"
-    />
-  );
 }
 
 function BarraComponentes({ m }: { m: MateriaCalificacion }) {
@@ -280,6 +235,19 @@ function TarjetaMateria({ m }: { m: MateriaCalificacion }) {
         </div>
       </div>
 
+      {m.alertas.length > 0 && (
+        <ul aria-label={`Alertas de ${m.nombre}`} className="space-y-1">
+          {m.alertas.map((a) => (
+            <li key={a.tipo} className="flex items-start gap-2 text-sm text-warning">
+              <TriangleAlert className="mt-0.5 size-4 shrink-0" />
+              <span>
+                <strong className="font-medium">{ETIQUETA_ALERTA[a.tipo]}.</strong> {a.detalle}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+
       <BarraComponentes m={m} />
 
       <div className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2">
@@ -373,12 +341,34 @@ const FILTROS: { id: EstadoMateria | "todas"; etiqueta: string }[] = [
   { id: "sin_datos", etiqueta: ETIQUETA_ESTADO.sin_datos },
 ];
 
+function descripcionLecturas(data: ResumenCalificaciones | undefined): string {
+  const siase = data?.siase_leida_en ? haceTiempo(data.siase_leida_en) : "nunca";
+  const nexus = data?.nexus_leido_en ? haceTiempo(data.nexus_leido_en) : "nunca";
+  return `Última lectura · SIASE: ${siase} · portafolio de NEXUS: ${nexus}.`;
+}
+
 export function CalificacionesView() {
   const qc = useQueryClient();
   const { data, isLoading, error } = useResumenCalificaciones();
-  const runner = useJobRunner(() => void qc.invalidateQueries({ queryKey: keys.resumenCalificaciones }));
+  const runner = useJobRunner(() => {
+    void qc.invalidateQueries({ queryKey: keys.resumenCalificaciones });
+    void qc.invalidateQueries({ queryKey: keys.escenario });
+    void qc.invalidateQueries({ queryKey: keys.historial });
+  });
   const [filtro, setFiltro] = useState<EstadoMateria | "todas">("todas");
   const [orden, setOrden] = useState<OrdenCalificaciones>("riesgo");
+  const [escenario, setEscenario] = useState<Escenario>(ESCENARIO_INICIAL);
+  const escenarioDebounced = useDebounced(escenario);
+  const { data: resultado } = useQuery({
+    queryKey: [...keys.escenario, escenarioDebounced],
+    queryFn: () => api.escenario(escenarioDebounced),
+    placeholderData: keepPreviousData,
+    enabled: !!data && data.materias.length > 0,
+  });
+  const proyectadas = useMemo(
+    () => Object.fromEntries((resultado?.materias ?? []).map((r) => [r.clave, r.final])),
+    [resultado],
+  );
 
   const materias = data
     ? ordenarMaterias(data.materias, orden).filter((m) => filtro === "todas" || m.estado === filtro)
@@ -388,20 +378,29 @@ export function CalificacionesView() {
     <div className="mx-auto w-full max-w-4xl space-y-6 p-8">
       <PageHeader
         titulo="Calificaciones"
-        descripcion={
-          data?.siase_leida_en
-            ? `Leídas de SIASE ${haceTiempo(data.siase_leida_en)}.`
-            : "Aún no se han leído las calificaciones de SIASE."
-        }
+        descripcion={descripcionLecturas(data)}
         acciones={
-          <Button variant="secondary" disabled={runner.running} onClick={() => void runner.start(api.calificacionesSiase)}>
-            <RefreshCw /> Revisar calificaciones en SIASE
-          </Button>
+          <div className="flex flex-wrap justify-end gap-2">
+            <Button variant="secondary" disabled={runner.running} onClick={() => void runner.start(api.calificacionesSiase)}>
+              <RefreshCw /> Revisar calificaciones en SIASE
+            </Button>
+            <Button variant="secondary" disabled={runner.running} onClick={() => void runner.start(api.portafolioNexus)}>
+              <RefreshCw /> Revisar portafolio en NEXUS
+            </Button>
+          </div>
         }
       />
       <JobProgress job={runner.job} error={runner.error} onCambio={runner.actualizar} />
       {isLoading && <p className="text-muted-foreground">Cargando calificaciones…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
+      {data && data.materias.length > 0 && (
+        <TablaResumen
+          materias={ordenarMaterias(data.materias, "nombre")}
+          proyectadas={proyectadas}
+          semestre={resultado?.semestre ?? data.semestre.proyectada}
+          escenario={ETIQUETA_PRESET[escenario.preset]}
+        />
+      )}
       {data && (
         <>
           <EncabezadoSemestre resumen={data} />
@@ -412,6 +411,12 @@ export function CalificacionesView() {
             </div>
           ) : (
             <>
+              <PanelEscenarios
+                materias={ordenarMaterias(data.materias, "nombre")}
+                escenario={escenario}
+                onCambio={setEscenario}
+                resultado={resultado}
+              />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div role="group" aria-label="Filtrar por estado" className="flex flex-wrap gap-1.5">
                   {FILTROS.map((f) => (
@@ -453,6 +458,7 @@ export function CalificacionesView() {
                   <TarjetaMateria key={m.clave} m={m} />
                 ))}
               </div>
+              <HistorialSeccion />
             </>
           )}
         </>

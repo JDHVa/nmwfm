@@ -26,6 +26,15 @@ const materia = (parcial: Partial<MateriaCalificacion>): MateriaCalificacion => 
   prob_objetivo: null,
   prob_aprobar: 0.9,
   estado: "bien",
+  alertas: [],
+  en_cuidado: false,
+  portafolio_pts: 0,
+  portafolio_max: 40,
+  examenes_pts: 0,
+  examenes_max: 60,
+  total_pts: 0,
+  evaluado_pts: 0,
+  pct_evaluado: null,
   ...parcial,
 });
 
