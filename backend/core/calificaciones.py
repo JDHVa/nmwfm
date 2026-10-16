@@ -1,0 +1,344 @@
+import math
+import re
+import unicodedata
+import zlib
+
+import numpy as np
+
+APROBATORIA = 70.0
+MUESTRAS = 5000
+SEMILLA = 20260101
+TOLERANCIA_SUMA = 4.0
+TOLERANCIA_RAZON = 0.05
+CAL_MINIMA_RAZON = 10.0
+PESO_PRIOR = 3
+PESO_PRIOR_GRUPO = 2
+DESV_MINIMA = 5.0
+MEDIA_SIN_DATOS = 80.0
+DESV_SIN_DATOS = 15.0
+
+ORDEN = ("par1", "emt", "par2", "eg", "portafolio")
+NOMBRES = {
+    "par1": "Parcial 1",
+    "emt": "Medio término",
+    "par2": "Parcial 2",
+    "eg": "Examen global",
+    "portafolio": "Portafolio",
+}
+PESOS = {
+    "bachillerato": {"par1": 10, "emt": 15, "par2": 10, "eg": 25, "portafolio": 40},
+    "carrera": {"par1": 10, "emt": 15, "par2": 10, "eg": 15, "portafolio": 50},
+    "portafolio": {"portafolio": 100},
+}
+TIPOS = tuple(PESOS)
+SUMA_POR_TIPO = {"bachillerato": 40, "carrera": 50, "portafolio": 100}
+RAZON_POR_TIPO = {"bachillerato": 0.4, "carrera": 0.5, "portafolio": 1.0}
+
+
+def normalizar(texto: str) -> str:
+    sin_acentos = "".join(
+        c for c in unicodedata.normalize("NFD", texto or "") if unicodedata.category(c) != "Mn"
+    )
+    return re.sub(r"[^a-z0-9]+", " ", sin_acentos.lower()).strip()
+
+
+def nombre_materia(texto: str) -> str:
+    return re.sub(r"^\d+\s+", "", normalizar(texto))
+
+
+def mismo_nombre(a: str, b: str, minimo: int = 6) -> bool:
+    if not a or not b:
+        return False
+    if a == b:
+        return True
+    corto, largo = sorted((a, b), key=len)
+    return len(corto) >= minimo and corto in largo
+
+
+def numero(texto: str | None) -> float | None:
+    if texto is None:
+        return None
+    encontrado = re.fullmatch(r"\s*(-?\d+(?:[.,]\d+)?)\s*", texto)
+    return float(encontrado.group(1).replace(",", ".")) if encontrado else None
+
+
+def es_diagnostico(titulo: str) -> bool:
+    plano = normalizar(titulo)
+    return "diagnostic" in plano or "diagnostico" in plano
+
+
+def _indice(columnas: list[str], prefijo: str) -> int | None:
+    for i, columna in enumerate(columnas):
+        if normalizar(columna).startswith(prefijo):
+            return i
+    return None
+
+
+def elementos_portafolio(datos: dict | None) -> list[dict]:
+    if not datos:
+        return []
+    columnas = datos.get("columnas") or []
+    i_titulo = _indice(columnas, "elemento")
+    i_cal = _indice(columnas, "calificacion")
+    i_valor = _indice(columnas, "valor")
+    i_puntos = _indice(columnas, "puntos")
+    elementos = []
+    for fila in datos.get("filas") or []:
+        if None in (i_cal, i_valor, i_puntos) or max(i_cal, i_valor, i_puntos) >= len(fila):
+            if len(fila) < 4:
+                continue
+            c_cal, c_valor, c_puntos = fila[-3], fila[-2], fila[-1]
+        else:
+            c_cal, c_valor, c_puntos = fila[i_cal], fila[i_valor], fila[i_puntos]
+        if i_titulo is not None and i_titulo < len(fila):
+            titulo = fila[i_titulo]
+        else:
+            titulo = next((c for c in fila[:-3] if c), "")
+        valor = numero(c_valor)
+        if not titulo or valor is None or es_diagnostico(titulo):
+            continue
+        cal = numero(c_cal)
+        puntos = None
+        if cal is not None:
+            puntos = numero(c_puntos)
+            if puntos is None:
+                puntos = cal * valor / 100
+        elementos.append({"titulo": titulo, "valor": valor, "calificacion": cal, "puntos": puntos})
+    return elementos
+
+
+def detectar_tipo(suma_valor: float | None, port_cal: float | None, port_pts: float | None):
+    if suma_valor:
+        for tipo, objetivo in SUMA_POR_TIPO.items():
+            if abs(suma_valor - objetivo) <= TOLERANCIA_SUMA:
+                return tipo
+    if port_cal and port_pts is not None and port_cal >= CAL_MINIMA_RAZON:
+        razon = port_pts / port_cal
+        for tipo, objetivo in RAZON_POR_TIPO.items():
+            if abs(razon - objetivo) <= TOLERANCIA_RAZON:
+                return tipo
+    return None
+
+
+def _redondear(valor: float | None, decimales: int = 2) -> float | None:
+    return None if valor is None else round(float(valor), decimales)
+
+
+def _preparar(entrada: dict, tipo_manual: str | None) -> dict:
+    notas = entrada.get("notas") or {}
+    elementos = entrada.get("portafolio") or None
+    port_siase = notas.get("portafolio") or {}
+    suma_valor = sum(e["valor"] for e in elementos) if elementos else None
+    tipo_auto = detectar_tipo(suma_valor, port_siase.get("cal"), port_siase.get("pts"))
+    tipo = tipo_manual if tipo_manual in PESOS else tipo_auto
+    pesos = PESOS.get(tipo, {})
+
+    componentes = []
+    obs_examen: list[float] = []
+    obs_tarea: list[float] = []
+    pendientes = []
+    for clave in ORDEN:
+        if clave not in pesos and not (tipo is None and notas.get(clave)):
+            continue
+        peso = pesos.get(clave, 0)
+        nota = notas.get(clave) or {}
+        cal, pts = nota.get("cal"), nota.get("pts")
+        if clave == "portafolio" and elementos:
+            calificados = [e for e in elementos if e["calificacion"] is not None]
+            pts = sum(e["puntos"] for e in calificados) if calificados else None
+            if cal is None and calificados:
+                base = sum(e["valor"] for e in calificados)
+                cal = pts / base * 100 if base else None
+        elif cal is not None and pts is None:
+            pts = cal * peso / 100
+        componentes.append(
+            {
+                "clave": clave,
+                "nombre": NOMBRES[clave],
+                "peso": peso,
+                "calificacion": _redondear(cal),
+                "puntos": _redondear(pts),
+            }
+        )
+        if clave != "portafolio":
+            if cal is not None:
+                obs_examen.append(cal)
+            elif peso:
+                pendientes.append({"clave": clave, "titulo": NOMBRES[clave], "peso": peso})
+        elif elementos:
+            for e in elementos:
+                if e["calificacion"] is not None:
+                    obs_tarea.append(e["calificacion"])
+                elif not e.get("perdida"):
+                    pendientes.append(
+                        {"clave": "portafolio", "titulo": e["titulo"], "peso": e["valor"]}
+                    )
+        elif peso:
+            restante = peso - (pts or 0)
+            if restante > 1e-9:
+                pendientes.append(
+                    {"clave": "portafolio", "titulo": "Resto del portafolio", "peso": restante}
+                )
+
+    asegurados = sum(c["puntos"] for c in componentes if c["puntos"] is not None)
+    hay_datos = bool(obs_examen or obs_tarea) or any(c["puntos"] is not None for c in componentes)
+    return {
+        "entrada": entrada,
+        "tipo": tipo,
+        "tipo_manual": tipo_manual in PESOS,
+        "componentes": componentes,
+        "portafolio": [
+            {
+                "titulo": e["titulo"],
+                "valor": e["valor"],
+                "puntos": _redondear(e["puntos"]),
+                "perdida": bool(e.get("perdida")),
+            }
+            for e in (elementos or [])
+        ],
+        "pendientes": pendientes,
+        "asegurados": asegurados,
+        "obs_examen": obs_examen,
+        "obs_tarea": obs_tarea,
+        "hay_datos": hay_datos,
+    }
+
+
+def _estadisticas_globales(preparadas: list[dict]) -> tuple[float, float]:
+    todas = [x for p in preparadas for x in p["obs_examen"] + p["obs_tarea"]]
+    if not todas:
+        return MEDIA_SIN_DATOS, DESV_SIN_DATOS
+    return float(np.mean(todas)), max(float(np.std(todas)), DESV_MINIMA)
+
+
+def _mezclar(n: int, media: float, prior: float, peso_prior: float) -> float:
+    return (n * media + peso_prior * prior) / (n + peso_prior)
+
+
+def _simular(p: dict, media_global: float, desv_global: float) -> np.ndarray:
+    pendientes = p["pendientes"]
+    if not pendientes:
+        return np.full(MUESTRAS, min(100.0, p["asegurados"]))
+    rng = np.random.default_rng(SEMILLA + zlib.crc32(p["entrada"]["clave"].encode()))
+    todas = p["obs_examen"] + p["obs_tarea"]
+    n = len(todas)
+    media = float(np.mean(todas)) if n else media_global
+    varianza = float(np.var(todas)) if n else 0.0
+    mu = _mezclar(n, media, media_global, PESO_PRIOR)
+    desv = max(
+        math.sqrt(_mezclar(n, varianza, desv_global**2, PESO_PRIOR)),
+        DESV_MINIMA,
+    )
+    medias = []
+    for pendiente in pendientes:
+        grupo = p["obs_tarea"] if pendiente["clave"] == "portafolio" else p["obs_examen"]
+        medias.append(
+            _mezclar(len(grupo), float(np.mean(grupo)), mu, PESO_PRIOR_GRUPO) if grupo else mu
+        )
+    pesos = np.array([x["peso"] for x in pendientes], dtype=float)
+    ruido = rng.normal(size=(MUESTRAS, len(pendientes))) * desv
+    sesgo = rng.normal(size=(MUESTRAS, 1)) * desv / math.sqrt(n + PESO_PRIOR)
+    notas = np.clip(np.array(medias) + sesgo + ruido, 0, 100)
+    return np.clip(p["asegurados"] + notas @ pesos / 100, 0, 100)
+
+
+def _necesario(objetivo: float | None, asegurados: float, peso_pendiente: float) -> float | None:
+    if objetivo is None or peso_pendiente <= 0:
+        return None
+    return max(0.0, 100 * (objetivo - asegurados) / peso_pendiente)
+
+
+def _estado(p: dict, prob_aprobar: float, prob_objetivo: float | None) -> str:
+    if not p["hay_datos"]:
+        return "sin_datos"
+    peso_pendiente = sum(x["peso"] for x in p["pendientes"])
+    if peso_pendiente > 0:
+        necesario_aprobar = max(0.0, 100 * (APROBATORIA - p["asegurados"]) / peso_pendiente)
+    else:
+        necesario_aprobar = 0.0 if p["asegurados"] >= APROBATORIA else math.inf
+    if prob_aprobar < 0.6 or necesario_aprobar > 90:
+        return "riesgo"
+    if prob_objetivo is not None and prob_objetivo < 0.5:
+        return "atento"
+    return "bien"
+
+
+def _materia(p: dict, muestras: np.ndarray, objetivo: float | None) -> dict:
+    entrada = p["entrada"]
+    peso_pendiente = sum(x["peso"] for x in p["pendientes"])
+    maximo = p["asegurados"] + peso_pendiente
+    necesario = _necesario(objetivo, p["asegurados"], peso_pendiente)
+    prob_objetivo = None if objetivo is None else float(np.mean(muestras >= objetivo - 1e-9))
+    prob_aprobar = float(np.mean(muestras >= APROBATORIA - 1e-9))
+    bajo, alto = np.percentile(muestras, [10, 90])
+    return {
+        "clave": entrada["clave"],
+        "nombre": entrada["nombre"],
+        "materia_id": entrada.get("materia_id"),
+        "tipo": p["tipo"],
+        "tipo_manual": p["tipo_manual"],
+        "componentes": p["componentes"],
+        "portafolio": p["portafolio"],
+        "pendientes": [{**x, "peso": _redondear(x["peso"])} for x in p["pendientes"]],
+        "asegurados": _redondear(p["asegurados"]),
+        "maximo_posible": _redondear(maximo),
+        "proyectada": _redondear(np.mean(muestras)),
+        "rango": [_redondear(bajo), _redondear(alto)],
+        "objetivo": objetivo,
+        "necesario": _redondear(necesario, 1),
+        "alcanzable": objetivo is None or maximo >= objetivo - 1e-9,
+        "prob_objetivo": _redondear(prob_objetivo, 3),
+        "prob_aprobar": _redondear(prob_aprobar, 3),
+        "estado": _estado(p, prob_aprobar, prob_objetivo),
+    }
+
+
+def calcular(
+    entradas: list[dict],
+    tipos_manuales: dict[str, str] | None = None,
+    objetivos: dict[str, float] | None = None,
+    objetivo_semestre: float | None = None,
+    siase_leida_en: str | None = None,
+) -> dict:
+    tipos_manuales = tipos_manuales or {}
+    objetivos = objetivos or {}
+    preparadas = [_preparar(e, tipos_manuales.get(e["clave"])) for e in entradas]
+    media_global, desv_global = _estadisticas_globales(preparadas)
+    muestras = [_simular(p, media_global, desv_global) for p in preparadas]
+    materias = [
+        _materia(p, m, objetivos.get(p["entrada"]["clave"]))
+        for p, m in zip(preparadas, muestras, strict=True)
+    ]
+
+    cantidad = len(preparadas)
+    if cantidad:
+        promedio = np.mean(np.vstack(muestras), axis=0)
+        actual = sum(p["asegurados"] for p in preparadas) / cantidad
+        pendiente_total = sum(x["peso"] for p in preparadas for x in p["pendientes"])
+        necesario = None
+        if objetivo_semestre is not None and pendiente_total > 0:
+            necesario = max(0.0, 100 * (objetivo_semestre - actual) * cantidad / pendiente_total)
+        bajo, alto = np.percentile(promedio, [10, 90])
+        prob_objetivo = (
+            None
+            if objetivo_semestre is None
+            else float(np.mean(promedio >= objetivo_semestre - 1e-9))
+        )
+        semestre = {
+            "actual": _redondear(actual),
+            "proyectada": _redondear(np.mean(promedio)),
+            "rango": [_redondear(bajo), _redondear(alto)],
+            "objetivo": objetivo_semestre,
+            "prob_objetivo": _redondear(prob_objetivo, 3),
+            "necesario_promedio": _redondear(necesario, 1),
+        }
+    else:
+        semestre = {
+            "actual": 0.0,
+            "proyectada": 0.0,
+            "rango": [0.0, 0.0],
+            "objetivo": objetivo_semestre,
+            "prob_objetivo": None,
+            "necesario_promedio": None,
+        }
+    return {"materias": materias, "semestre": semestre, "siase_leida_en": siase_leida_en}

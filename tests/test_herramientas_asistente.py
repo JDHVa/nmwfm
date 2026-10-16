@@ -74,6 +74,7 @@ def test_esquemas_completos_y_bien_formados():
         "generar_portada",
         "sincronizar",
         "revisar_entregas",
+        "ver_calificaciones",
         "generar_tarea",
         "entregar_tarea",
     }

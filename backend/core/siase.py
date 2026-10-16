@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import re
 import time
 
 from playwright.async_api import BrowserContext, Frame, Page
@@ -8,6 +9,7 @@ from playwright.async_api import TimeoutError as PlaywrightTimeoutError
 from .. import config
 from . import selectors as S
 from .browser import clic_robusto
+from .htmlq import parse, select, text_of
 from .types import Hooks
 
 
@@ -60,11 +62,7 @@ async def _mostrar_panel_nexus(scope: Frame) -> None:
         await scope.locator(S.SIASE_NEXUS_LOGO).first.dispatch_event("mouseover")
 
 
-async def login(
-    ctx: BrowserContext, cuenta: str, password: str, hooks: Hooks | None = None
-) -> Page:
-    hooks = hooks or Hooks()
-    page = await ctx.new_page()
+async def _abrir_inicio(page: Page, cuenta: str, password: str, hooks: Hooks) -> Frame:
     await hooks.paso("Abriendo SIASE", 0.02)
     await page.goto(config.SIASE_URL, wait_until="domcontentloaded")
 
@@ -88,6 +86,15 @@ async def login(
             logo_scope = await _buscar_scope(page, S.SIASE_NEXUS_LOGO, 30)
         if logo_scope is None:
             raise SiaseError("No se pudo llegar al acceso a NEXUS desde SIASE.")
+    return logo_scope
+
+
+async def login(
+    ctx: BrowserContext, cuenta: str, password: str, hooks: Hooks | None = None
+) -> Page:
+    hooks = hooks or Hooks()
+    page = await ctx.new_page()
+    logo_scope = await _abrir_inicio(page, cuenta, password, hooks)
 
     await hooks.paso("Entrando a NEXUS", 0.1)
     await _mostrar_panel_nexus(logo_scope)
@@ -143,6 +150,91 @@ async def validar(
         if await _presente(page, S.SIASE_CUENTA):
             raise CredencialesInvalidas("Cuenta o contraseña incorrecta")
         raise SiaseSinRespuesta("SIASE no responde")
+    finally:
+        with contextlib.suppress(Exception):
+            await page.close()
+
+
+def _numero(texto: str) -> float | None:
+    limpio = texto.strip().replace(",", ".")
+    try:
+        return float(limpio)
+    except ValueError:
+        return None
+
+
+def parse_evaluacion(markup: str) -> list[dict]:
+    root = parse(markup)
+    filas = select(root, S.SIASE_EVAL_FILAS)
+    orden: list[str] = []
+    for fila in filas:
+        textos = [text_of(c) for c in fila.xpath("./td")]
+        encontradas = [S.SIASE_EVAL_COLUMNAS[t] for t in textos if t in S.SIASE_EVAL_COLUMNAS]
+        if len(encontradas) == len(S.SIASE_EVAL_COLUMNAS):
+            orden = encontradas
+            break
+    if not orden:
+        return []
+    materias = []
+    for fila in filas:
+        celdas = [text_of(c) for c in fila.xpath("./td")]
+        if len(celdas) != 3 + 2 * len(orden):
+            continue
+        coincide = re.match(r"^(\d+)\s+(.+)$", celdas[0])
+        if coincide is None:
+            continue
+        notas = {}
+        for i, clave in enumerate(orden):
+            cal, pts = _numero(celdas[2 + 2 * i]), _numero(celdas[3 + 2 * i])
+            notas[clave] = {"cal": cal, "pts": pts}
+        materias.append(
+            {
+                "clave": coincide.group(1),
+                "nombre": coincide.group(2).strip(),
+                "grupo": celdas[1],
+                "notas": notas,
+                "total": _numero(celdas[-1]),
+            }
+        )
+    return materias
+
+
+async def _leer_tabla(page: Page, timeout: float) -> list[dict]:
+    encontrado = await _buscar_alguno(page, [S.SIASE_EVAL_TABLA], timeout)
+    if encontrado is None:
+        raise SiaseError("SIASE no mostro la tabla de calificaciones.")
+    return parse_evaluacion(await encontrado[0].content())
+
+
+async def leer_calificaciones(
+    ctx: BrowserContext, cuenta: str, password: str, hooks: Hooks | None = None
+) -> list[dict]:
+    hooks = hooks or Hooks()
+    page = await ctx.new_page()
+    try:
+        inicio = await _abrir_inicio(page, cuenta, password, hooks)
+        await hooks.paso("Abriendo la carrera", 0.25)
+        await clic_robusto(inicio.locator(S.SIASE_CARRERA_LINK))
+        menu = await _buscar_alguno(page, [S.SIASE_MENU_EVALUACION], 30)
+        if menu is None:
+            raise SiaseError("No se encontro la Consulta de Evaluacion en SIASE.")
+        await hooks.paso("Consulta de Evaluacion", 0.45)
+        await clic_robusto(menu[0].locator(S.SIASE_MENU_EVALUACION))
+        formulario = await _buscar_scope(page, S.SIASE_PERIODO_SELECT, 30)
+        if formulario is None:
+            raise SiaseError("SIASE no mostro el selector de periodo.")
+        periodos = await formulario.locator(S.SIASE_PERIODO_SELECT).first.evaluate(
+            "el => [...el.options].map(o => o.value)"
+        )
+        validos = [p for p in periodos if p != S.SIASE_PERIODO_SIN_ELEGIR]
+        if not validos:
+            raise SiaseError("SIASE no tiene periodos con calificaciones.")
+        if len(validos) > 1:
+            await hooks.log("SIASE tiene varios periodos; se usa el primero.")
+        await hooks.paso("Leyendo calificaciones", 0.65)
+        await formulario.locator(S.SIASE_PERIODO_SELECT).first.select_option(validos[0])
+        await clic_robusto(formulario.locator(S.SIASE_EVAL_ACEPTAR))
+        return await _leer_tabla(page, 30)
     finally:
         with contextlib.suppress(Exception):
             await page.close()

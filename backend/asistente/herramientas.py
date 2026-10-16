@@ -180,6 +180,19 @@ async def generar_portada(state: AppState, args: dict) -> dict:
     return {**resultado, "ruta_pdf": str(carpeta)}
 
 
+async def ver_calificaciones(state: AppState, args: dict) -> dict:
+    resumen = services.resumen_calificaciones(state)
+    buscada = _plano(args.get("materia", ""))
+    if buscada:
+        resumen["materias"] = [m for m in resumen["materias"] if buscada in _plano(m["nombre"])]
+    else:
+        resumen["materias"] = [
+            {k: v for k, v in m.items() if k not in ("componentes", "portafolio", "pendientes")}
+            for m in resumen["materias"]
+        ]
+    return resumen
+
+
 def _iniciar_job(state: AppState, tipo: str, fabrica) -> dict:
     activo = state.jobs.activo(tipo)
     job = activo or state.jobs.start(tipo, fabrica)
@@ -312,6 +325,14 @@ HERRAMIENTAS: dict[str, Herramienta] = {
             CAMPOS_PORTADA,
             generar_portada,
             requeridos=["profesor"],
+        ),
+        Herramienta(
+            "ver_calificaciones",
+            "Muestra las calificaciones de SIASE y NEXUS con la predicción del semestre: "
+            "puntos asegurados, proyección, probabilidad de aprobar y lo que falta sacar. Sin "
+            "materia devuelve un resumen compacto; con materia, el detalle de esa materia.",
+            {"materia": {"type": "string", "description": "Parte del nombre de la materia."}},
+            ver_calificaciones,
         ),
         Herramienta(
             "sincronizar",

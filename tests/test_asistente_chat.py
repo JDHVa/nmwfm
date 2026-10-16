@@ -105,7 +105,7 @@ def test_bucle_tool_call_resultado_y_respuesta_final(con_tareas):  # noqa: F811
     )
 
     primera, segunda = falso.llamadas
-    assert primera["modelo"] == M and len(primera["tools"]) == 11
+    assert primera["modelo"] == M and len(primera["tools"]) == 12
     assert primera["mensajes"][0]["role"] == "system"
     assert "español" in primera["mensajes"][0]["content"]
     assert "2026" in primera["mensajes"][0]["content"]
