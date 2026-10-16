@@ -359,6 +359,7 @@ async def _sync_materia(
             fila["tarea_idx"],
             fila["numero"],
             entregas=modo == "completo",
+            pia=fila["tipo"] == "pia",
         )
         _guardar_detalle_con_novedades(state, fila["id"], detalle, acum)
         leidas.add(fila["id"])
@@ -404,7 +405,12 @@ async def _revisar_materia(
 
     async def leer(pagina: Page, fila: dict) -> None:
         detalle = await nexus.abrir_tarea(
-            pagina, fila["etapa_idx"], fila["tarea_idx"], fila["numero"], solo_entregas=True
+            pagina,
+            fila["etapa_idx"],
+            fila["tarea_idx"],
+            fila["numero"],
+            solo_entregas=True,
+            pia=fila["tipo"] == "pia",
         )
         if detalle.entregas is not None:
             acum["revisadas"] += 1
@@ -597,7 +603,9 @@ async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):
         raise ApiError(404, "materia_no_encontrada", "La materia ya no aparece en NEXUS.")
     await nexus.abrir_materia(page, indice, tarea_materia_nombre(state, tarea))
     await nexus.abrir_estructura(page)
-    return await nexus.abrir_tarea(page, etapa_idx, tarea_idx, tarea["numero"])
+    return await nexus.abrir_tarea(
+        page, etapa_idx, tarea_idx, tarea["numero"], pia=tarea["tipo"] == "pia"
+    )
 
 
 async def traer_detalle(state: AppState, tarea_id: str) -> dict:

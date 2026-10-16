@@ -288,7 +288,9 @@ def _detalle(entregas=None):
 def test_sync_completo_revisa_entregas_e_incremental_no(state, monkeypatch):
     llamadas = _montar(monkeypatch, state)
 
-    async def abrir_tarea(page, e, t, numero=None, *, entregas=False, solo_entregas=False):
+    async def abrir_tarea(
+        page, e, t, numero=None, *, entregas=False, solo_entregas=False, pia=False
+    ):
         llamadas.append((t, entregas, solo_entregas))
         if not entregas:
             return _detalle(None)
@@ -333,7 +335,9 @@ def test_revisar_entregas_todas_las_no_entregadas(state, monkeypatch):
     llamadas = _montar(monkeypatch, state)
     state.storage.upsert_materia("100", "Lógica", 0)
 
-    async def abrir_tarea(page, e, t, numero=None, *, entregas=False, solo_entregas=False):
+    async def abrir_tarea(
+        page, e, t, numero=None, *, entregas=False, solo_entregas=False, pia=False
+    ):
         llamadas.append((t, solo_entregas))
         return _detalle([Entrega("a.pdf", "2026-09-21T08:00")] if t == 1 else [])
 
