@@ -53,7 +53,8 @@ class AppState:
         self.credentials = credentials or Credentials()
         self.jobs = JobManager()
         self.browser = BrowserManager(self.paths.browser_profile, dev)
-        self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
+        self.browser_gemini = BrowserManager(self.paths.gemini_profile, dev)
+        self.gemini: LLMProvider = gemini or GeminiWeb(self.browser_gemini)
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
         self._detector: images.DetectorModelo | None = None
@@ -134,6 +135,7 @@ class AppState:
     async def close(self) -> None:
         await self.jobs.shutdown()
         await self.browser.close()
+        await self.browser_gemini.close()
         self.storage.close()
 
 
@@ -648,7 +650,7 @@ async def traer_detalle(state: AppState, tarea_id: str) -> dict:
 
 
 async def run_login_gemini(state: AppState, ctx: JobContext) -> dict:
-    async with state.browser.lock:
+    async with state.browser_gemini.lock:
         await state.gemini.iniciar_sesion(ctx.hooks())
     return {"sesion": True}
 
@@ -704,7 +706,11 @@ async def _texto_ocr(state: AppState, ctx: JobContext, tarea_id: str) -> str:
 EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
 
 
-def crear_pdf_imagenes(state: AppState, rutas: list[Path], recortar: bool = True) -> Path:
+def crear_pdf_imagenes(
+    state: AppState, rutas: list[Path], recortar: bool = True, portada: dict | None = None
+) -> Path:
+    if portada is not None and not str(portada.get("profesor", "")).strip():
+        raise ApiError(422, "validacion", "La portada necesita el profesor.")
     if not rutas:
         raise ApiError(400, "sin_archivos", "No se recibió ninguna imagen.")
     carpeta = state.paths.herramientas / f"pdf-{uuid.uuid4().hex[:10]}"
@@ -733,16 +739,40 @@ def crear_pdf_imagenes(state: AppState, rutas: list[Path], recortar: bool = True
                 usar_recorte=recortar,
             )
         )
-    return images.build_pdf(refs, state.paths.herramientas / f"{carpeta.name}.pdf")
+    destino = state.paths.herramientas / f"{carpeta.name}.pdf"
+    imagenes_pdf = images.build_pdf(refs, carpeta / "imagenes.pdf" if portada else destino)
+    if not portada:
+        return imagenes_pdf
+    _, portada_pdf = _portada_archivos(
+        state,
+        portada["profesor"],
+        portada.get("materia"),
+        portada.get("titulo"),
+        portada.get("fecha"),
+        carpeta,
+    )
+    return _unir_pdfs([portada_pdf, imagenes_pdf], destino)
 
 
-def generar_portada_suelta(
+def _unir_pdfs(origenes: list[Path], destino: Path) -> Path:
+    import pikepdf
+
+    with pikepdf.Pdf.new() as unido:
+        for origen in origenes:
+            with pikepdf.Pdf.open(origen) as parcial:
+                unido.pages.extend(parcial.pages)
+        unido.save(destino)
+    return destino
+
+
+def _portada_archivos(
     state: AppState,
     profesor: str,
-    materia: str | None = None,
-    titulo: str | None = None,
-    fecha: str | None = None,
-) -> dict:
+    materia: str | None,
+    titulo: str | None,
+    fecha: str | None,
+    carpeta: Path | None = None,
+) -> tuple[Path, Path]:
     if not profesor.strip():
         raise ApiError(422, "validacion", "El profesor es obligatorio.")
     try:
@@ -761,7 +791,7 @@ def generar_portada_suelta(
         extra.append(f"Materia: {materia.strip()}")
     if titulo and titulo.strip():
         extra.append(f"Tarea: {titulo.strip()}")
-    carpeta = state.paths.herramientas / f"portada-{uuid.uuid4().hex[:10]}"
+    carpeta = carpeta or state.paths.herramientas / f"portada-{uuid.uuid4().hex[:10]}"
     docx_path = documents.fill_cover(
         config.PORTADA_TEMPLATE, carpeta / "portada.docx", mapping, extra
     )
@@ -769,6 +799,17 @@ def generar_portada_suelta(
         pdf_path = documents.export_pdf(docx_path, carpeta / "portada.pdf")
     except Exception as exc:
         raise ApiError(502, "sin_word", f"No se pudo generar el PDF: {exc}") from exc
+    return docx_path, pdf_path
+
+
+def generar_portada_suelta(
+    state: AppState,
+    profesor: str,
+    materia: str | None = None,
+    titulo: str | None = None,
+    fecha: str | None = None,
+) -> dict:
+    docx_path, pdf_path = _portada_archivos(state, profesor, materia, titulo, fecha)
     return {"docx_url": state.file_url(docx_path), "pdf_url": state.file_url(pdf_path)}
 
 
@@ -822,7 +863,7 @@ async def run_generar(
         )
     )
     await ctx.update("generando", 0.45)
-    async with state.browser.lock:
+    async with state.browser_gemini.lock:
         markdown = await state.gemini.generar(prompt, pdf_insumos, ctx.hooks())
 
     await ctx.update("Creando el documento Word", 0.88)

@@ -148,7 +148,11 @@ async def reemplazar_indicaciones(state: AppState, args: dict) -> dict:
 async def crear_pdf_imagenes(state: AppState, args: dict) -> dict:
     rutas = [Path(r) for r in args.get("rutas", [])]
     pdf = await asyncio.to_thread(
-        services.crear_pdf_imagenes, state, rutas, bool(args.get("recortar", True))
+        services.crear_pdf_imagenes,
+        state,
+        rutas,
+        bool(args.get("recortar", True)),
+        args.get("portada") or None,
     )
     return {"pdf_url": state.file_url(pdf), "ruta": str(pdf)}
 
@@ -259,7 +263,8 @@ HERRAMIENTAS: dict[str, Herramienta] = {
         ),
         Herramienta(
             "crear_pdf_imagenes",
-            "Convierte imágenes del equipo en un solo PDF, recortando la hoja de cada foto.",
+            "Convierte imágenes del equipo en un solo PDF (una página por imagen, en orden), "
+            "recortando la hoja de cada foto y con portada opcional como primera página.",
             {
                 "rutas": {
                     "type": "array",
@@ -269,6 +274,17 @@ HERRAMIENTAS: dict[str, Herramienta] = {
                 "recortar": {
                     "type": "boolean",
                     "description": "Recortar la hoja (por defecto sí).",
+                },
+                "portada": {
+                    "type": "object",
+                    "description": "Si viene, la portada va como primera página del PDF.",
+                    "properties": {
+                        "profesor": {"type": "string"},
+                        "materia": {"type": "string"},
+                        "titulo": {"type": "string"},
+                        "fecha": {"type": "string", "description": "AAAA-MM-DD; por defecto, hoy."},
+                    },
+                    "required": ["profesor"],
                 },
             },
             crear_pdf_imagenes,
