@@ -2,7 +2,8 @@ import { useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { jobActivo } from "@/lib/api";
+import { DetenerButton } from "@/components/JobProgress";
+import { jobActivo, jobCancelado } from "@/lib/api";
 import { useEscape } from "@/lib/atajos";
 import { useSettings } from "@/lib/queries";
 import { haceTiempo, useSync } from "@/lib/sync";
@@ -13,7 +14,7 @@ export function SyncOverlay() {
   const { data: settings } = useSettings();
   const primera = settings && !settings.sync_inicial_hecha && sync.job?.tipo !== "revisar_entregas";
   const activo = jobActivo(sync.job);
-  const fallo = sync.job?.estado === "error" || !!sync.error;
+  const fallo = (sync.job?.estado === "error" && !jobCancelado(sync.job)) || !!sync.error;
   if (!primera || sync.minimizado || !(activo || fallo)) return null;
 
   return (
@@ -54,6 +55,7 @@ export function SyncOverlay() {
           </>
         )}
         <div className="flex justify-end gap-2">
+          <DetenerButton job={sync.job} onCambio={sync.actualizar} />
           {fallo && (
             <Button variant="secondary" onClick={() => sync.iniciar("auto")}>
               Reintentar
@@ -74,7 +76,8 @@ export function SyncIndicator({ className }: { className?: string }) {
   const [abierto, setAbierto] = useState(false);
   useEscape(abierto, () => setAbierto(false));
   const activo = jobActivo(sync.job);
-  const fallo = sync.job?.estado === "error" || !!sync.error;
+  const cancelado = jobCancelado(sync.job);
+  const fallo = (sync.job?.estado === "error" && !cancelado) || !!sync.error;
   const avisos = sync.errores.length;
 
   let texto: string;
@@ -82,6 +85,7 @@ export function SyncIndicator({ className }: { className?: string }) {
   else if (activo) texto = `Sincronizando… ${sync.job?.progreso ?? 0}%`;
   else if (sync.resumenRevision) texto = sync.resumenRevision;
   else if (fallo) texto = "Error al sincronizar";
+  else if (cancelado) texto = "Sincronización detenida";
   else if (avisos > 0) texto = `Sincronizado con ${avisos} aviso${avisos === 1 ? "" : "s"}`;
   else texto = `Al día · ${haceTiempo(settings?.ultima_sync ?? null)}`;
 
@@ -115,6 +119,7 @@ export function SyncIndicator({ className }: { className?: string }) {
               <p className="font-medium">{sync.job.paso}</p>
               <Progress value={sync.job.progreso} className="h-1.5" />
               {sync.job.mensaje && <p className="text-xs text-muted-foreground">{sync.job.mensaje}</p>}
+              <DetenerButton job={sync.job} onCambio={sync.actualizar} />
             </>
           ) : (
             <>

@@ -132,7 +132,7 @@ function ConfigForm({ settings }: { settings: Settings }) {
         <Button variant="secondary" onClick={() => gemini.start(api.loginGemini)} disabled={gemini.running}>
           <LogIn /> Iniciar sesión en Gemini
         </Button>
-        <JobProgress job={gemini.job} error={gemini.error} />
+        <JobProgress job={gemini.job} error={gemini.error} onCambio={gemini.actualizar} />
       </section>
 
       <section className="space-y-5 rounded-xl border bg-card p-6">

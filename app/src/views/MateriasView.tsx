@@ -74,7 +74,7 @@ export function MateriasView() {
           </div>
         }
       />
-      {sync.running && !sync.esRevision && <JobProgress job={sync.job} error={sync.error} />}
+      {sync.running && !sync.esRevision && <JobProgress job={sync.job} error={sync.error} onCambio={sync.actualizar} />}
 
       {isLoading && <p className="text-muted-foreground">Cargando materias…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
