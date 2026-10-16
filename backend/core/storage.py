@@ -116,6 +116,7 @@ SETTING_DEFAULTS = {
     "sync_inicial_hecha": False,
     "ultima_sync": None,
     "sync_cada_horas": 0,
+    "recorte_modelo": "auto",
 }
 INT_SETTINGS = {"sync_cada_horas"}
 BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}

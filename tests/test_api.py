@@ -58,6 +58,8 @@ def test_settings_roundtrip(client, state):
         "sync_inicial_hecha": False,
         "ultima_sync": None,
         "sync_cada_horas": 0,
+        "recorte_modelo": "auto",
+        "modelo_recorte_disponible": False,
     }
     r = client.put(
         "/settings",

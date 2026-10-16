@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from playwright.async_api import Page
 
 from . import config
-from .core import documents, images, metricas, nexus, ocr, selectors, siase
+from .core import documents, images, metricas, modelos, nexus, ocr, selectors, siase
 from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
@@ -53,6 +53,7 @@ class AppState:
         self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
+        self._detector: images.DetectorModelo | None = None
         self.catalogo = Catalogo(self.paths.debug / "api" if dev else None)
         limpiar_autoevaluaciones(self.storage)
 
@@ -68,7 +69,18 @@ class AppState:
             **s,
             "tiene_password": self.credentials.has(s["cuenta"]),
             "dev": self.dev,
+            "modelo_recorte_disponible": modelos.modelo_disponible(self.paths.models),
         }
+
+    def detector_recorte(self) -> images.DetectorModelo | None:
+        if self.storage.get_settings()["recorte_modelo"] != "auto":
+            return None
+        ruta = modelos.ruta_modelo(self.paths.models)
+        if not ruta.is_file():
+            return None
+        if self._detector is None or self._detector.ruta != ruta:
+            self._detector = images.DetectorModelo(ruta)
+        return None if self._detector.fallo else self._detector
 
     def insumo_public(self, row: dict) -> dict:
         out: dict = {

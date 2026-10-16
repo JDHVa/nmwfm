@@ -166,6 +166,10 @@ def create_app(
                 if not isinstance(body[key], bool):
                     raise ApiError(422, "validacion", f"{key} debe ser booleano.")
                 values[key] = body[key]
+        if "recorte_modelo" in body:
+            if body["recorte_modelo"] not in ("auto", "opencv"):
+                raise ApiError(422, "validacion", "recorte_modelo debe ser 'auto' u 'opencv'.")
+            values["recorte_modelo"] = body["recorte_modelo"]
         if "sync_cada_horas" in body:
             horas = body["sync_cada_horas"]
             if isinstance(horas, bool) or not isinstance(horas, int) or horas < 0:
@@ -321,7 +325,11 @@ def create_app(
             original.write_bytes(data)
             try:
                 await asyncio.to_thread(
-                    images.process_upload, original, recortada, folder / f"{insumo_id}_thumb.jpg"
+                    images.process_upload,
+                    original,
+                    recortada,
+                    folder / f"{insumo_id}_thumb.jpg",
+                    state.detector_recorte(),
                 )
             except Exception as exc:
                 original.unlink(missing_ok=True)

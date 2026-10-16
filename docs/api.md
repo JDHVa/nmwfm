@@ -5,7 +5,7 @@ Errores: HTTP 4xx/5xx con `{"error": {"code": str, "message": str}}`.
 
 ## Tipos
 ```ts
-type Settings = { cuenta: string; tiene_password: boolean; nombre: string; matricula: string; dev: boolean; entregar_sin_revisar: boolean; reducir_animaciones: boolean; sync_inicial_hecha: boolean; ultima_sync: string | null; sync_cada_horas: number };
+type Settings = { cuenta: string; tiene_password: boolean; nombre: string; matricula: string; dev: boolean; entregar_sin_revisar: boolean; reducir_animaciones: boolean; sync_inicial_hecha: boolean; ultima_sync: string | null; sync_cada_horas: number; recorte_modelo: "auto" | "opencv"; modelo_recorte_disponible: boolean };
 type Respaldo = { nombre: string; url: string; bytes: number; creado_en: string };
 type Diagnostico = { ok: boolean; pasos: { nombre: string; ok: boolean; ms: number; detalle: string; selectores_faltantes: string[] }[] };
 type Calificaciones = { columnas: string[]; filas: string[][]; actualizada_en: string };
@@ -24,7 +24,7 @@ Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la 
 
 ## Endpoints
 - `GET /health` → `{ok: true, version}`
-- `GET /settings` → `Settings` · `PUT /settings` body `Partial<Settings> & {password?: string}` (`sync_cada_horas`: entero >= 0; 0 apaga el sync incremental automático del backend, que corre en segundo plano mientras la app esté abierta)
+- `GET /settings` → `Settings` · `PUT /settings` body `Partial<Settings> & {password?: string}` (`recorte_modelo`: `auto` usa el modelo ONNX de segmentación (GPU con DirectML, CPU como respaldo) para recortar la hoja si el archivo está en `data/models/` y cae al detector OpenCV si falta o falla; `opencv` fuerza solo OpenCV; `modelo_recorte_disponible` es solo lectura e indica si el modelo está descargado. `sync_cada_horas`: entero >= 0; 0 apaga el sync incremental automático del backend, que corre en segundo plano mientras la app esté abierta)
 - `POST /siase/validar` → `Job` (solo hace el login en SIASE con las credenciales guardadas y cierra; `estado: "ok"` si entró, `"error"` con `mensaje` legible si la cuenta/contraseña es incorrecta o el sitio no responde)
 - `POST /diagnostico` → `Job` (smoke test de SOLO LECTURA contra NEXUS: login, lista de materias, portada, estructura, una tarea con rúbrica y entregas, calificaciones; `resultado: Diagnostico` indica qué paso y qué selectores fallaron; el job termina `ok` aunque haya pasos con falla; también disponible por consola con `python -m backend.check [--json]`)
 - `GET /respaldo` → `Respaldo[]` (zips guardados en `data/respaldos/`, el más reciente primero)

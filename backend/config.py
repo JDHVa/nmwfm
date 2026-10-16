@@ -33,6 +33,10 @@ CORS_ORIGINS = [
     "http://tauri.localhost",
 ]
 
+MODELO_RECORTE_ARCHIVO = "u2netp.onnx"
+MODELO_RECORTE_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx"
+MODELO_RECORTE_SHA256 = ""
+
 SIASE_URL = "https://www.uanl.mx/enlinea/"
 NEXUS_URL_FRAGMENT = "plataformanexus.uanl.mx/#/App/UnidadesAprendizaje"
 NEXUS_LISTA_URL = "https://" + NEXUS_URL_FRAGMENT
@@ -50,7 +54,8 @@ class Paths:
         self.insumos = self.data / "insumos"
         self.generaciones = self.data / "generaciones"
         self.debug = self.data / "debug"
+        self.models = self.data / "models"
 
     def ensure(self) -> None:
-        for p in (self.data, self.insumos, self.generaciones, self.debug):
+        for p in (self.data, self.insumos, self.generaciones, self.debug, self.models):
             p.mkdir(parents=True, exist_ok=True)
