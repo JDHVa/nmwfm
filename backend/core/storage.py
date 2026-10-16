@@ -167,9 +167,12 @@ SETTING_DEFAULTS = {
     "asistente_keep_alive_s": 90,
     "gemini_espera_envio_s": config.GEMINI_ESPERA_ENVIO_S,
     "instrucciones_fijas": instrucciones_por_defecto(),
+    "gemini_sesion": None,
+    "gemini_sesion_verificada_en": None,
 }
 JSON_SETTINGS = {"instrucciones_fijas"}
 INT_SETTINGS = {"sync_cada_horas", "asistente_keep_alive_s", "gemini_espera_envio_s"}
+TRI_SETTINGS = {"gemini_sesion"}
 BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}
 
 
@@ -281,7 +284,7 @@ class Storage:
         for key, default in SETTING_DEFAULTS.items():
             if key not in rows or rows[key] is None:
                 out[key] = copy.deepcopy(default)
-            elif key in BOOL_SETTINGS:
+            elif key in BOOL_SETTINGS or key in TRI_SETTINGS:
                 out[key] = rows[key] == "1"
             elif key in INT_SETTINGS:
                 try:
@@ -302,7 +305,7 @@ class Storage:
             for key, value in values.items():
                 if key not in SETTING_DEFAULTS:
                     continue
-                if key in BOOL_SETTINGS:
+                if key in BOOL_SETTINGS or key in TRI_SETTINGS:
                     stored = "1" if value else "0"
                 elif key in JSON_SETTINGS:
                     stored = json.dumps(value, ensure_ascii=False)
@@ -314,6 +317,9 @@ class Storage:
                     (key, stored),
                 )
             self._db.commit()
+
+    def set_gemini_sesion(self, activa: bool) -> None:
+        self.set_settings({"gemini_sesion": activa, "gemini_sesion_verificada_en": now_iso()})
 
     def upsert_materia(self, id: str, nombre: str, orden: int = 0) -> None:
         self._run(

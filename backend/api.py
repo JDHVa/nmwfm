@@ -442,6 +442,12 @@ def create_app(
             "login_gemini", lambda ctx: services.run_login_gemini(state, ctx)
         ).to_dict()
 
+    @router.post("/gemini/verificar")
+    async def gemini_verificar():
+        return state.jobs.start(
+            "verificar_gemini", lambda ctx: services.run_verificar_gemini(state, ctx)
+        ).to_dict()
+
     @router.post("/sync")
     async def sync(body: SyncBody | None = None):
         activo = state.jobs.activo("sync")

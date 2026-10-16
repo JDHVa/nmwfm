@@ -26,8 +26,14 @@ class LLMProvider(Protocol):
 
 
 class GeminiWeb:
-    def __init__(self, browser: BrowserManager, espera_envio_s: Callable[[], float] | None = None):
+    def __init__(
+        self,
+        browser: BrowserManager,
+        espera_envio_s: Callable[[], float] | None = None,
+        al_cambiar_sesion: Callable[[bool], None] | None = None,
+    ):
         self.browser = browser
+        self.al_cambiar_sesion = al_cambiar_sesion
         self.espera_envio_s = espera_envio_s or (lambda: config.GEMINI_ESPERA_ENVIO_S)
 
     async def _abrir(self, headless: bool | None = None) -> Page:
@@ -50,6 +56,11 @@ class GeminiWeb:
         if await page.locator(S.GM_SIGN_IN_LINK).count():
             return False
         return await page.locator(S.GM_SIGNED_IN_MARKER).count() > 0
+
+    def _avisar_sesion(self, activa: bool) -> None:
+        if self.al_cambiar_sesion is not None:
+            with contextlib.suppress(Exception):
+                self.al_cambiar_sesion(activa)
 
     async def _bloqueado(self, page: Page) -> bool:
         for marker in S.GM_BLOCK_MARKERS:
@@ -108,12 +119,15 @@ class GeminiWeb:
     async def _asegurar_sesion(self, page: Page, hooks: Hooks) -> Page:
         for intento in range(2):
             if await self._hay_sesion(page):
+                self._avisar_sesion(True)
                 return page
+            self._avisar_sesion(False)
             if intento == 0 and not await self._visible():
                 with contextlib.suppress(Exception):
                     await page.close()
                 page = await self._abrir(headless=False)
                 if await self._hay_sesion(page):
+                    self._avisar_sesion(True)
                     return page
             await hooks.esperar_usuario(
                 "Gemini no tiene sesión iniciada. Inicia sesión en la ventana de Chrome "
@@ -121,6 +135,7 @@ class GeminiWeb:
             )
             await page.goto(config.GEMINI_URL, wait_until="domcontentloaded")
         if await self._hay_sesion(page):
+            self._avisar_sesion(True)
             return page
         raise GeminiError("No se pudo detectar la sesión de Gemini.")
 
@@ -170,6 +185,7 @@ class GeminiWeb:
         anterior, estable = "", 0
         while time.monotonic() < fin:
             if await self._bloqueado(page):
+                self._avisar_sesion(False)
                 await hooks.esperar_usuario(
                     "Gemini pide una verificación (captcha o aviso). "
                     "Resuélvela en Chrome y pulsa continuar."
