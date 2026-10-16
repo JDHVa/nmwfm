@@ -1,4 +1,4 @@
-# Handoff — estado del proyecto nmwfm (2026-10-15)
+# Handoff — estado del proyecto nmwfm (2026-10-16)
 
 Documento para continuar en una conversación nueva. Leer primero `CLAUDE.md` (reglas, stack, comandos) y `docs/api.md` (contrato backend ↔ UI).
 
@@ -9,32 +9,18 @@ Documento para continuar en una conversación nueva. Leer primero `CLAUDE.md` (r
 - Si surge una duda, se le pregunta al usuario antes de asumir. El usuario sigue la sesión desde el celular (remote-control).
 - Repo: https://github.com/JDHVa/nmwfm (rama `main`, etiqueta de respaldo `v0.1-respaldo`).
 
-## Estado actual (main, último push ebaaee2)
-- 352 tests de backend y 78 de UI en verde, más 4 e2e.
-- **Funciona en vivo (probado con la cuenta real):** login SIASE → NEXUS, sync completo de una sola pestaña (~45 min: 10 materias, 116 tareas, detalle, rúbricas, estado de entregas). NEXUS SOLO admite una pestaña/instancia (ver CLAUDE.md).
-- **Tipos de tarea:** `dimension`, `evidencia`, `examen` (recordatorio, no se abre), `pia` (ruta ProductoIntegrador, soporte según `htmls/nexus/pia.txt`, sin validar en vivo). Las autoevaluaciones se ocultan.
-- **UI:** login, Materias, Próximas entregas, tarea con Stepper (Insumos → Generar → Revisar → Entregar), indicaciones del profesor, búsqueda Ctrl+K, novedades y alertas, calificaciones (lector genérico), respaldo, diagnóstico, bandeja del sistema, instalador `.msi`/`.exe` (npm run build).
-- **Asistente local:** Ollama 0.40.4 con `qwen3:4b-instruct-2507-q4_K_M` (por defecto, 3.2 GB de VRAM, keep_alive 90 s configurable, liberar al salir). Chat SSE con herramientas (buscar, ver, próximas, indicaciones, PDF, portada, sync, revisar entregas, generar, entregar con confirmación obligatoria) y salvaguardas de reintento. Probado en vivo: 2.6–7.2 s por respuesta. MCP: `python -m backend.mcp` (mcp 1.30, NO v2).
-- **Instalado en la máquina:** Chrome, Rust, Build Tools (registro del VS Installer incompleto pero compila), Graphviz 16.1 (dot), tzdata, rapidocr-onnxruntime, onnxruntime-directml + modelo `data/models/u2netp.onnx` (recorte de página en GPU), Ollama + qwen3:4b y qwen3:4b-instruct.
-
-## Trabajo EN CURSO al cerrar esta conversación (ramas de los agentes, sin integrar)
-**Backend: INTEGRADO en main (380 tests).** Los puntos 1-4 de abajo ya están hechos:
-1. `/files/herramientas/*` da 404: falta "herramientas" en `PUBLIC_DIRS` (api.py). Probable causa de "No se pudo abrir la portada".
-2. Imágenes → PDF: una imagen por página y portada OPCIONAL como primera página (`portada?: {...}`).
-3. Gemini se cierra solo: el sync headless relanza el contexto compartido. Solución: Gemini con su propio perfil persistente `data/gemini_profile` (visible) y NEXUS en `data/browser_profile` (headless), con locks independientes.
-4. No sincronizar al abrir la app (solo la primera vez o con el scheduler).
-
-**UI: INTEGRADO en main (82 tests).** Los puntos 1-5 ya están hechos. Quedan: el Dock de React Bits tiene un tinte violeta en oscuro (ajustarlo a la paleta cálida) y el acento real es #B85636 en claro y #D97757 en oscuro (por contraste AA).
-1. No lanzar sync al entrar (salvo la primera vez).
-2. Asistente como vista inicial y primer ítem del Dock.
-3. Rediseño estilo Claude.ai: paleta neutra cálida en TODA la app (claro #FAF9F5 / oscuro #262624, acento #C96442), sin neón ni degradados; fondo liso.
-4. Chat en una columna del ~70 % del ancho, burbujas del usuario a la derecha y texto limpio del asistente, entrada grande abajo, saludo con sugerencias e historial de conversaciones.
-5. Imágenes → PDF con reordenar, recortar sí/no y el check "Agregar portada".
-
-Para retomarlos: revisar `git log main..worktree-agent-<id>` en cada rama. Si los agentes ya no existen, lanzar agentes nuevos con estas mismas tareas.
+## Estado actual (main, 2026-10-16, último push b0b8145)
+- 419 tests de backend y 91 de UI en verde (vitest con maxWorkers 4 y timeouts amplios porque la máquina suele estar cargada).
+- **Funciona en vivo:** login SIASE → NEXUS, sync completo (~45 min, 10 materias, 116 tareas). NEXUS SOLO admite una pestaña/instancia.
+- **Gemini validado en vivo (2026-10-15):** sesión persistente en `data/gemini_profile`, editor `div.ql-editor[role=textbox]`, botón «Enviar mensaje», carga con `button[aria-label='Subidas y herramientas']` → `button[data-test-id='local-images-files-uploader-button']` → chip `uploader-file-preview`. Se probó mandar «hola» y adjuntar un PDF. El contexto de Gemini se cierra ordenadamente tras cada job y al salir (`POST /apagar` desde Tauri) para que Google no invalide la sesión. La ventana de login siempre es visible.
+- **Generar:** a Gemini solo van el prompt y `insumos.pdf`; la portada se genera aparte y se une como primera página. Espera configurable antes de Enviar (`gemini_espera_envio_s`, 3 s). Instrucciones fijas editables en Configuración (incluida «Referencias APA 7», que se puede quitar por generación) y «Ver prompt».
+- **Portada:** datos Aula/Grupo/Turno/Especialidad en Configuración (defaults 144, 5V1, MATUTINO, Técnico en IA BPI), fecha siempre de hoy, profesor por combobox (`GET /profesores`) o a mano. Sin materia ni título.
+- **Jobs:** botón «Detener» en todos (`POST /jobs/{id}/cancelar`), que también cierra el navegador del job.
+- **UI:** estilo Claude (paleta cálida, acento #B85636 / #D97757) con fondo Silk apagado en claro (con hover) y Galaxy apagado y optimizado en oscuro (dpr 0.5, 2 capas, 30 FPS).
+- **Asistente:** Ollama qwen3:4b-instruct; sin emojis (prompt + filtro).
 
 ## Pendientes que necesitan al usuario
-- **Gemini en vivo:** iniciar sesión una vez (Configuración → "Iniciar sesión en Gemini") y probar Generar en una tarea normal. Los selectores de Gemini (`backend/core/selectors.py`) son suposiciones.
+- **Generar completo en vivo:** probarlo en una tarea normal. Hubo un atasco sin diagnosticar (falta saber en qué paso); la espera de respuesta y la lectura (botón Copiar) aún no se validaron en vivo.
 - **Entrega real:** con una tarea de prueba, con el usuario presente. El selector del botón de cerrar del diálogo es una suposición.
 - **HTML de la pestaña "Calificaciones"** para un lector preciso. (Recursos se eliminó por decisión del usuario.)
 - **Validar en vivo:** el PIA, el aviso de sesión cerrada de NEXUS (`NX_SESION_CERRADA`) y el instalador en una instalación limpia (bandeja y notificaciones).
