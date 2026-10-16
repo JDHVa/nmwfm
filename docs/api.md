@@ -92,7 +92,7 @@ type EstadoAsistente = { ollama: boolean; modelo: string; modelo_instalado: bool
 - MCP: `python -m backend.mcp` expone por stdio las mismas herramientas del asistente (salvo que `entregar_tarea` exige un argumento `confirmar: true`), para usarlas desde cualquier cliente MCP.
 
 ## Calificaciones y predicción
-Fuentes: SIASE «Consulta de Evaluación» (oficial: PAR 1, EMT, PAR 2, EG y PORT por materia; flujo en `htmls/siase/SIASE_calificaciones`) y la pestaña «Calificaciones» de NEXUS (detalle del portafolio por tarea; `htmls/nexus/nexus_calificaciones.txt`, ya se lee en el sync completo).
+Fuentes: SIASE «Consulta de Evaluación» (oficial: PAR 1, EMT, PAR 2, EG y PORT por materia; flujo en `htmls/siase/SIASE_calificaciones.txt`) y la pestaña «Calificaciones» de NEXUS (detalle del portafolio por tarea; `htmls/nexus/nexus_calificaciones.txt`, ya se lee en el sync completo).
 ```ts
 type TipoMateria = "bachillerato" | "carrera" | "portafolio";
 type ClaveComponente = "par1" | "emt" | "par2" | "eg" | "portafolio";
@@ -125,3 +125,26 @@ type ResumenCalificaciones = {
 - `PUT /calificaciones/objetivos` body `{semestre?: number | null, materias?: {[clave: string]: number | null}}` → `ResumenCalificaciones` (objetivos 0–100; `null` borra).
 - `PUT /calificaciones/tipo` body `{clave: string, tipo: TipoMateria | null}` → `ResumenCalificaciones` (`null` vuelve a la detección automática).
 - Herramienta del asistente/MCP nueva: `ver_calificaciones` (devuelve el resumen).
+
+### Calificaciones v2: portafolio de NEXUS, historial, tabla y escenarios
+- **Portafolio de NEXUS (fuente preferida del portafolio).** `POST /nexus/portafolio` → `Job` (tipo nuevo `"portafolio_nexus"`): con el lock global y la única pestaña de NEXUS, entra a cada materia desde la lista y abre SOLO la pestaña «Calificaciones» (sin abrir tareas), guarda la tabla como hoy (`storage.set_calificaciones`); `resultado: {materias: number, errores: string[]}`. Cuando una materia tiene detalle de NEXUS, el portafolio (puntos, pendientes, tipo) sale de NEXUS aunque SIASE traiga PORT. `ResumenCalificaciones` agrega `nexus_leido_en: string | null`.
+- **Historial.** Tabla `historial_calificaciones` con materias de semestres anteriores: `{periodo, nombre: string | null, tipo: TipoMateria, par1?, par2?, emt?, eg?, port?, total}` (calificaciones 0–100; `null`/ausente = no se conoce). Al arrancar, si la tabla está vacía y existe `data/historial_semestres.json` (formato `{semestres: [{periodo, materias: [...]}]}`), se importa una vez. `GET /calificaciones/historial` → `{semestres: {periodo: string; materias: ...[]}[]; resumen: {[clave in "par1"|"par2"|"emt"|"eg"|"portafolio"|"total"]: {media: number, desv: number, n: number, prob_100: number}}}`; `PUT /calificaciones/historial` body `{semestres}` reemplaza todo. (Kárdex: pendiente hasta tener su HTML.)
+- **Modelo «Mío» (el probabilístico por defecto).** Cada pendiente se predice con una distribución por componente construida desde el historial: remuestreo suavizado de las calificaciones históricas de ese componente (PAR 1, PAR 2, EMT, EG, portafolio en % del valor), que respeta la frecuencia real de 100 (`prob_100`) sin asumir 100 siempre, desplazada por cómo vas este semestre en esa materia: desplazamiento = (media actual de la materia en ese grupo − media histórica del grupo) · n/(n+3), con n = observaciones actuales; recortado a 0–100; sesgo compartido por materia. Sin historial, se usa el modelo actual. Probabilidad: si es > 0 pero < 0.005 se reporta tal cual (la UI muestra «<1 %»); si `alcanzable` es false, 0.
+- **Cuidado.** `MateriaCalificacion` agrega `alertas: {tipo: "bajo_historico" | "examen_bajo" | "puntos_perdidos"; detalle: string}[]` y `en_cuidado: boolean`:
+  - `bajo_historico`: un componente (o la media de exámenes / del portafolio calificado) está > 5 puntos debajo de tu media histórica de ese componente.
+  - `examen_bajo`: cualquier examen ya presentado (incluido PAR 1) con calificación ≤ 80 (perdiste ≥ 20 puntos).
+  - `puntos_perdidos`: puntos perdidos acumulados (peso evaluado − puntos ganados, contando tareas `perdida`) > 100 − mínimo histórico de `total` (≈ 6 con el historial actual; 6 si no hay historial).
+  - `estado` pasa a `riesgo` si hay alertas y además `prob_aprobar` < 0.6 o `necesario` para 70 > 90 (regla anterior); si hay alertas sin lo anterior, mínimo `atento`.
+- **Tabla de resumen** (`MateriaCalificacion` agrega): `portafolio_pts`, `portafolio_max` (peso del portafolio), `examenes_pts`, `examenes_max` (suma de pesos de exámenes), `total_pts` (= asegurados), `evaluado_pts` (peso de lo ya calificado, incluidas tareas perdidas) y `pct_evaluado` (= total_pts / evaluado_pts · 100, `null` si nada evaluado).
+- **Escenarios.** `POST /calificaciones/escenario` body `Escenario` → `ResultadoEscenario`:
+  ```ts
+  type Escenario = { preset: "pesimista" | "realista" | "optimista" | "mio" | "personalizado"; examenes?: number; tareas?: number; materias?: {[clave: string]: {examenes?: number; tareas?: number; pendientes?: {[indice: number]: number}; esfuerzo?: boolean}} };
+  type ResultadoEscenario = { materias: {clave: string; final: number; pendientes: {clave: ClaveComponente; titulo: string; peso: number; nota: number}[]}[]; semestre: number };
+  ```
+  Presets (valores supuestos por pendiente, sobreescribibles con `examenes`/`tareas` globales, luego por materia y luego por pendiente):
+  - `pesimista`: igual o peor que lo que llevas: por grupo (exámenes/tareas) de cada materia, min(media actual del grupo, media histórica) − 1 desviación histórica; sin datos actuales, media histórica − 1 desv.
+  - `realista`: la media del modelo «Mío» para cada pendiente.
+  - `optimista`: 100 en todo, salvo en los grupos de materias con alerta, donde se usa la media actual del grupo; con `esfuerzo: true` en una materia, esa materia va a 100 aunque tenga alerta.
+  - `mio`: igual que `realista` pero `final` es la media de Monte Carlo (el mismo número que `proyectada`).
+  - `personalizado`: solo los valores dados; lo no dado usa `realista`.
+  `final` = asegurados + Σ nota·peso/100 (tareas `perdida` = 0); `semestre` = promedio simple de todas las materias.
