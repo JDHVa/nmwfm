@@ -15,6 +15,7 @@ import type {
   Transport,
   WsMessage,
 } from "@/lib/api";
+import { calcularResumen, type EstadoCalificaciones } from "./calificaciones";
 import { MATERIAS, crearEtapas, detalleDe, marcarVencida } from "./data";
 
 type Emitter = (msg: WsMessage) => void;
@@ -166,6 +167,12 @@ export function createMockBackend(options: MockOptions = {}) {
   const confirmaciones = new Map<string, string>();
   let syncActivo: string | null = null;
   let revisionActiva: string | null = null;
+  const califs: EstadoCalificaciones = {
+    objetivos: { "030": 90, "095": 95, "026": 80, "672": 85 },
+    tipos: {},
+    objetivoSemestre: 90,
+    leidaEn: new Date(Date.now() - 3 * 3600_000).toISOString(),
+  };
   let seq = 0;
   let hue = 200;
 
@@ -692,6 +699,30 @@ export function createMockBackend(options: MockOptions = {}) {
       const vigentes = pendientes.filter((x) => !x.vencida).sort((a, b) => t(a) - t(b));
       const vencidas = pendientes.filter((x) => x.vencida).sort((a, b) => t(a) - t(b));
       return json([...vigentes, ...vencidas]);
+    }
+    if (path === "/calificaciones" && method === "GET") return json(calcularResumen(califs));
+    if (path === "/siase/calificaciones") {
+      return json(
+        lanzarJob(
+          "calificaciones_siase",
+          ["Abriendo SIASE", "Entrando a Consulta de Evaluación", "Leyendo calificaciones"],
+          () => {
+            califs.leidaEn = new Date().toISOString();
+            return { materias: calcularResumen(califs).materias.length };
+          },
+        ),
+      );
+    }
+    if (path === "/calificaciones/objetivos" && method === "PUT") {
+      const b = body as { semestre?: number | null; materias?: Record<string, number | null> };
+      if (b.semestre !== undefined) califs.objetivoSemestre = b.semestre;
+      Object.assign(califs.objetivos, b.materias ?? {});
+      return json(calcularResumen(califs));
+    }
+    if (path === "/calificaciones/tipo" && method === "PUT") {
+      const b = body as { clave: string; tipo: EstadoCalificaciones["tipos"][string] };
+      califs.tipos[b.clave] = b.tipo;
+      return json(calcularResumen(califs));
     }
     if (path === "/entregas/revisar") {
       const activo = revisionActiva && jobs.get(revisionActiva);

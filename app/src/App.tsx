@@ -3,6 +3,7 @@ import {
   BookOpen,
   Bot,
   CalendarClock,
+  GraduationCap,
   Search,
   LogOut,
   Monitor,
@@ -28,6 +29,7 @@ import { leerRecordar } from "@/lib/session";
 import { SyncProvider, useSync } from "@/lib/sync";
 import { ETIQUETA_TEMA, useTheme } from "@/lib/theme";
 import { token } from "@/lib/tokens";
+import { CalificacionesView } from "@/views/CalificacionesView";
 import { ConfigView } from "@/views/ConfigView";
 import { LoginView } from "@/views/LoginView";
 import { MateriaView } from "@/views/MateriaView";
@@ -105,6 +107,12 @@ function Shell({ onSalir }: { onSalir: () => void }) {
                 onClick: () => go({ name: "proximas" }),
               },
               {
+                label: "Calificaciones",
+                icon: <GraduationCap className="size-5" />,
+                active: view.name === "calificaciones",
+                onClick: () => go({ name: "calificaciones" }),
+              },
+              {
                 label: "Configuración",
                 icon: <SettingsIcon className="size-5" />,
                 active: view.name === "config",
@@ -141,6 +149,7 @@ function Shell({ onSalir }: { onSalir: () => void }) {
           {view.name === "config" && <ConfigView />}
           {view.name === "materias" && <MateriasView />}
           {view.name === "proximas" && <ProximasView />}
+          {view.name === "calificaciones" && <CalificacionesView />}
           {view.name === "asistente" && (
             <AsistenteView key={view.tareaId ?? "libre"} tareaId={view.tareaId} />
           )}

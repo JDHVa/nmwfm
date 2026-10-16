@@ -9,6 +9,7 @@ export const keys = {
   novedades: ["novedades"] as const,
   respaldos: ["respaldos"] as const,
   alertas: ["alertas"] as const,
+  resumenCalificaciones: ["calificaciones-resumen"] as const,
   etapas: (id: string) => ["etapas", id] as const,
   calificaciones: (id: string) => ["calificaciones", id] as const,
   tarea: (id: string) => ["tarea", id] as const,
@@ -92,4 +93,8 @@ export function useJobRunner(onFinish?: (job: Job) => void) {
   }
 
   return { job, error, start, running: jobActivo(job), reset: () => setJob(null), actualizar: setJob };
+}
+
+export function useResumenCalificaciones() {
+  return useQuery({ queryKey: keys.resumenCalificaciones, queryFn: api.resumenCalificaciones });
 }
