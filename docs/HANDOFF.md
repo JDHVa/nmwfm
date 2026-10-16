@@ -19,7 +19,10 @@ Documento para continuar en una conversación nueva. Leer primero `CLAUDE.md` (r
 - **UI:** estilo Claude (paleta cálida, acento #B85636 / #D97757) con fondo Silk apagado en claro (con hover) y Galaxy apagado y optimizado en oscuro (dpr 0.5, 2 capas, 30 FPS).
 - **Asistente:** Ollama `qwen3:4b-instruct-2507-q4_K_M` (sin razonamiento, rápido); sin emojis (prompt + filtro).
 
+- **Calificaciones (2026-10-16):** apartado con tabla resumen, alertas de cuidado, modelo «Mío» (historial de `data/historial_semestres.json` + Kárdex), escenarios y botones «Revisar calificaciones en SIASE» (evaluación + Kárdex) y «Revisar portafolio en NEXUS». Atajo `C`. Sin probar en vivo.
+
 ## Pendientes que necesitan al usuario
+- **Calificaciones en vivo:** probar los dos botones (selectores de SIASE/Kárdex sacados de los HTML de ejemplo; en NEXUS se abre Calificaciones justo tras la portada de la materia).
 - **Generar completo en vivo:** probarlo en una tarea normal. Hubo un atasco sin diagnosticar (falta saber en qué paso); la espera de respuesta y la lectura (botón Copiar) aún no se validaron en vivo.
 - **Entrega real:** con una tarea de prueba, con el usuario presente. El selector del botón de cerrar del diálogo es una suposición.
 - **HTML de la pestaña "Calificaciones"** para un lector preciso. (Recursos se eliminó por decisión del usuario.)
