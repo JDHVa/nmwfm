@@ -210,8 +210,9 @@ async def run_validar_siase(state: AppState, ctx: JobContext) -> dict:
 
 async def run_calificaciones_siase(state: AppState, ctx: JobContext) -> dict:
     cuenta, password = require_credentials(state)
-    browser_ctx = await state.browser.context()
-    materias = await siase.leer_calificaciones(browser_ctx, cuenta, password, ctx.hooks())
+    async with state.browser.lock:
+        browser_ctx = await state.browser.context()
+        materias = await siase.leer_calificaciones(browser_ctx, cuenta, password, ctx.hooks())
     if not materias:
         raise ApiError(502, "siase_sin_materias", "SIASE no devolvio materias con calificaciones.")
     state.storage.set_siase_calificaciones(materias)

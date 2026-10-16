@@ -198,28 +198,33 @@ def preparar(state, monkeypatch, materias=None, error=None):
     return llamadas
 
 
-def test_job_guarda_la_tabla_y_no_toma_el_lock_del_navegador(state, monkeypatch):
+def test_job_guarda_la_tabla(state, monkeypatch):
+    llamadas = preparar(state, monkeypatch, siase.parse_evaluacion(HTML))
+    job = correr(state)
+    assert job.estado == "ok" and job.resultado == {"materias": 10}
+    assert llamadas == [("123", "pw")]
+    guardado = state.storage.get_siase_calificaciones()
+    assert len(guardado["materias"]) == 10 and guardado["leida_en"]
+
+
+def test_job_espera_el_lock_del_navegador(state, monkeypatch):
     llamadas = preparar(state, monkeypatch, siase.parse_evaluacion(HTML))
 
-    async def con_lock_ocupado():
+    async def escenario():
         async with state.browser.lock:
-            return await asyncio.wait_for(_correr_job(), 5)
-
-    async def _correr_job():
-        job = state.jobs.start(
-            "calificaciones_siase", lambda ctx: services.run_calificaciones_siase(state, ctx)
-        )
+            job = state.jobs.start(
+                "calificaciones_siase", lambda ctx: services.run_calificaciones_siase(state, ctx)
+            )
+            await asyncio.sleep(0.2)
+            assert job.estado == "corriendo" and llamadas == []
         for _ in range(250):
             if job.estado in ("ok", "error"):
                 break
             await asyncio.sleep(0.02)
         return job
 
-    job = asyncio.run(con_lock_ocupado())
-    assert job.estado == "ok" and job.resultado == {"materias": 10}
-    assert llamadas == [("123", "pw")]
-    guardado = state.storage.get_siase_calificaciones()
-    assert len(guardado["materias"]) == 10 and guardado["leida_en"]
+    job = asyncio.run(escenario())
+    assert job.estado == "ok" and len(llamadas) == 1
 
 
 def test_job_sin_materias_es_error(state, monkeypatch):
