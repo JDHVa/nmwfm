@@ -679,3 +679,19 @@ def test_si_pide_explicar_y_no_llama_a_ver_tarea_se_reintenta(con_tareas):  # no
     nombres = [e["nombre"] for e in eventos if e["type"] == "tool_call"]
     assert nombres == ["buscar_tareas", "ver_tarea"]
     assert "".join(e.get("text", "") for e in eventos) == "Trata de una ficha técnica."
+
+
+def test_quitar_emojis_elimina_emojis_y_secuencias():
+    assert chat.quitar_emojis("a😀b") == "ab"
+    assert chat.quitar_emojis("Hola 👍🏽 ❤️ 🇲🇽 ⭐") == "Hola    "
+    assert chat.quitar_emojis("👨‍👩‍👧") == ""
+    assert chat.quitar_emojis("a‍b️c") == "abc"
+
+
+def test_quitar_emojis_conserva_texto_normal():
+    normal = "¡Hola! ¿Qué tal, señor Peña? “Listo” — 100% … áéíóú"
+    assert chat.quitar_emojis(normal) == normal
+
+
+def test_prompt_sistema_prohibe_emojis():
+    assert "No uses emojis ni emoticonos" in chat.PROMPT_SISTEMA
