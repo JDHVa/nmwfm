@@ -192,10 +192,58 @@ def _quad_por_rectangulo(mask: np.ndarray, min_area: float) -> np.ndarray | None
     return cv2.boxPoints(cv2.minAreaRect(mayor))
 
 
+FOCAL_MIN = 0.25
+FOCAL_MAX = 6.0
+RATIO_MIN = 0.2
+RATIO_MAX = 5.0
+
+
+def estimate_aspect(quad: np.ndarray, shape: tuple[int, ...]) -> float | None:
+    """Relación ancho/alto real de un rectángulo visto en perspectiva (Zhang y He, 2007).
+
+    Supone píxeles cuadrados y punto principal en el centro de la imagen; devuelve None
+    si la geometría es degenerada o la focal estimada no es plausible.
+    """
+    h, w = shape[:2]
+    tl, tr, br, bl = (
+        np.array([x - w / 2, y - h / 2, 1.0], dtype="float64") for x, y in order_points(quad)
+    )
+    m1, m2, m3, m4 = tl, tr, bl, br
+    denom2 = np.dot(np.cross(m2, m4), m3)
+    denom3 = np.dot(np.cross(m3, m4), m2)
+    if abs(denom2) < 1e-9 or abs(denom3) < 1e-9:
+        return None
+    k2 = np.dot(np.cross(m1, m4), m3) / denom2
+    k3 = np.dot(np.cross(m1, m4), m2) / denom3
+    n2, n3 = k2 * m2 - m1, k3 * m3 - m1
+    if abs(n2[2] * n3[2]) < 1e-9:
+        return None
+    foco2 = -(n2[0] * n3[0] + n2[1] * n3[1]) / (n2[2] * n3[2])
+    if not np.isfinite(foco2) or foco2 <= 0:
+        return None
+    foco = float(np.sqrt(foco2))
+    lado = float(max(h, w))
+    if not FOCAL_MIN * lado <= foco <= FOCAL_MAX * lado:
+        return None
+    q2 = (n2[0] ** 2 + n2[1] ** 2) / foco2 + n2[2] ** 2
+    q3 = (n3[0] ** 2 + n3[1] ** 2) / foco2 + n3[2] ** 2
+    if q3 <= 0:
+        return None
+    ratio = float(np.sqrt(q2 / q3))
+    return ratio if RATIO_MIN <= ratio <= RATIO_MAX else None
+
+
+def _ratio_por_lados(tl, tr, br, bl) -> float:
+    ancho = (np.linalg.norm(tr - tl) + np.linalg.norm(br - bl)) / 2
+    alto = (np.linalg.norm(bl - tl) + np.linalg.norm(br - tr)) / 2
+    return float(ancho / max(alto, 1e-6))
+
+
 def warp_page(img: np.ndarray, quad: np.ndarray) -> np.ndarray:
     tl, tr, br, bl = order_points(quad)
-    width = int(max(np.linalg.norm(br - bl), np.linalg.norm(tr - tl)))
-    height = int(max(np.linalg.norm(tr - br), np.linalg.norm(tl - bl)))
+    height = int(max(np.linalg.norm(tl - bl), np.linalg.norm(tr - br)))
+    ratio = estimate_aspect(quad, img.shape) or _ratio_por_lados(tl, tr, br, bl)
+    width = int(round(height * ratio))
     if width < 50 or height < 50:
         return img
     dst = np.array(
