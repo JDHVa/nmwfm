@@ -9,7 +9,7 @@ from .. import services
 from ..services import ApiError, AppState
 
 LIMITE_RESULTADOS = 20
-LIMITE_TEXTO = 1500
+LIMITE_TEXTO = 600
 
 
 class ConfirmacionRequerida(Exception):

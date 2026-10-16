@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import json
 import os
 import secrets
@@ -18,6 +19,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import check, config, respaldo, services
 from .asistente import chat as asistente
+from .asistente.ollama import OllamaError
 from .core import images
 from .scheduler import Programador
 from .services import ApiError, AppState
@@ -134,6 +136,8 @@ def create_app(
         programador.iniciar()
         yield
         await programador.detener()
+        with contextlib.suppress(Exception):
+            await asistente.liberar(state)
         await state.close()
 
     app = FastAPI(title="nmwfm", version=config.VERSION, lifespan=lifespan)
@@ -212,6 +216,11 @@ def create_app(
             if not isinstance(modelo, str) or not modelo.strip():
                 raise ApiError(422, "validacion", "asistente_modelo debe ser texto.")
             values["asistente_modelo"] = modelo.strip()
+        if "asistente_keep_alive_s" in body:
+            segundos = body["asistente_keep_alive_s"]
+            if isinstance(segundos, bool) or not isinstance(segundos, int) or segundos < 1:
+                raise ApiError(422, "validacion", "asistente_keep_alive_s debe ser un entero >= 1.")
+            values["asistente_keep_alive_s"] = segundos
         if "recorte_modelo" in body:
             if body["recorte_modelo"] not in ("auto", "opencv"):
                 raise ApiError(422, "validacion", "recorte_modelo debe ser 'auto' u 'opencv'.")
@@ -308,6 +317,17 @@ def create_app(
     @router.get("/asistente/estado")
     async def asistente_estado():
         return await asistente.estado(state)
+
+    @router.post("/asistente/precalentar")
+    async def asistente_precalentar():
+        try:
+            return await asistente.precalentar(state)
+        except OllamaError as exc:
+            raise ApiError(503, "ollama_no_disponible", str(exc)) from exc
+
+    @router.post("/asistente/liberar")
+    async def asistente_liberar():
+        return await asistente.liberar(state)
 
     @router.post("/asistente/chat")
     async def asistente_chat(body: ChatBody):

@@ -6,27 +6,52 @@ import pytest
 
 from backend import services
 from backend.asistente import chat
-from backend.asistente.ollama import OllamaCliente, OllamaError, OllamaNoDisponible
+from backend.asistente.ollama import (
+    FiltroPensamiento,
+    OllamaCliente,
+    OllamaError,
+    OllamaNoDisponible,
+)
 
 from .asgi_client import MiniClient
 from .test_herramientas_asistente import con_tareas  # noqa: F401
 
 
 class FalsoOllama:
-    def __init__(self, vueltas=None, instalados=None, error=None):
+    def __init__(self, vueltas=None, instalados=None, error=None, cargados=("qwen3:4b",)):
+        self.cargados_lista = list(cargados)
+        self.precalentados = []
         self.vueltas = list(vueltas or [])
         self.instalados = instalados
         self.error = error
         self.llamadas = []
 
-    async def chat(self, modelo, mensajes, herramientas=None):
+    async def chat(self, modelo, mensajes, herramientas=None, keep_alive="90s"):
         self.llamadas.append(
-            {"modelo": modelo, "mensajes": [dict(m) for m in mensajes], "tools": herramientas}
+            {
+                "modelo": modelo,
+                "mensajes": [dict(m) for m in mensajes],
+                "tools": herramientas,
+                "keep_alive": keep_alive,
+            }
         )
         if self.error:
             raise self.error
         for trozo in self.vueltas.pop(0):
             yield trozo
+
+    async def cargados(self):
+        if isinstance(self.error, OllamaNoDisponible):
+            raise self.error
+        return self.cargados_lista
+
+    async def precalentar(self, modelo, keep_alive="90s"):
+        self.precalentados.append((modelo, keep_alive))
+
+    async def liberar(self, modelo):
+        if isinstance(self.error, OllamaNoDisponible):
+            raise self.error
+        self.liberados = [*getattr(self, "liberados", []), modelo]
 
     async def etiquetas(self):
         if isinstance(self.instalados, Exception):
@@ -218,7 +243,7 @@ def test_api_chat_es_sse(app, con_tareas):  # noqa: F811
 def test_ollama_apagado_da_error_claro(con_tareas):  # noqa: F811
     con_tareas.ollama = FalsoOllama(error=OllamaNoDisponible())
     eventos = recolectar(con_tareas, USUARIO)
-    assert eventos == [{"type": "error", "message": "Ollama no está corriendo"}]
+    assert eventos[-1] == {"type": "error", "message": "Ollama no está corriendo"}
 
 
 def test_estado_del_asistente(app, state):
@@ -252,7 +277,7 @@ def cliente_http(handler):
     return OllamaCliente(transporte=httpx.MockTransport(handler))
 
 
-def test_cliente_envia_think_false_solo_para_qwen3_y_transmite():
+def test_cliente_no_manda_think_y_transmite():
     cargas = []
 
     def handler(peticion):
@@ -269,11 +294,8 @@ def test_cliente_envia_think_false_solo_para_qwen3_y_transmite():
 
     trozos = asyncio.run(escenario())
     assert [t["message"]["content"] for t in trozos] == ["a", "b"]
-    assert (
-        cargas[0]["think"] is False
-        and cargas[0]["stream"] is True
-        and cargas[0]["tools"] == [{"t": 1}]
-    )
+    assert "think" not in cargas[0] and cargas[0]["stream"] is True
+    assert cargas[0]["tools"] == [{"t": 1}]
 
     async def otro():
         return [t async for t in cliente.chat("llama3.2:3b", [])]
@@ -307,3 +329,162 @@ def test_cliente_lista_modelos():
         return httpx.Response(200, json={"models": [{"name": "qwen3:4b"}, {"name": "a:1"}]})
 
     assert asyncio.run(cliente_http(handler).etiquetas()) == ["qwen3:4b", "a:1"]
+
+
+def test_filtro_quita_el_pensamiento_aunque_llegue_partido():
+    filtro = FiltroPensamiento()
+    visibles, pensando = [], 0
+    for trozo in ["<th", "ink>\nrazono", " mucho</thi", "nk>\n\nHola", " mundo", "<"]:
+        texto_visible, empezo = filtro.procesar(trozo)
+        visibles.append(texto_visible)
+        pensando += empezo
+    visibles.append(filtro.finalizar())
+    assert "".join(visibles) == "Hola mundo<" and pensando == 1
+
+
+def test_filtro_sin_etiquetas_no_cambia_el_texto_y_descarta_pensamiento_sin_cerrar():
+    filtro = FiltroPensamiento()
+    assert filtro.procesar("Hola 5 < 6")[0] + filtro.finalizar() == "Hola 5 < 6"
+    abierto = FiltroPensamiento()
+    assert abierto.procesar("<think>nunca cierra")[0] == "" and abierto.finalizar() == ""
+
+
+def test_el_chat_no_emite_los_bloques_think(con_tareas):  # noqa: F811
+    con_tareas.ollama = FalsoOllama(
+        [[texto("<think>\nplan"), texto(" secreto</think>\n\n"), texto("Hola"), texto("!")]]
+    )
+    eventos = recolectar(con_tareas, USUARIO)
+    assert [e["type"] for e in eventos] == ["pensando", "token", "token", "fin"]
+    assert "".join(e.get("text", "") for e in eventos) == "Hola!"
+    assert "secreto" not in json.dumps(eventos)
+
+
+def test_el_historial_guardado_no_trae_el_pensamiento(con_tareas):  # noqa: F811
+    falso = FalsoOllama(
+        [[texto("<think>x</think>"), llamada("proximas_entregas", {})], [texto("listo")]]
+    )
+    con_tareas.ollama = falso
+    recolectar(con_tareas, USUARIO)
+    asistente_msg = falso.llamadas[1]["mensajes"][2]
+    assert asistente_msg["role"] == "assistant" and asistente_msg["content"] == ""
+
+
+def test_primer_mensaje_avisa_que_carga_el_modelo(con_tareas):  # noqa: F811
+    con_tareas.ollama = FalsoOllama([[texto("hola")]], cargados=())
+    eventos = recolectar(con_tareas, USUARIO)
+    assert eventos[0] == {"type": "estado", "text": "Cargando modelo…"}
+    con_tareas.ollama = FalsoOllama([[texto("hola")]])
+    assert recolectar(con_tareas, USUARIO)[0]["type"] == "token"
+
+
+def test_el_prompt_lleva_no_think_y_el_contexto_es_corto(con_tareas):  # noqa: F811
+    con_tareas.storage.set_indicaciones("100-1.1", "x" * 2000)
+    falso = FalsoOllama([[texto("ok")]])
+    con_tareas.ollama = falso
+    recolectar(con_tareas, USUARIO, "100-1.1")
+    sistema = falso.llamadas[0]["mensajes"][0]["content"]
+    assert "/no_think" in sistema and len(sistema) < 1500
+
+
+def test_historial_largo_se_recorta_conservando_lo_reciente(con_tareas):  # noqa: F811
+    historial = []
+    for i in range(40):
+        historial.append({"rol": "user", "contenido": f"pregunta {i} " + "x" * 400})
+        historial.append({"rol": "assistant", "contenido": f"respuesta {i} " + "y" * 400})
+    historial.append({"rol": "user", "contenido": "última pregunta"})
+    falso = FalsoOllama([[texto("ok")]])
+    con_tareas.ollama = falso
+    recolectar(con_tareas, historial)
+    enviados = falso.llamadas[0]["mensajes"]
+    assert 2 < len(enviados) < 20
+    assert enviados[1]["role"] == "user" and enviados[-1]["content"] == "última pregunta"
+    assert sum(len(m["content"]) for m in enviados) < 7500
+
+
+def test_api_precalentar(app, state):
+    client = MiniClient(app, headers={"X-Token": "dev"})
+    frio = FalsoOllama(cargados=())
+    state.ollama = frio
+
+    async def escenario():
+        r = await client.arequest("POST", "/asistente/precalentar")
+        await asyncio.sleep(0.05)
+        return r
+
+    r = asyncio.run(escenario())
+    assert r.json() == {"cargado": False, "cargando": True, "modelo": "qwen3:4b"}
+    assert frio.precalentados == [("qwen3:4b", "90s")]
+    state.ollama = FalsoOllama()
+    assert client.post("/asistente/precalentar").json()["cargado"] is True
+    state.ollama = FalsoOllama(error=OllamaNoDisponible())
+    r = client.post("/asistente/precalentar")
+    assert r.status_code == 503 and r.json()["error"]["code"] == "ollama_no_disponible"
+
+
+def test_cliente_keep_alive_cargados_y_precalentar():
+    cargas = []
+
+    def handler(peticion):
+        if peticion.url.path == "/api/ps":
+            return httpx.Response(200, json={"models": [{"name": "qwen3:4b"}]})
+        cargas.append(json.loads(peticion.content))
+        return httpx.Response(200, content=ndjson(texto("a")))
+
+    cliente = cliente_http(handler)
+
+    async def escenario():
+        await cliente.precalentar("qwen3:4b", "90s")
+        _ = [t async for t in cliente.chat("qwen3:4b", [], keep_alive="90s")]
+        return await cliente.cargados()
+
+    assert asyncio.run(escenario()) == ["qwen3:4b"]
+    assert cargas[0]["messages"] == [] and cargas[0]["keep_alive"] == "90s"
+    assert cargas[1]["keep_alive"] == "90s"
+
+
+def test_el_campo_thinking_de_ollama_solo_avisa_que_piensa(con_tareas):  # noqa: F811
+    razonando = {"message": {"role": "assistant", "content": "", "thinking": "plan secreto"}}
+    con_tareas.ollama = FalsoOllama([[razonando, razonando, texto("Hola")]])
+    eventos = recolectar(con_tareas, USUARIO)
+    assert [e["type"] for e in eventos] == ["pensando", "token", "fin"]
+    assert "secreto" not in json.dumps(eventos)
+
+
+def test_keep_alive_configurable_llega_al_chat_y_al_precalentado(client, app, state):
+    assert client.get("/settings").json()["asistente_keep_alive_s"] == 90
+    r = client.put("/settings", json={"asistente_keep_alive_s": 30})
+    assert r.json()["asistente_keep_alive_s"] == 30
+    for malo in (0, -5, "x", True, 1.5):
+        assert client.put("/settings", json={"asistente_keep_alive_s": malo}).status_code == 422
+    falso = FalsoOllama([[texto("hola")]], cargados=())
+    state.ollama = falso
+    recolectar(state, USUARIO)
+    assert falso.llamadas[0]["keep_alive"] == "30s"
+
+    async def escenario():
+        r = await client.arequest("POST", "/asistente/precalentar")
+        await asyncio.sleep(0.05)
+        return r
+
+    asyncio.run(escenario())
+    assert falso.precalentados[-1] == ("qwen3:4b", "30s")
+
+
+def test_liberar_descarga_el_modelo(app, state):
+    client = MiniClient(app, headers={"X-Token": "dev"})
+    state.ollama = FalsoOllama()
+    assert client.post("/asistente/liberar").json() == {"liberado": True, "modelo": "qwen3:4b"}
+    assert state.ollama.liberados == ["qwen3:4b"]
+    state.ollama = FalsoOllama(error=OllamaNoDisponible())
+    assert client.post("/asistente/liberar").json() == {"liberado": False, "modelo": "qwen3:4b"}
+
+
+def test_cliente_liberar_manda_keep_alive_cero():
+    cargas = []
+
+    def handler(peticion):
+        cargas.append(json.loads(peticion.content))
+        return httpx.Response(200, json={"done": True})
+
+    asyncio.run(cliente_http(handler).liberar("qwen3:4b"))
+    assert cargas == [{"model": "qwen3:4b", "messages": [], "keep_alive": 0}]

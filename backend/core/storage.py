@@ -123,8 +123,9 @@ SETTING_DEFAULTS = {
     "sync_cada_horas": 0,
     "recorte_modelo": "auto",
     "asistente_modelo": "qwen3:4b",
+    "asistente_keep_alive_s": 90,
 }
-INT_SETTINGS = {"sync_cada_horas"}
+INT_SETTINGS = {"sync_cada_horas", "asistente_keep_alive_s"}
 BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}
 
 
