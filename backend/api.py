@@ -619,6 +619,17 @@ def create_app(
             raise ApiError(404, "job_no_encontrado", "El job no existe.")
         return job.to_dict()
 
+    @router.post("/jobs/{job_id}/cancelar")
+    async def cancelar_job(job_id: str):
+        job = state.jobs.get(job_id)
+        if job is None:
+            raise ApiError(404, "job_no_encontrado", "El job no existe.")
+        estaba_activo = job.estado in ("en_cola", "corriendo", "esperando_usuario")
+        job = await state.jobs.cancelar(job_id)
+        if estaba_activo:
+            await state.cerrar_navegador_de(job.tipo)
+        return job.to_dict()
+
     @router.post("/jobs/{job_id}/continuar")
     async def continuar_job(job_id: str):
         job = state.jobs.resume(job_id)

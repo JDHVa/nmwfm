@@ -94,6 +94,8 @@ class JobManager:
         self.jobs: dict[str, Job] = {}
         self._contexts: dict[str, JobContext] = {}
         self._tasks: set[asyncio.Task] = set()
+        self._task_by_job: dict[str, asyncio.Task] = {}
+        self._cancelados: set[str] = set()
         self._subscribers: set[asyncio.Queue] = set()
 
     def subscribe(self) -> asyncio.Queue:
@@ -127,6 +129,7 @@ class JobManager:
         self._contexts[job.id] = ctx
         task = asyncio.get_running_loop().create_task(self._run(job, ctx, fn))
         self._tasks.add(task)
+        self._task_by_job[job.id] = task
         task.add_done_callback(self._tasks.discard)
         return job
 
@@ -140,14 +143,37 @@ class JobManager:
             job.mensaje = None
         except asyncio.CancelledError:
             job.estado = "error"
-            job.mensaje = "Cancelado."
-            raise
+            if job.id in self._cancelados:
+                self._marcar_cancelado(job)
+            else:
+                job.mensaje = "Cancelado."
+                raise
         except Exception as exc:
             job.estado = "error"
             job.mensaje = str(exc) or exc.__class__.__name__
             await ctx.log(job.mensaje, "error")
         finally:
             await self.publish_job(job)
+
+    @staticmethod
+    def _marcar_cancelado(job: Job) -> None:
+        job.estado = "error"
+        job.mensaje = "Cancelado por el usuario"
+        job.resultado = {"cancelado": True}
+
+    async def cancelar(self, job_id: str, timeout: float = 10.0) -> Job | None:
+        job = self.jobs.get(job_id)
+        if job is None or job.estado not in ("en_cola", "corriendo", "esperando_usuario"):
+            return job
+        task = self._task_by_job.get(job_id)
+        self._cancelados.add(job_id)
+        if task is not None and not task.done():
+            task.cancel()
+            await asyncio.wait({task}, timeout=timeout)
+        if job.resultado != {"cancelado": True}:
+            self._marcar_cancelado(job)
+            await self.publish_job(job)
+        return job
 
     def resume(self, job_id: str) -> Job | None:
         job = self.jobs.get(job_id)
