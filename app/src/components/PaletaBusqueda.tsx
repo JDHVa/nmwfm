@@ -43,7 +43,7 @@ export function PaletaBusqueda({ abierto, onCerrar }: { abierto: boolean; onCerr
   const [activo, setActivo] = useState(0);
   const resultados = useMemo<Entrada[]>(() => {
     const q = normalizar(consulta.trim());
-    const comandos = COMANDOS.filter((c) =>
+    const comandos = (q ? COMANDOS : []).filter((c) =>
       q.split(/\s+/).every((t) => normalizar(`${c.titulo} ${c.palabras}`).includes(t)),
     ).map((comando): Entrada => ({ tipo: "comando", comando }));
     const tareas = buscarTareas(todas, consulta).map((resultado): Entrada => ({ tipo: "tarea", resultado }));

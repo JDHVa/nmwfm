@@ -87,6 +87,7 @@ describe("paleta y filtros en la interfaz", () => {
     await screen.findByRole("heading", { name: "Materias" });
     fireEvent.keyDown(window, { key: "k", ctrlKey: true });
     const campo = await screen.findByRole("combobox", { name: "Buscar tareas" });
+    expect(screen.queryByText("Ir a la sección")).not.toBeInTheDocument();
     await user.type(campo, "calificaciones");
     expect(await screen.findByText("Ir a la sección")).toBeInTheDocument();
     await user.keyboard("{Enter}");
