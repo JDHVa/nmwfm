@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+use std::net::{SocketAddr, TcpStream};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
 use std::time::Duration;
@@ -26,6 +28,24 @@ struct Preferencias {
 #[tauri::command]
 fn set_cerrar_a_bandeja(valor: bool, estado: State<'_, Preferencias>) {
     estado.cerrar_a_bandeja.store(valor, Ordering::SeqCst);
+}
+
+fn liberar_asistente(info: &BackendInfo) {
+    let limite = Duration::from_secs(2);
+    let direccion = SocketAddr::from(([127, 0, 0, 1], info.port));
+    let Ok(mut flujo) = TcpStream::connect_timeout(&direccion, limite) else {
+        return;
+    };
+    let _ = flujo.set_read_timeout(Some(limite));
+    let _ = flujo.set_write_timeout(Some(limite));
+    let peticion = format!(
+        "POST /asistente/liberar HTTP/1.1{crlf}Host: 127.0.0.1:{}{crlf}X-Token: {}{crlf}Content-Length: 0{crlf}Connection: close{crlf}{crlf}",
+        info.port, info.token, crlf = "\r\n"
+    );
+    if flujo.write_all(peticion.as_bytes()).is_ok() {
+        let mut respuesta = [0u8; 64];
+        let _ = flujo.read(&mut respuesta);
+    }
 }
 
 fn mostrar_ventana(app: &AppHandle) {
@@ -160,6 +180,10 @@ pub fn run() {
     app.run(|handle, evento| {
         if let RunEvent::Exit = evento {
             if let Some(estado) = handle.try_state::<BackendState>() {
+                let info = estado.info.borrow().clone();
+                if let Some(info) = info {
+                    liberar_asistente(&info);
+                }
                 if let Some(hijo) = estado.child.lock().ok().and_then(|mut g| g.take()) {
                     let _ = hijo.kill();
                 }
