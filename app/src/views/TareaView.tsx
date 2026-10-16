@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bot } from "lucide-react";
 import Stepper, { Step } from "@/components/Stepper";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge, TipoBadge } from "@/components/EstadoBadge";
@@ -12,6 +12,7 @@ import { useTheme } from "@/lib/theme";
 import { token } from "@/lib/tokens";
 import { keys, useGeneracion, useJobRunner, useSettings, useTarea } from "@/lib/queries";
 import { ExamenCard } from "@/views/tarea/ExamenCard";
+import { IndicacionesCard } from "@/views/tarea/IndicacionesCard";
 import { DetalleTarea } from "@/views/tarea/DetalleTarea";
 import { EntregarStep } from "@/views/tarea/EntregarStep";
 import { GenerarStep } from "@/views/tarea/GenerarStep";
@@ -85,6 +86,9 @@ export function TareaView({ id, materiaId }: { id: string; materiaId: string }) 
         acciones={
           tarea && (
             <>
+              <Button variant="secondary" size="sm" onClick={() => go({ name: "asistente", tareaId: id })}>
+                <Bot /> Preguntar al asistente
+              </Button>
               <TipoBadge tarea={tarea} />
               {tarea.tipo !== "examen" && <EstadoBadge tarea={tarea} />}
             </>
@@ -109,11 +113,13 @@ export function TareaView({ id, materiaId }: { id: string; materiaId: string }) 
             <Step title="Insumos">
               <div className="space-y-6 pt-6">
                 <DetalleTarea tarea={tarea} />
+                <IndicacionesCard tarea={tarea} />
                 <InsumosStep tareaId={id} onContinuar={() => setPaso(2)} />
               </div>
             </Step>
             <Step title="Generar">
               <div className="pt-6">
+                <IndicacionesCard tarea={tarea} />
                 <GenerarStep
                   tareaId={id}
                   materiaId={materiaId}

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, DatabaseBackup, RotateCcw, Stethoscope, XCircle } from "lucide-react";
+import { Bot, CheckCircle2, DatabaseBackup, RefreshCw, RotateCcw, Stethoscope, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -20,6 +20,7 @@ export function ConfigAvanzada({ settings }: { settings: Settings }) {
   return (
     <>
       <SincronizacionPeriodica settings={settings} />
+      <AsistenteSeccion settings={settings} />
       <RespaldoSeccion />
       <DiagnosticoSeccion />
     </>
@@ -61,6 +62,116 @@ function SincronizacionPeriodica({ settings }: { settings: Settings }) {
           ))}
         </select>
       </div>
+    </Seccion>
+  );
+}
+
+const MODELOS = ["qwen3:4b", "qwen3:8b", "llama3.2:3b", "gemma3:4b"];
+
+function AsistenteSeccion({ settings }: { settings: Settings }) {
+  const qc = useQueryClient();
+  const guardar = useSaveSettings();
+  const [edicion, setEdicion] = useState<string | null>(null);
+  const modelo = edicion ?? settings.asistente_modelo ?? "qwen3:4b";
+  const [segundos, setSegundos] = useState<string | null>(null);
+  const keepAlive = segundos ?? String(settings.asistente_keep_alive_s ?? 90);
+  const estado = useQuery({
+    queryKey: ["asistente-estado", settings.asistente_modelo],
+    queryFn: api.asistenteEstado,
+    retry: false,
+  });
+
+  function aplicar() {
+    const limpio = modelo.trim();
+    setEdicion(null);
+    if (limpio && limpio !== settings.asistente_modelo) {
+      guardar.mutate(
+        { asistente_modelo: limpio },
+        { onSuccess: () => qc.invalidateQueries({ queryKey: ["asistente-estado"] }) },
+      );
+    }
+  }
+
+  const e = estado.data;
+  return (
+    <Seccion titulo="Asistente">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <label htmlFor="asistente-modelo" className="text-sm font-medium">
+            Modelo del asistente (Ollama)
+          </label>
+          <p className="text-xs text-muted-foreground">
+            Corre en tu equipo. Si cambias de modelo, descárgalo antes con <code>ollama pull</code>.
+          </p>
+        </div>
+        <>
+          <input
+            id="asistente-modelo"
+            list="modelos-asistente"
+            className="h-9 w-56 rounded-md border border-input bg-background/50 px-3 text-sm"
+            value={modelo}
+            onChange={(ev) => setEdicion(ev.target.value)}
+            onBlur={aplicar}
+            onKeyDown={(ev) => ev.key === "Enter" && ev.currentTarget.blur()}
+          />
+          <datalist id="modelos-asistente">
+            {MODELOS.map((m) => (
+              <option key={m} value={m} />
+            ))}
+          </datalist>
+        </>
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <label htmlFor="asistente-keep-alive" className="text-sm font-medium">
+            Liberar GPU tras N segundos
+          </label>
+          <p className="text-xs text-muted-foreground">
+            El modelo se descarga de la memoria de video tras este tiempo sin usar el asistente.
+          </p>
+        </div>
+        <input
+          id="asistente-keep-alive"
+          type="number"
+          min={0}
+          step={10}
+          className="h-9 w-28 rounded-md border border-input bg-background/50 px-3 text-sm"
+          value={keepAlive}
+          onChange={(ev) => setSegundos(ev.target.value)}
+          onBlur={() => {
+            const n = Math.max(0, Math.round(Number(keepAlive)));
+            setSegundos(null);
+            if (Number.isFinite(n) && n !== (settings.asistente_keep_alive_s ?? 90)) {
+              guardar.mutate({ asistente_keep_alive_s: n });
+            }
+          }}
+          onKeyDown={(ev) => ev.key === "Enter" && ev.currentTarget.blur()}
+        />
+      </div>
+      <div className="flex flex-wrap items-center gap-3 text-sm" role="status" aria-label="Estado de Ollama">
+        <Bot className="size-4 text-primary" />
+        {estado.isLoading && <span className="text-muted-foreground">Comprobando…</span>}
+        {estado.isError && <span className="text-danger">No se pudo consultar el estado</span>}
+        {e && (
+          <>
+            <span className={e.ollama ? "text-success" : "text-danger"}>
+              Ollama: {e.ollama ? "conectado" : "no encontrado"}
+            </span>
+            <span className={e.modelo_instalado ? "text-success" : "text-warning"}>
+              Modelo {e.modelo}: {e.modelo_instalado ? "instalado" : "falta descargarlo"}
+            </span>
+          </>
+        )}
+        <Button size="sm" variant="ghost" onClick={() => estado.refetch()} disabled={estado.isFetching}>
+          <RefreshCw className={estado.isFetching ? "animate-spin" : ""} /> Comprobar de nuevo
+        </Button>
+      </div>
+      {e && (!e.ollama || !e.modelo_instalado) && (
+        <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs">
+          Instala Ollama (ollama.com) y ejecuta <code>ollama pull {e.modelo}</code>.
+          {e.error ? ` Detalle: ${e.error}` : ""}
+        </p>
+      )}
     </Seccion>
   );
 }

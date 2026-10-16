@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   BookOpen,
+  Bot,
   CalendarClock,
   Search,
   LogOut,
@@ -21,7 +22,7 @@ import { estaEscribiendo } from "@/lib/atajos";
 import { escucharSyncDeBandeja, sincronizarPreferenciaConRust } from "@/lib/bandeja";
 import { useAlertas } from "@/lib/alertas";
 import { NavProvider, useNav, useReducedMotion } from "@/lib/app-context";
-import type { Settings } from "@/lib/api";
+import { api, type Settings } from "@/lib/api";
 import { useSettings } from "@/lib/queries";
 import { leerRecordar } from "@/lib/session";
 import { SyncProvider, useSync } from "@/lib/sync";
@@ -30,6 +31,7 @@ import { token } from "@/lib/tokens";
 import { ConfigView } from "@/views/ConfigView";
 import { LoginView } from "@/views/LoginView";
 import { MateriaView } from "@/views/MateriaView";
+import { AsistenteView } from "@/views/AsistenteView";
 import { MateriasView } from "@/views/MateriasView";
 import { ProximasView } from "@/views/ProximasView";
 import { SaludoView } from "@/views/SaludoView";
@@ -97,6 +99,12 @@ function Shell({ onSalir }: { onSalir: () => void }) {
                 onClick: () => go({ name: "proximas" }),
               },
               {
+                label: "Asistente",
+                icon: <Bot className="size-5" />,
+                active: view.name === "asistente",
+                onClick: () => go({ name: "asistente" }),
+              },
+              {
                 label: "Configuración",
                 icon: <SettingsIcon className="size-5" />,
                 active: view.name === "config",
@@ -133,6 +141,9 @@ function Shell({ onSalir }: { onSalir: () => void }) {
           {view.name === "config" && <ConfigView />}
           {view.name === "materias" && <MateriasView />}
           {view.name === "proximas" && <ProximasView />}
+          {view.name === "asistente" && (
+            <AsistenteView key={view.tareaId ?? "libre"} tareaId={view.tareaId} />
+          )}
           {view.name === "materia" && <MateriaView id={view.id} />}
           {view.name === "tarea" && <TareaView id={view.id} materiaId={view.materiaId} />}
         </main>
@@ -149,6 +160,12 @@ function Raiz({ settings }: { settings: Settings }) {
   const [fase, setFase] = useState<Fase>(() =>
     leerRecordar() && settings.cuenta && settings.tiene_password ? "saludo" : "login",
   );
+
+  useEffect(() => {
+    const alCerrar = () => void api.liberarAsistente(true);
+    window.addEventListener("pagehide", alCerrar);
+    return () => window.removeEventListener("pagehide", alCerrar);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reducido);
