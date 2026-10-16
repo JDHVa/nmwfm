@@ -58,3 +58,19 @@ Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la 
 - `POST /jobs/{id}/continuar` → `Job` (cuando estaba `esperando_usuario`, p. ej. captcha)
 - `WS /ws?token=...` → mensajes `{"type":"job","job":Job}` y `{"type":"log","level":str,"message":str}`
 - `GET /files/{path}` → archivos dentro de `data/` (miniaturas, PDFs, docx); acepta el token también como `?token=...` para usarlo en `<img src>`
+
+## Asistente (chat local) y herramientas sueltas
+Motor: Ollama local (`http://127.0.0.1:11434`), modelo por defecto `qwen3:4b` (cabe en 6 GB de VRAM), configurable. Todo es local.
+```ts
+type MensajeChat = { rol: "user" | "assistant" | "tool"; contenido: string; herramienta?: string };
+type EstadoAsistente = { ollama: boolean; modelo: string; modelo_instalado: boolean; error: string | null };
+```
+- `Settings` agrega `asistente_modelo: string` (por defecto `qwen3:4b`).
+- `TareaDetalle` agrega `indicaciones: string` (notas del profe/pizarrón; las escribe el usuario o el asistente; el sync NUNCA las toca; el prompt de Gemini las incluye con prioridad sobre la descripción de NEXUS).
+- `PUT /tareas/{id}/indicaciones` body `{indicaciones: string}` → `TareaDetalle`.
+- `GET /asistente/estado` → `EstadoAsistente`.
+- `POST /asistente/chat` body `{mensajes: MensajeChat[], tarea_id?: string}` → `text/event-stream` con eventos `{"type":"token","text"}`, `{"type":"tool_call","nombre","args"}`, `{"type":"tool_result","nombre","resultado"}`, `{"type":"confirmar","accion","args","id"}` (acciones peligrosas: entregar), `{"type":"fin"}` y `{"type":"error","message"}`. Las herramientas del asistente: `buscar_tareas`, `ver_tarea`, `proximas_entregas`, `agregar_indicaciones` / `reemplazar_indicaciones`, `crear_pdf_imagenes`, `generar_portada`, `sincronizar`, `revisar_entregas`, `generar_tarea`, `entregar_tarea` (esta última SIEMPRE requiere confirmación del usuario).
+- `POST /asistente/confirmar` body `{id, aceptar: boolean}` → resultado de la acción confirmada.
+- `POST /herramientas/pdf` multipart `files[]` + `recortar?: boolean` → `{pdf_url}` (imágenes → recorte → un PDF, sin tarea).
+- `POST /herramientas/portada` body `{profesor: string, materia?: string, titulo?: string, fecha?: string (ISO)}` → `{docx_url, pdf_url}` (portada suelta con la fecha de hoy por defecto).
+- MCP: `python -m backend.mcp` expone por stdio las mismas herramientas del asistente (salvo que `entregar_tarea` exige un argumento `confirmar: true`), para usarlas desde cualquier cliente MCP.
