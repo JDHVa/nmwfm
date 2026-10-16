@@ -9,6 +9,7 @@ import type {
   Insumo,
   Job,
   JobTipo,
+  InstruccionFija,
   Settings,
   Socket,
   Transport,
@@ -90,7 +91,19 @@ export function createMockBackend(options: MockOptions = {}) {
     `Turno: ${d.turno || settings.turno}`,
     `Especialidad: ${d.especialidad || settings.especialidad}`,
   ];
+  const INSTRUCCIONES_BASE: InstruccionFija[] = [
+    ["rubrica_maxima", "Cumple cada criterio de la rúbrica en su nivel máximo."],
+    ["cubrir_contenido", "Cubre todo el contenido indicado en la tarea sin dejar temas fuera."],
+    ["tono_preparatoria", "Usa un tono claro y académico adecuado para preparatoria."],
+    ["no_mencionar_rubrica", "No menciones la rúbrica ni los criterios en el texto."],
+    [
+      "referencias_apa7",
+      "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y verificables; no inventes referencias.",
+    ],
+  ].map(([id, texto]) => ({ id, texto, activa: true, sistema: true }));
   let settings: Settings = {
+    instrucciones_fijas: INSTRUCCIONES_BASE.map((i) => ({ ...i })),
+    gemini_espera_envio_s: 3,
     cuenta: "",
     tiene_password: false,
     nombre: "",
@@ -484,8 +497,26 @@ export function createMockBackend(options: MockOptions = {}) {
     if (path === "/settings" && method === "PUT") {
       const { password: nueva, ...rest } = body as Partial<Settings> & { password?: string };
       if (nueva) password = nueva;
+      if (rest.instrucciones_fijas) {
+        const ids = new Set(rest.instrucciones_fijas.map((i) => i.id));
+        rest.instrucciones_fijas = [
+          ...rest.instrucciones_fijas,
+          ...INSTRUCCIONES_BASE.filter((i) => !ids.has(i.id)).map((i) => ({ ...i, activa: false })),
+        ];
+      }
       settings = { ...settings, ...rest, tiene_password: password !== "" };
       return json(settings);
+    }
+    if ((m = path.match(/^\/prompt-preview\/([^/]+)$/))) {
+      const t = buscarTarea(m[1]);
+      if (!t) return fallo(404, "no_encontrada", "Tarea no encontrada");
+      const cambios: Record<string, boolean> = JSON.parse(
+        new URL(url).searchParams.get("instrucciones") ?? "{}",
+      );
+      const activas = (settings.instrucciones_fijas ?? [])
+        .filter((i) => cambios[i.id] ?? i.activa)
+        .map((i) => `- ${i.texto}`);
+      return json({ prompt: `Tarea: ${t.titulo}\n\nInstrucciones:\n${activas.join("\n")}` });
     }
     if (path === "/siase/validar") {
       return json(

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+export type InstruccionFija = { id: string; texto: string; activa: boolean; sistema: boolean };
 export type Settings = {
   cuenta: string;
   tiene_password: boolean;
@@ -17,6 +18,8 @@ export type Settings = {
   sync_cada_horas?: number;
   asistente_modelo?: string;
   asistente_keep_alive_s?: number;
+  instrucciones_fijas?: InstruccionFija[];
+  gemini_espera_envio_s?: number;
 };
 export type SettingsUpdate = Partial<Settings> & { password?: string };
 export type Materia = {
@@ -261,11 +264,24 @@ export const api = {
     request<Insumo>("POST", `/tareas/${tareaId}/insumos/texto`, { texto }),
   patchInsumo: (id: string, patch: InsumoPatch) => request<Insumo>("PATCH", `/insumos/${id}`, patch),
   borrarInsumo: (id: string) => request<void>("DELETE", `/insumos/${id}`),
-  generar: (tareaId: string, instruccionesExtra?: string, portada?: DatosPortada) =>
+  generar: (
+    tareaId: string,
+    instruccionesExtra?: string,
+    portada?: DatosPortada,
+    instrucciones?: Record<string, boolean>,
+  ) =>
     request<Job>("POST", `/tareas/${tareaId}/generar`, {
       instrucciones_extra: instruccionesExtra,
+      ...(instrucciones && Object.keys(instrucciones).length ? { instrucciones } : {}),
       ...(portada ? { portada } : {}),
     }),
+  promptPreview: (tareaId: string, instrucciones?: Record<string, boolean>) => {
+    const qs =
+      instrucciones && Object.keys(instrucciones).length
+        ? `?instrucciones=${encodeURIComponent(JSON.stringify(instrucciones))}`
+        : "";
+    return request<{ prompt: string }>("GET", `/prompt-preview/${tareaId}${qs}`);
+  },
   portadaPreview: (tareaId: string, datos: DatosPortada = {}) => {
     const qs = new URLSearchParams(Object.entries(datos).filter(([, v]) => v));
     const sufijo = qs.size ? `?${qs}` : "";
@@ -470,7 +486,9 @@ export function useJobUpdates(jobId: string | null | undefined, onJob: (job: Job
 }
 
 export function jobCancelado(job: Job | null | undefined): boolean {
-  return !!job && job.estado === "error" && (job.resultado as { cancelado?: boolean } | null)?.cancelado === true;
+  return (
+    !!job && job.estado === "error" && (job.resultado as { cancelado?: boolean } | null)?.cancelado === true
+  );
 }
 
 export function jobActivo(job: Job | null | undefined): boolean {
