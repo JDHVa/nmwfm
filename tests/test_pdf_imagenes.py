@@ -69,7 +69,7 @@ def test_la_portada_va_como_primera_pagina(state, tmp_path, monkeypatch):
         state,
         rutas_de_colores(tmp_path),
         recortar=False,
-        portada={"profesor": "DRA. X", "materia": "Física", "titulo": "Práctica 1"},
+        portada={"profesor": "DRA. X", "aula": "9"},
     )
     with abrir(pdf) as doc:
         assert len(doc.pages) == 4
@@ -88,7 +88,7 @@ def test_sin_portada_solo_trae_imagenes(state, tmp_path, monkeypatch):
 def test_la_portada_exige_profesor(state, tmp_path):
     try:
         services.crear_pdf_imagenes(
-            state, rutas_de_colores(tmp_path), recortar=False, portada={"materia": "x"}
+            state, rutas_de_colores(tmp_path), recortar=False, portada={"aula": "x"}
         )
     except services.ApiError as exc:
         assert exc.status == 422
@@ -125,7 +125,7 @@ def test_api_con_portada_y_descarga(app, tmp_path, monkeypatch):
     client = MiniClient(app, headers={"X-Token": "dev"})
     cuerpo, cabeceras = multipart_con_campos(
         partes(tmp_path),
-        {"recortar": "false", "portada": json.dumps({"profesor": "DR. X", "fecha": "2026-12-01"})},
+        {"recortar": "false", "portada": json.dumps({"profesor": "DR. X", "turno": "NOCTURNO"})},
     )
     r = client.post("/herramientas/pdf", content=cuerpo, headers=cabeceras)
     assert r.status_code == 200, r.content

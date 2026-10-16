@@ -20,13 +20,29 @@ def test_fecha_es():
 
 
 def test_fill_cover_replaces_split_markers(tmp_path):
-    mapping = documents.marcadores("ANA LOPEZ", "1999999", "PROFE UNO", date(2026, 10, 14))
+    mapping = documents.marcadores(
+        "ANA LOPEZ", "1999999", "PROFE UNO", date(2026, 10, 14), "144", "5V1", "MATUTINO", "Redes"
+    )
     out = documents.fill_cover(config.PORTADA_TEMPLATE, tmp_path / "p.docx", mapping)
     text = all_text(out)
     for marker in mapping:
         assert marker not in text
     assert "ANA LOPEZ" in text and "1999999" in text and "PROFE UNO" in text
     assert "A 14 DE OCTUBRE DEL 2026" in text
+    for valor in ("144", "5V1", "MATUTINO", "Redes"):
+        assert valor in text
+
+
+def test_plantilla_conserva_formato_de_los_marcadores():
+    d = docx.Document(str(config.PORTADA_TEMPLATE))
+    runs = [r for p in d.paragraphs for r in p.runs]
+    for t in d.tables:
+        for fila in t.rows:
+            for c in fila.cells:
+                runs += [r for p in c.paragraphs for r in p.runs]
+    por_texto = {r.text: r for r in runs}
+    for marcador in ("(AULA)", "(GRUPO)", "(TURNO)", "(ESPECIALIDAD)"):
+        assert por_texto[marcador].bold and por_texto[marcador].font.size.pt == 24
 
 
 def test_markdown_to_docx_styles(tmp_path):
@@ -48,7 +64,9 @@ def test_markdown_to_docx_styles(tmp_path):
 
 
 def test_build_final_docx(tmp_path):
-    mapping = documents.marcadores("ANA LOPEZ", "1999999", "PROFE UNO", date(2026, 10, 14))
+    mapping = documents.marcadores(
+        "ANA LOPEZ", "1999999", "PROFE UNO", date(2026, 10, 14), "1", "2", "3", "4"
+    )
     out = documents.build_final_docx(
         config.PORTADA_TEMPLATE, "## Hola\n\nCuerpo", tmp_path / "f.docx", mapping, tmp_path / "w"
     )

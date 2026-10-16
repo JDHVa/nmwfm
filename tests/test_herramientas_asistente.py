@@ -1,7 +1,9 @@
 import asyncio
 from datetime import datetime
 
+import docx
 import pytest
+from docx.oxml.ns import qn
 
 from backend import services
 from backend.asistente import herramientas as h
@@ -165,9 +167,16 @@ def test_crear_pdf_imagenes_desde_rutas(con_tareas, tmp_path):
 
 def test_generar_portada_suelta(con_tareas, monkeypatch):
     monkeypatch.setattr(documents, "export_pdf", falso_pdf)
-    r = ejecutar(con_tareas, "generar_portada", {"profesor": "DR. X", "fecha": "2026-12-01"})
+    r = ejecutar(con_tareas, "generar_portada", {"profesor": "DR. X", "aula": "88"})
     assert r["docx_url"].endswith("portada.docx") and r["ruta_pdf"].endswith("portada.pdf")
-    assert "error" in ejecutar(con_tareas, "generar_portada", {"profesor": "P", "fecha": "ayer"})
+    texto = "".join(
+        t.text
+        for t in docx.Document(
+            str(con_tareas.paths.data / r["docx_url"].removeprefix("/files/"))
+        ).element.iter(qn("w:t"))
+    )
+    assert "DR. X" in texto and "88" in texto and "5V1" in texto
+    assert "error" in ejecutar(con_tareas, "generar_portada", {"profesor": "  "})
 
 
 def con_credenciales(state):

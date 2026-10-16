@@ -58,7 +58,7 @@ def test_encabezado_primera_linea_del_cuerpo(tmp_path):
 
 
 def test_numeracion_sin_numero_en_la_portada(tmp_path):
-    mapping = documents.marcadores("ANA", "1", "PROFE", date(2026, 10, 14))
+    mapping = documents.marcadores("ANA", "1", "PROFE", date(2026, 10, 14), "1", "2", "3", "4")
     out = documents.build_final_docx(
         config.PORTADA_TEMPLATE,
         "## A\n\nTexto",

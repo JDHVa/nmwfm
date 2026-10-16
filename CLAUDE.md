@@ -9,7 +9,7 @@ App de escritorio 100% local que automatiza: SIASE (login) → NEXUS → materia
 - Navegador: Playwright con Google Chrome instalado (`channel="chrome"`), perfil persistente en `data/browser_profile/`.
 - Imágenes: OpenCV + Pillow + img2pdf. Documentos: python-docx + docxcompose + mistune; PDF con docx2pdf (MS Word).
 - Datos: SQLite en `data/nmwfm.db`; credenciales en keyring (Windows Credential Manager).
-- Plantilla de portada: `portada_word.docx` (marcadores `(NOMBRE DE LA PERSONA)`, `(MATRICULA DE LA PERSONA)`, `(NOMBRE DEL PROFE)`, `(DIA XX)`, `(MES)`, `(AÑO)`).
+- Plantilla de portada: `portada_word.docx` (marcadores `(NOMBRE DE LA PERSONA)`, `(MATRICULA DE LA PERSONA)`, `(NOMBRE DEL PROFE)`, `(AULA)`, `(GRUPO)`, `(TURNO)`, `(ESPECIALIDAD)`, `(DIA XX)`, `(MES)`, `(AÑO)`).
 - Referencia del DOM: `htmls/siase/SIASE.txt`, `htmls/nexus/NEXUS.txt`.
 
 ## Correr en DEV

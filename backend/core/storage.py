@@ -125,6 +125,10 @@ SETTING_DEFAULTS = {
     "ultima_sync": None,
     "sync_cada_horas": 0,
     "recorte_modelo": "auto",
+    "aula": "144",
+    "grupo": "5V1",
+    "turno": "MATUTINO",
+    "especialidad": "Técnico en Inteligencia Artificial BPI",
     "asistente_modelo": MODELO_ASISTENTE,
     "asistente_keep_alive_s": 90,
 }

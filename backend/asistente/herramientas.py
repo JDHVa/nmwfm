@@ -152,19 +152,29 @@ async def crear_pdf_imagenes(state: AppState, args: dict) -> dict:
         state,
         rutas,
         bool(args.get("recortar", True)),
-        args.get("portada") or None,
+        _datos_portada(args["portada"]) if isinstance(args.get("portada"), dict) else None,
     )
     return {"pdf_url": state.file_url(pdf), "ruta": str(pdf)}
+
+
+CAMPOS_PORTADA = {
+    "profesor": {"type": "string", "description": "Por defecto, el de la materia."},
+    "aula": {"type": "string", "description": "Por defecto, la de los ajustes."},
+    "grupo": {"type": "string", "description": "Por defecto, el de los ajustes."},
+    "turno": {"type": "string", "description": "Por defecto, el de los ajustes."},
+    "especialidad": {"type": "string", "description": "Por defecto, la de los ajustes."},
+}
+
+
+def _datos_portada(args: dict) -> dict:
+    return {k: args[k] for k in CAMPOS_PORTADA if isinstance(args.get(k), str)}
 
 
 async def generar_portada(state: AppState, args: dict) -> dict:
     resultado = await asyncio.to_thread(
         services.generar_portada_suelta,
         state,
-        args["profesor"],
-        args.get("materia"),
-        args.get("titulo"),
-        args.get("fecha"),
+        _datos_portada(args),
     )
     carpeta = state.paths.data / resultado["pdf_url"].removeprefix("/files/")
     return {**resultado, "ruta_pdf": str(carpeta)}
@@ -197,8 +207,9 @@ async def revisar_entregas(state: AppState, args: dict) -> dict:
 async def generar_tarea(state: AppState, args: dict) -> dict:
     tarea = _necesita_tarea(state, args.get("tarea_id", ""))
     extra = args.get("instrucciones_extra")
+    portada = _datos_portada(args["portada"]) if isinstance(args.get("portada"), dict) else None
     return _iniciar_job(
-        state, "generar", lambda ctx: services.run_generar(state, ctx, tarea["id"], extra)
+        state, "generar", lambda ctx: services.run_generar(state, ctx, tarea["id"], extra, portada)
     )
 
 
@@ -278,12 +289,7 @@ HERRAMIENTAS: dict[str, Herramienta] = {
                 "portada": {
                     "type": "object",
                     "description": "Si viene, la portada va como primera página del PDF.",
-                    "properties": {
-                        "profesor": {"type": "string"},
-                        "materia": {"type": "string"},
-                        "titulo": {"type": "string"},
-                        "fecha": {"type": "string", "description": "AAAA-MM-DD; por defecto, hoy."},
-                    },
+                    "properties": CAMPOS_PORTADA,
                     "required": ["profesor"],
                 },
             },
@@ -292,13 +298,9 @@ HERRAMIENTAS: dict[str, Herramienta] = {
         ),
         Herramienta(
             "generar_portada",
-            "Genera una portada suelta (Word y PDF) con profesor, materia, título y fecha.",
-            {
-                "profesor": {"type": "string", "description": "Nombre del profesor."},
-                "materia": {"type": "string"},
-                "titulo": {"type": "string", "description": "Título de la tarea."},
-                "fecha": {"type": "string", "description": "AAAA-MM-DD; por defecto, hoy."},
-            },
+            "Genera una portada suelta (Word y PDF) con la fecha de hoy; aula, grupo, turno y "
+            "especialidad salen de los ajustes si se omiten.",
+            CAMPOS_PORTADA,
             generar_portada,
             requeridos=["profesor"],
         ),
@@ -321,6 +323,11 @@ HERRAMIENTAS: dict[str, Herramienta] = {
             {
                 "tarea_id": TAREA_ID,
                 "instrucciones_extra": {"type": "string", "description": "Indicaciones extra."},
+                "portada": {
+                    "type": "object",
+                    "description": "Datos de portada a cambiar; los omitidos usan los ajustes.",
+                    "properties": CAMPOS_PORTADA,
+                },
             },
             generar_tarea,
             requeridos=["tarea_id"],
