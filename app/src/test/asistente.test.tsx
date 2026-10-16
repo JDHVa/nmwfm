@@ -127,3 +127,19 @@ describe("vista del asistente", () => {
     expect(screen.getByLabelText("Mensaje")).toBeDisabled();
   });
 });
+
+describe("preguntar al asistente desde una tarea", () => {
+  afterEach(() => cleanup());
+
+  it("abre el chat con el contexto de la tarea", async () => {
+    await preparar();
+    const user = userEvent.setup();
+    montar();
+    await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    await user.click(await screen.findByText("Algoritmos Bio Inspirados"));
+    await user.click(await screen.findByText("Dimensión 2 - Comprensión - Ficha Técnica"));
+    await user.click(await screen.findByRole("button", { name: "Preguntar al asistente" }));
+    expect(await screen.findByText(/Contexto: tarea/)).toBeInTheDocument();
+    expect(screen.getByText(/Dimensión 2 - Comprensión - Ficha Técnica/)).toBeInTheDocument();
+  });
+});

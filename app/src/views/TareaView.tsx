@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Bot } from "lucide-react";
 import Stepper, { Step } from "@/components/Stepper";
 import { Button } from "@/components/ui/button";
 import { EstadoBadge, TipoBadge } from "@/components/EstadoBadge";
@@ -85,6 +85,9 @@ export function TareaView({ id, materiaId }: { id: string; materiaId: string }) 
         acciones={
           tarea && (
             <>
+              <Button variant="secondary" size="sm" onClick={() => go({ name: "asistente", tareaId: id })}>
+                <Bot /> Preguntar al asistente
+              </Button>
               <TipoBadge tarea={tarea} />
               {tarea.tipo !== "examen" && <EstadoBadge tarea={tarea} />}
             </>
