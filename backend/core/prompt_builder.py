@@ -28,6 +28,7 @@ class PromptData:
     tiene_insumos: bool = True
     producto: str | None = None
     texto_ocr: str = ""
+    indicaciones: str = ""
 
 
 def _plano(text: str) -> str:
@@ -67,6 +68,11 @@ def build_prompt(data: PromptData) -> str:
     ]
     if data.actividades.strip():
         partes.append(f"## Descripción de la actividad\n{data.actividades.strip()}")
+    if data.indicaciones.strip():
+        partes.append(
+            "## Indicaciones adicionales del profesor (prioridad sobre la descripción)\n"
+            + data.indicaciones.strip()
+        )
     if data.contenido.strip():
         partes.append(f"## Contenido que debe cubrir\n{data.contenido.strip()}")
     criterios = filtrar_lineas(data.criterios_desempeno).strip()

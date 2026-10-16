@@ -1,4 +1,6 @@
 import asyncio
+import contextlib
+import json
 import os
 import secrets
 import uuid
@@ -11,11 +13,13 @@ from typing import Literal
 from fastapi import APIRouter, Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, Response
+from fastapi.responses import FileResponse, JSONResponse, Response, StreamingResponse
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from . import check, config, respaldo, services
+from .asistente import chat as asistente
+from .asistente.ollama import OllamaError
 from .core import images
 from .scheduler import Programador
 from .services import ApiError, AppState
@@ -34,6 +38,33 @@ class PatchInsumoBody(BaseModel):
     usar_recorte: bool | None = None
     texto: str | None = None
     ocr_texto: str | None = None
+
+
+class PortadaSueltaBody(BaseModel):
+    profesor: str
+    materia: str | None = None
+    titulo: str | None = None
+    fecha: str | None = None
+
+
+class MensajeChat(BaseModel):
+    rol: Literal["user", "assistant", "tool"]
+    contenido: str = ""
+    herramienta: str | None = None
+
+
+class ChatBody(BaseModel):
+    mensajes: list[MensajeChat]
+    tarea_id: str | None = None
+
+
+class ConfirmarBody(BaseModel):
+    id: str
+    aceptar: bool
+
+
+class IndicacionesBody(BaseModel):
+    indicaciones: str
 
 
 class PortadaBody(BaseModel):
@@ -66,6 +97,18 @@ def error_response(status: int, code: str, message: str) -> JSONResponse:
     return JSONResponse(status_code=status, content={"error": {"code": code, "message": message}})
 
 
+def parse_campos(content_type: str, body: bytes) -> dict[str, str]:
+    raw = b"Content-Type: " + content_type.encode("latin-1") + b"\r\n\r\n" + body
+    message = BytesParser(policy=policy.HTTP).parsebytes(raw)
+    campos = {}
+    if message.is_multipart():
+        for part in message.iter_parts():
+            if not part.get_filename():
+                nombre = part.get_param("name", header="content-disposition") or ""
+                campos[str(nombre)] = (part.get_payload(decode=True) or b"").decode("utf-8")
+    return campos
+
+
 def parse_multipart(content_type: str, body: bytes) -> list[tuple[str, str, bytes]]:
     raw = b"Content-Type: " + content_type.encode("latin-1") + b"\r\n\r\n" + body
     message = BytesParser(policy=policy.HTTP).parsebytes(raw)
@@ -93,6 +136,8 @@ def create_app(
         programador.iniciar()
         yield
         await programador.detener()
+        with contextlib.suppress(Exception):
+            await asistente.liberar(state)
         await state.close()
 
     app = FastAPI(title="nmwfm", version=config.VERSION, lifespan=lifespan)
@@ -166,6 +211,16 @@ def create_app(
                 if not isinstance(body[key], bool):
                     raise ApiError(422, "validacion", f"{key} debe ser booleano.")
                 values[key] = body[key]
+        if "asistente_modelo" in body:
+            modelo = body["asistente_modelo"]
+            if not isinstance(modelo, str) or not modelo.strip():
+                raise ApiError(422, "validacion", "asistente_modelo debe ser texto.")
+            values["asistente_modelo"] = modelo.strip()
+        if "asistente_keep_alive_s" in body:
+            segundos = body["asistente_keep_alive_s"]
+            if isinstance(segundos, bool) or not isinstance(segundos, int) or segundos < 1:
+                raise ApiError(422, "validacion", "asistente_keep_alive_s debe ser un entero >= 1.")
+            values["asistente_keep_alive_s"] = segundos
         if "recorte_modelo" in body:
             if body["recorte_modelo"] not in ("auto", "opencv"):
                 raise ApiError(422, "validacion", "recorte_modelo debe ser 'auto' u 'opencv'.")
@@ -225,6 +280,77 @@ def create_app(
             if not origen.is_file():
                 raise ApiError(404, "respaldo_no_encontrado", "Ese respaldo no existe.")
         return await respaldo.restaurar(state, origen)
+
+    @router.post("/herramientas/pdf")
+    async def herramienta_pdf(request: Request, recortar: bool | None = None):
+        content_type = request.headers.get("content-type", "")
+        if "multipart/form-data" not in content_type:
+            raise ApiError(
+                400, "multipart_requerido", "Envía las imágenes como multipart/form-data."
+            )
+        cuerpo = await request.body()
+        partes = parse_multipart(content_type, cuerpo)
+        if recortar is None:
+            valor = parse_campos(content_type, cuerpo).get("recortar", "true")
+            recortar = valor.strip().lower() not in ("false", "0", "no")
+        carpeta = state.paths.herramientas / f"subida-{uuid.uuid4().hex[:10]}"
+        carpeta.mkdir(parents=True, exist_ok=True)
+        rutas = []
+        for i, (_, nombre, datos) in enumerate(partes):
+            ruta = carpeta / f"{i}_{Path(nombre).name}"
+            ruta.write_bytes(datos)
+            rutas.append(ruta)
+        pdf = await asyncio.to_thread(services.crear_pdf_imagenes, state, rutas, recortar)
+        return {"pdf_url": state.file_url(pdf)}
+
+    @router.post("/herramientas/portada")
+    async def herramienta_portada(body: PortadaSueltaBody):
+        return await asyncio.to_thread(
+            services.generar_portada_suelta,
+            state,
+            body.profesor,
+            body.materia,
+            body.titulo,
+            body.fecha,
+        )
+
+    @router.get("/asistente/estado")
+    async def asistente_estado():
+        return await asistente.estado(state)
+
+    @router.post("/asistente/precalentar")
+    async def asistente_precalentar():
+        try:
+            return await asistente.precalentar(state)
+        except OllamaError as exc:
+            raise ApiError(503, "ollama_no_disponible", str(exc)) from exc
+
+    @router.post("/asistente/liberar")
+    async def asistente_liberar():
+        return await asistente.liberar(state)
+
+    @router.post("/asistente/chat")
+    async def asistente_chat(body: ChatBody):
+        mensajes = [m.model_dump() for m in body.mensajes]
+
+        async def eventos():
+            async for evento in asistente.conversar(state, mensajes, body.tarea_id):
+                yield f"data: {json.dumps(evento, ensure_ascii=False)}\n\n"
+
+        return StreamingResponse(
+            eventos(),
+            media_type="text/event-stream",
+            headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+        )
+
+    @router.post("/asistente/confirmar")
+    async def asistente_confirmar(body: ConfirmarBody):
+        resultado = await asistente.confirmar(state, body.id, body.aceptar)
+        if resultado is None:
+            raise ApiError(
+                404, "confirmacion_no_encontrada", "La confirmación no existe o ya se usó."
+            )
+        return resultado
 
     @router.post("/gemini/login")
     async def gemini_login():
@@ -295,6 +421,14 @@ def create_app(
         if detalle is None:
             detalle = await services.traer_detalle(state, tarea_id)
         return state.tarea_detalle_public(state.storage.get_tarea(tarea_id), detalle)
+
+    @router.put("/tareas/{tarea_id}/indicaciones")
+    async def put_indicaciones(tarea_id: str, body: IndicacionesBody):
+        need_tarea(tarea_id)
+        state.storage.set_indicaciones(tarea_id, body.indicaciones.strip())
+        return state.tarea_detalle_public(
+            state.storage.get_tarea(tarea_id), state.storage.get_detalle(tarea_id)
+        )
 
     @router.get("/tareas/{tarea_id}/insumos")
     async def listar_insumos(tarea_id: str):

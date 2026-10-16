@@ -65,11 +65,13 @@ Motor: Ollama local (`http://127.0.0.1:11434`), modelo por defecto `qwen3:4b` (c
 type MensajeChat = { rol: "user" | "assistant" | "tool"; contenido: string; herramienta?: string };
 type EstadoAsistente = { ollama: boolean; modelo: string; modelo_instalado: boolean; error: string | null };
 ```
-- `Settings` agrega `asistente_modelo: string` (por defecto `qwen3:4b`).
+- `Settings` agrega `asistente_modelo: string` (por defecto `qwen3:4b`) y `asistente_keep_alive_s: number` (segundos que Ollama mantiene el modelo en la GPU tras cada uso; entero >= 1; por defecto 90).
 - `TareaDetalle` agrega `indicaciones: string` (notas del profe/pizarrón; las escribe el usuario o el asistente; el sync NUNCA las toca; el prompt de Gemini las incluye con prioridad sobre la descripción de NEXUS).
 - `PUT /tareas/{id}/indicaciones` body `{indicaciones: string}` → `TareaDetalle`.
 - `GET /asistente/estado` → `EstadoAsistente`.
 - `POST /asistente/chat` body `{mensajes: MensajeChat[], tarea_id?: string}` → `text/event-stream` con eventos `{"type":"token","text"}`, `{"type":"tool_call","nombre","args"}`, `{"type":"tool_result","nombre","resultado"}`, `{"type":"confirmar","accion","args","id"}` (acciones peligrosas: entregar), `{"type":"fin"}` y `{"type":"error","message"}`. Las herramientas del asistente: `buscar_tareas`, `ver_tarea`, `proximas_entregas`, `agregar_indicaciones` / `reemplazar_indicaciones`, `crear_pdf_imagenes`, `generar_portada`, `sincronizar`, `revisar_entregas`, `generar_tarea`, `entregar_tarea` (esta última SIEMPRE requiere confirmación del usuario).
+- `POST /asistente/precalentar` → `{cargado: boolean, cargando: boolean, modelo: string}` (la UI lo llama al abrir la vista del asistente: carga el modelo en la GPU en segundo plano, tarda ~30 s en frío; 503 `ollama_no_disponible` si Ollama no corre). El chat agrega eventos `{"type":"estado","estado":"cargando"|"pensando","mensaje":string}` (`cargando`: el modelo aún no estaba en la GPU; `pensando`: el modelo está razonando, y sus bloques `<think>` y su campo `thinking` nunca se envían como texto). El historial se recorta para caber en el contexto de 4096 tokens.
+- `POST /asistente/liberar` → `{liberado: boolean, modelo: string}` (descarga el modelo de la GPU al instante con `keep_alive: 0`; la UI lo llama al salir de la vista del asistente y al cerrar la app; `liberado: false` si Ollama no corre). Mientras tanto el modelo se mantiene cargado `asistente_keep_alive_s` segundos (por defecto 90) tras cada uso.
 - `POST /asistente/confirmar` body `{id, aceptar: boolean}` → resultado de la acción confirmada.
 - `POST /herramientas/pdf` multipart `files[]` + `recortar?: boolean` → `{pdf_url}` (imágenes → recorte → un PDF, sin tarea).
 - `POST /herramientas/portada` body `{profesor: string, materia?: string, titulo?: string, fecha?: string (ISO)}` → `{docx_url, pdf_url}` (portada suelta con la fecha de hoy por defecto).

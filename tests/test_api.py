@@ -59,6 +59,8 @@ def test_settings_roundtrip(client, state):
         "ultima_sync": None,
         "sync_cada_horas": 0,
         "recorte_modelo": "auto",
+        "asistente_modelo": "qwen3:4b",
+        "asistente_keep_alive_s": 90,
         "modelo_recorte_disponible": False,
     }
     r = client.put(

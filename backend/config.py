@@ -55,7 +55,15 @@ class Paths:
         self.generaciones = self.data / "generaciones"
         self.debug = self.data / "debug"
         self.models = self.data / "models"
+        self.herramientas = self.data / "herramientas"
 
     def ensure(self) -> None:
-        for p in (self.data, self.insumos, self.generaciones, self.debug, self.models):
+        for p in (
+            self.data,
+            self.insumos,
+            self.generaciones,
+            self.debug,
+            self.models,
+            self.herramientas,
+        ):
             p.mkdir(parents=True, exist_ok=True)
