@@ -425,8 +425,24 @@ export function createMockBackend(options: MockOptions = {}) {
       const form = body as FormData;
       const n = form.getAll("files[]").length;
       if (n === 0) return fallo(400, "sin_archivos", "Sube al menos una imagen");
+      const portadaCruda = form.get("portada");
+      let portadaLinea = "Sin portada";
+      if (typeof portadaCruda === "string") {
+        try {
+          const d = JSON.parse(portadaCruda) as { profesor?: string; titulo?: string };
+          if (!d.profesor) return fallo(422, "validacion", "La portada necesita el profesor");
+          portadaLinea = `Portada: ${d.profesor} ${d.titulo ?? ""}`;
+        } catch {
+          return fallo(422, "validacion", "La portada no es JSON válido");
+        }
+      }
       return json({
-        pdf_url: pdfDe(["Imagenes unidas", `${n} imagen(es)`, `Recorte: ${form.get("recortar")}`]),
+        pdf_url: pdfDe([
+          "Imagenes unidas",
+          `${n} imagen(es)`,
+          `Recorte: ${form.get("recortar")}`,
+          portadaLinea,
+        ]),
       });
     }
     if (path === "/herramientas/portada") {

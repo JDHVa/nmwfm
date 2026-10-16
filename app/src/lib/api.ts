@@ -294,10 +294,11 @@ export const api = {
     request<ConfirmacionResultado>("POST", "/asistente/confirmar", { id, aceptar }),
   indicaciones: (tareaId: string, indicaciones: string) =>
     request<TareaDetalle>("PUT", `/tareas/${tareaId}/indicaciones`, { indicaciones }),
-  herramientaPdf: (files: File[], recortar: boolean) => {
+  herramientaPdf: (files: File[], recortar: boolean, portada?: PortadaSuelta) => {
     const form = new FormData();
     files.forEach((f) => form.append("files[]", f, f.name));
     form.append("recortar", recortar ? "true" : "false");
+    if (portada) form.append("portada", JSON.stringify(portada));
     return request<{ pdf_url: string }>("POST", "/herramientas/pdf", form);
   },
   herramientaPortada: (datos: PortadaSuelta) =>
