@@ -42,9 +42,10 @@ class PatchInsumoBody(BaseModel):
 
 class PortadaSueltaBody(BaseModel):
     profesor: str
-    materia: str | None = None
-    titulo: str | None = None
-    fecha: str | None = None
+    aula: str | None = None
+    grupo: str | None = None
+    turno: str | None = None
+    especialidad: str | None = None
 
 
 class MensajeChat(BaseModel):
@@ -69,7 +70,10 @@ class IndicacionesBody(BaseModel):
 
 class PortadaBody(BaseModel):
     profesor: str | None = None
-    titulo: str | None = None
+    aula: str | None = None
+    grupo: str | None = None
+    turno: str | None = None
+    especialidad: str | None = None
 
 
 class GenerarBody(BaseModel):
@@ -201,7 +205,7 @@ def create_app(
     async def put_settings(body: dict):
         password = body.pop("password", None)
         values = {}
-        for key in ("cuenta", "nombre", "matricula"):
+        for key in ("cuenta", "nombre", "matricula", "aula", "grupo", "turno", "especialidad"):
             if key in body:
                 if not isinstance(body[key], str):
                     raise ApiError(422, "validacion", f"{key} debe ser texto.")
@@ -316,11 +320,12 @@ def create_app(
         return await asyncio.to_thread(
             services.generar_portada_suelta,
             state,
-            body.profesor,
-            body.materia,
-            body.titulo,
-            body.fecha,
+            body.model_dump(),
         )
+
+    @router.get("/profesores")
+    async def profesores():
+        return services.listar_profesores(state)
 
     @router.get("/asistente/estado")
     async def asistente_estado():
@@ -556,11 +561,24 @@ def create_app(
 
     @router.get("/tareas/{tarea_id}/portada-preview")
     async def portada_preview(
-        tarea_id: str, profesor: str | None = None, titulo: str | None = None
+        tarea_id: str,
+        profesor: str | None = None,
+        aula: str | None = None,
+        grupo: str | None = None,
+        turno: str | None = None,
+        especialidad: str | None = None,
     ):
         need_tarea(tarea_id)
         return await services.portada_preview(
-            state, tarea_id, {"profesor": profesor, "titulo": titulo}
+            state,
+            tarea_id,
+            {
+                "profesor": profesor,
+                "aula": aula,
+                "grupo": grupo,
+                "turno": turno,
+                "especialidad": especialidad,
+            },
         )
 
     @router.post("/tareas/{tarea_id}/abrir-docx", status_code=204)

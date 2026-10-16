@@ -41,18 +41,23 @@ def construir(seeded, monkeypatch, portada=None):
 
 
 def test_portada_override_en_la_generacion(seeded, monkeypatch):
-    gen = construir(seeded, monkeypatch, {"profesor": "DRA. NUEVA", "titulo": "Mi título propio"})
+    gen = construir(seeded, monkeypatch, {"profesor": "DRA. NUEVA", "aula": "201"})
     contenido = texto_docx(gen["docx_path"])
     assert "DRA. NUEVA" in contenido and "PROFE UNO" not in contenido
+    assert "201" in contenido and "144" not in contenido
     primera = docx.Document(gen["docx_path"]).paragraphs
-    assert any(p.text == "Mi título propio" for p in primera)
+    assert any(" - " in p.text for p in primera)
     publico = seeded.generacion_public(gen)
-    assert publico["portada"] == {"profesor": "DRA. NUEVA", "titulo": "Mi título propio"}
+    assert publico["portada"] == {"profesor": "DRA. NUEVA", "aula": "201"}
 
 
 def test_sin_override_usa_materia_y_titulo(seeded, monkeypatch):
     gen = construir(seeded, monkeypatch)
-    assert "PROFE UNO" in texto_docx(gen["docx_path"])
+    contenido = texto_docx(gen["docx_path"])
+    assert "PROFE UNO" in contenido
+    for valor in ("144", "5V1", "MATUTINO", "Técnico en Inteligencia Artificial BPI"):
+        assert valor in contenido
+    assert "(AULA)" not in contenido and "(ESPECIALIDAD)" not in contenido
     assert seeded.generacion_public(gen)["portada"] is None
 
 
@@ -65,8 +70,10 @@ def test_restaurar_conserva_la_portada(seeded, monkeypatch):
 
 
 def test_limpia_portada_vacia():
-    assert services._portada_limpia({"profesor": "  ", "titulo": None}) is None
-    assert services._portada_limpia({"profesor": " A ", "extra": "z"}) == {"profesor": "A"}
+    assert services._portada_limpia({"profesor": "  ", "aula": None}) is None
+    assert services._portada_limpia({"profesor": " A ", "extra": "z", "titulo": "t"}) == {
+        "profesor": "A"
+    }
 
 
 def test_api_generar_pasa_la_portada(app, seeded, monkeypatch):
@@ -83,13 +90,19 @@ def test_api_generar_pasa_la_portada(app, seeded, monkeypatch):
         r = await client.arequest(
             "POST",
             f"/tareas/{TID}/generar",
-            json={"instrucciones_extra": "x", "portada": {"profesor": "P", "titulo": "T"}},
+            json={"instrucciones_extra": "x", "portada": {"profesor": "P", "grupo": "6A"}},
         )
         await asyncio.sleep(0.1)
         return r
 
     assert asyncio.run(escenario()).status_code == 200
-    assert recibido["portada"] == {"profesor": "P", "titulo": "T"}
+    assert recibido["portada"] == {
+        "profesor": "P",
+        "aula": None,
+        "grupo": "6A",
+        "turno": None,
+        "especialidad": None,
+    }
 
 
 def test_portada_preview_con_overrides(app, seeded, monkeypatch):
@@ -102,11 +115,15 @@ def test_portada_preview_con_overrides(app, seeded, monkeypatch):
 
     monkeypatch.setattr(documents, "export_pdf", pdf)
     client = MiniClient(app, headers={"X-Token": "dev"})
-    r = client.get(f"/tareas/{TID}/portada-preview?profesor=DR.%20OVERRIDE")
+    r = client.get(
+        f"/tareas/{TID}/portada-preview?profesor=DR.%20OVERRIDE&turno=VESPERTINO&especialidad=Redes"
+    )
     assert r.status_code == 200
     assert "DR. OVERRIDE" in capturado["texto"] and "PROFE UNO" not in capturado["texto"]
-    client.get(f"/tareas/{TID}/portada-preview")
-    assert "PROFE UNO" in capturado["texto"]
+    assert "VESPERTINO" in capturado["texto"] and "Redes" in capturado["texto"]
+    assert "5V1" in capturado["texto"]
+    client.get(f"/tareas/{TID}/portada-preview?aula=")
+    assert "PROFE UNO" in capturado["texto"] and "144" in capturado["texto"]
 
 
 def test_patch_ocr_texto_marca_editado(app, seeded, tmp_path):

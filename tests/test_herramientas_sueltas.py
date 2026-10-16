@@ -106,19 +106,15 @@ def test_portada_con_datos_arbitrarios(app, state, monkeypatch):
     client = MiniClient(app, headers={"X-Token": "dev"})
     r = client.post(
         "/herramientas/portada",
-        json={
-            "profesor": "DRA. LÓPEZ",
-            "materia": "Física",
-            "titulo": "Práctica 3",
-            "fecha": "2026-12-24",
-        },
+        json={"profesor": "DRA. LÓPEZ", "aula": "7", "grupo": "9X", "fecha": "2026-12-24"},
     )
     assert r.status_code == 200, r.content
     cuerpo = r.json()
     texto = texto_docx(ruta_de(state, cuerpo["docx_url"]))
     assert "DRA. LÓPEZ" in texto and "Ana Prueba" in texto and "1999" in texto
-    assert "A 24 DE DICIEMBRE DEL 2026" in texto
-    assert "Materia: Física" in texto and "Tarea: Práctica 3" in texto
+    assert "DE DICIEMBRE DEL 2026" not in texto
+    assert "7" in texto and "9X" in texto and "MATUTINO" in texto
+    assert "Materia:" not in texto and "Tarea:" not in texto
     assert ruta_de(state, cuerpo["pdf_url"]).exists()
     assert ruta_de(state, cuerpo["docx_url"]).parent.parent == state.paths.herramientas
 
@@ -132,19 +128,20 @@ def test_portada_fecha_por_defecto_es_hoy_en_monterrey(app, state, monkeypatch):
     assert "A 2 DE MARZO DEL 2026" in texto and "Materia:" not in texto
 
 
-def test_portada_acepta_fecha_con_hora_iso(app, state, monkeypatch):
+def test_portada_usa_los_ajustes_para_omitidos_y_vacios(app, state, monkeypatch):
     monkeypatch.setattr(documents, "export_pdf", falso_pdf)
+    state.storage.set_settings({"aula": "300", "turno": "NOCTURNO", "especialidad": "Redes"})
     client = MiniClient(app, headers={"X-Token": "dev"})
-    r = client.post("/herramientas/portada", json={"profesor": "P", "fecha": "2026-11-05T08:00"})
-    assert "A 5 DE NOVIEMBRE DEL 2026" in texto_docx(ruta_de(state, r.json()["docx_url"]))
+    r = client.post("/herramientas/portada", json={"profesor": "P", "grupo": "  "})
+    texto = texto_docx(ruta_de(state, r.json()["docx_url"]))
+    assert "300" in texto and "NOCTURNO" in texto and "Redes" in texto and "5V1" in texto
+    assert "(AULA)" not in texto and "(GRUPO)" not in texto
 
 
 def test_portada_errores(app, monkeypatch):
     client = MiniClient(app, headers={"X-Token": "dev"})
     assert client.post("/herramientas/portada", json={"profesor": "  "}).status_code == 422
     assert client.post("/herramientas/portada", json={}).status_code == 422
-    malo = client.post("/herramientas/portada", json={"profesor": "P", "fecha": "ayer"})
-    assert malo.status_code == 422
 
     def falla(docx_path, pdf_path):
         raise RuntimeError("Word no disponible")

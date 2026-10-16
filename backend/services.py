@@ -3,7 +3,7 @@ import contextlib
 import json
 import shutil
 import uuid
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -16,7 +16,7 @@ from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
 from .core.prompt_builder import PromptData, build_prompt
-from .core.storage import Credentials, Storage, now_iso
+from .core.storage import SETTING_DEFAULTS, Credentials, Storage, now_iso
 from .core.types import Hooks, Rubrica
 from .jobs import JobContext, JobManager
 
@@ -743,14 +743,7 @@ def crear_pdf_imagenes(
     imagenes_pdf = images.build_pdf(refs, carpeta / "imagenes.pdf" if portada else destino)
     if not portada:
         return imagenes_pdf
-    _, portada_pdf = _portada_archivos(
-        state,
-        portada["profesor"],
-        portada.get("materia"),
-        portada.get("titulo"),
-        portada.get("fecha"),
-        carpeta,
-    )
+    _, portada_pdf = _portada_archivos(state, portada, carpeta)
     return _unir_pdfs([portada_pdf, imagenes_pdf], destino)
 
 
@@ -765,35 +758,43 @@ def _unir_pdfs(origenes: list[Path], destino: Path) -> Path:
     return destino
 
 
-def _portada_archivos(
-    state: AppState,
-    profesor: str,
-    materia: str | None,
-    titulo: str | None,
-    fecha: str | None,
-    carpeta: Path | None = None,
-) -> tuple[Path, Path]:
-    if not profesor.strip():
-        raise ApiError(422, "validacion", "El profesor es obligatorio.")
-    try:
-        dia = date.fromisoformat(fecha[:10]) if fecha else ahora_monterrey().date()
-    except ValueError as exc:
-        raise ApiError(422, "validacion", "La fecha debe ser ISO (AAAA-MM-DD).") from exc
-    settings = state.storage.get_settings()
-    mapping = documents.marcadores(
+CAMPOS_PORTADA = ("profesor", "aula", "grupo", "turno", "especialidad")
+
+
+def _datos_portada(settings: dict, portada: dict | None, profesor: str | None) -> dict:
+    limpia = _portada_limpia(portada) or {}
+    datos = {
+        c: limpia.get(c) or str(settings.get(c) or "").strip() or SETTING_DEFAULTS[c]
+        for c in CAMPOS_PORTADA
+        if c != "profesor"
+    }
+    datos["profesor"] = limpia.get("profesor") or (profesor or "").strip()
+    return datos
+
+
+def _marcadores_portada(settings: dict, datos: dict) -> dict[str, str]:
+    return documents.marcadores(
         settings["nombre"] or "NOMBRE DEL ALUMNO",
         settings["matricula"] or "MATRÍCULA",
-        profesor.strip(),
-        dia,
+        datos["profesor"],
+        ahora_monterrey().date(),
+        datos["aula"],
+        datos["grupo"],
+        datos["turno"],
+        datos["especialidad"],
     )
-    extra = []
-    if materia and materia.strip():
-        extra.append(f"Materia: {materia.strip()}")
-    if titulo and titulo.strip():
-        extra.append(f"Tarea: {titulo.strip()}")
+
+
+def _portada_archivos(
+    state: AppState, portada: dict, carpeta: Path | None = None
+) -> tuple[Path, Path]:
+    settings = state.storage.get_settings()
+    datos = _datos_portada(settings, portada, None)
+    if not datos["profesor"]:
+        raise ApiError(422, "validacion", "El profesor es obligatorio.")
     carpeta = carpeta or state.paths.herramientas / f"portada-{uuid.uuid4().hex[:10]}"
     docx_path = documents.fill_cover(
-        config.PORTADA_TEMPLATE, carpeta / "portada.docx", mapping, extra
+        config.PORTADA_TEMPLATE, carpeta / "portada.docx", _marcadores_portada(settings, datos)
     )
     try:
         pdf_path = documents.export_pdf(docx_path, carpeta / "portada.pdf")
@@ -802,15 +803,18 @@ def _portada_archivos(
     return docx_path, pdf_path
 
 
-def generar_portada_suelta(
-    state: AppState,
-    profesor: str,
-    materia: str | None = None,
-    titulo: str | None = None,
-    fecha: str | None = None,
-) -> dict:
-    docx_path, pdf_path = _portada_archivos(state, profesor, materia, titulo, fecha)
+def generar_portada_suelta(state: AppState, portada: dict) -> dict:
+    docx_path, pdf_path = _portada_archivos(state, portada)
     return {"docx_url": state.file_url(docx_path), "pdf_url": state.file_url(pdf_path)}
+
+
+def listar_profesores(state: AppState) -> list[dict]:
+    por_nombre: dict[str, list[str]] = {}
+    for materia in state.storage.list_materias():
+        nombre = (materia["profesor"] or "").strip()
+        if nombre:
+            por_nombre.setdefault(nombre, []).append(materia["nombre"])
+    return [{"nombre": n, "materias": m} for n, m in sorted(por_nombre.items())]
 
 
 def _generacion_dir(state: AppState, tarea_id: str) -> Path:
@@ -881,7 +885,7 @@ async def run_generar(
 
 def _portada_limpia(portada: dict | None) -> dict | None:
     limpia = {k: v.strip() for k, v in (portada or {}).items() if isinstance(v, str) and v.strip()}
-    return {k: v for k, v in limpia.items() if k in ("profesor", "titulo")} or None
+    return {k: v for k, v in limpia.items() if k in CAMPOS_PORTADA} or None
 
 
 def _construir_documentos(
@@ -894,12 +898,7 @@ def _construir_documentos(
 ) -> dict:
     portada = portada or {}
     out_dir = _generacion_dir(state, tarea["id"]) / datetime.now().strftime("%Y%m%d-%H%M%S")
-    mapping = documents.marcadores(
-        settings["nombre"],
-        settings["matricula"],
-        portada.get("profesor") or materia["profesor"],
-        date.today(),
-    )
+    mapping = _marcadores_portada(settings, _datos_portada(settings, portada, materia["profesor"]))
     avisos: list[str] = []
     docx_path = documents.build_final_docx(
         config.PORTADA_TEMPLATE,
@@ -908,7 +907,7 @@ def _construir_documentos(
         mapping,
         out_dir / "tmp",
         avisos,
-        portada.get("titulo") or f"{materia['nombre']} - {tarea['titulo']}",
+        f"{materia['nombre']} - {tarea['titulo']}",
     )
     pdf_path = documents.export_pdf(docx_path, out_dir / "tarea.pdf")
     return state.storage.set_generacion(
@@ -934,12 +933,8 @@ def _portada_preview(state: AppState, tarea: dict, portada: dict | None = None) 
     portada = portada or {}
     materia = state.storage.get_materia(tarea["materia_id"])
     settings = state.storage.get_settings()
-    mapping = documents.marcadores(
-        settings["nombre"] or "NOMBRE DEL ALUMNO",
-        settings["matricula"] or "MATRÍCULA",
-        portada.get("profesor") or (materia or {}).get("profesor") or "PROFESOR",
-        date.today(),
-    )
+    datos = _datos_portada(settings, portada, (materia or {}).get("profesor") or "PROFESOR")
+    mapping = _marcadores_portada(settings, datos)
     carpeta = _generacion_dir(state, tarea["id"]) / "preview"
     docx_path = documents.fill_cover(config.PORTADA_TEMPLATE, carpeta / "portada.docx", mapping)
     return documents.export_pdf(docx_path, carpeta / "portada.pdf")

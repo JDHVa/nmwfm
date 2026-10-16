@@ -61,6 +61,10 @@ def test_settings_roundtrip(client, state):
         "recorte_modelo": "auto",
         "asistente_modelo": "qwen3:4b-instruct-2507-q4_K_M",
         "asistente_keep_alive_s": 90,
+        "aula": "144",
+        "grupo": "5V1",
+        "turno": "MATUTINO",
+        "especialidad": "Técnico en Inteligencia Artificial BPI",
         "modelo_recorte_disponible": False,
     }
     r = client.put(

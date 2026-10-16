@@ -81,8 +81,21 @@ def fecha_es(d: date) -> str:
     return f"{d.day} de {MESES[d.month - 1]} del {d.year}"
 
 
-def marcadores(nombre: str, matricula: str, profesor: str, hoy: date) -> dict[str, str]:
+def marcadores(
+    nombre: str,
+    matricula: str,
+    profesor: str,
+    hoy: date,
+    aula: str,
+    grupo: str,
+    turno: str,
+    especialidad: str,
+) -> dict[str, str]:
     return {
+        "(AULA)": aula,
+        "(GRUPO)": grupo,
+        "(TURNO)": turno,
+        "(ESPECIALIDAD)": especialidad,
         "(NOMBRE DE LA PERSONA)": nombre,
         "(MATRICULA DE LA PERSONA)": matricula,
         "(NOMBRE DEL PROFE)": profesor,
@@ -131,18 +144,10 @@ def _all_paragraphs(doc: DocumentType):
             yield Paragraph(p, None)
 
 
-def fill_cover(
-    template: Path, out: Path, mapping: dict[str, str], lineas_extra: list[str] | None = None
-) -> Path:
+def fill_cover(template: Path, out: Path, mapping: dict[str, str]) -> Path:
     doc = Document(str(template))
     for paragraph in _all_paragraphs(doc):
         _replace_in_paragraph(paragraph, mapping)
-    for linea in lineas_extra or []:
-        paragraph = doc.add_paragraph()
-        paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-        run = paragraph.add_run(linea)
-        run.font.bold = True
-        run.font.size = Pt(14)
     out.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(out))
     return out
