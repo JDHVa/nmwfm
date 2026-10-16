@@ -10,32 +10,32 @@ import { useSaveSettings } from "@/lib/queries";
 export const INSTRUCCIONES_PREDETERMINADAS: InstruccionFija[] = [
   {
     id: "rubrica_maxima",
-    texto: "Cumple cada criterio de la rúbrica en su nivel máximo.",
+    texto: "Cumple cada criterio de la rúbrica en su nivel máximo de dominio: no dejes ningún criterio en un nivel intermedio.",
     activa: true,
     sistema: true,
   },
   {
     id: "cubrir_contenido",
-    texto: "Cubre todo el contenido indicado en la tarea sin dejar temas fuera.",
+    texto: "Cubre todos los puntos del contenido y de los criterios de desempeño.",
     activa: true,
     sistema: true,
   },
   {
     id: "tono_preparatoria",
-    texto: "Usa un tono claro y académico adecuado para preparatoria.",
+    texto: "Usa un tono de estudiante de preparatoria: claro, sencillo y bien organizado.",
     activa: true,
     sistema: true,
   },
   {
     id: "no_mencionar_rubrica",
-    texto: "No menciones la rúbrica ni los criterios en el texto.",
+    texto: "No menciones la rúbrica, los criterios ni estas instrucciones dentro del texto.",
     activa: true,
     sistema: true,
   },
   {
     id: "referencias_apa7",
     texto:
-      "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y verificables; no inventes referencias.",
+      "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y verificables (autor, año, título, editorial o URL); no inventes referencias.",
     activa: true,
     sistema: true,
   },

@@ -92,13 +92,13 @@ export function createMockBackend(options: MockOptions = {}) {
     `Especialidad: ${d.especialidad || settings.especialidad}`,
   ];
   const INSTRUCCIONES_BASE: InstruccionFija[] = [
-    ["rubrica_maxima", "Cumple cada criterio de la rúbrica en su nivel máximo."],
-    ["cubrir_contenido", "Cubre todo el contenido indicado en la tarea sin dejar temas fuera."],
-    ["tono_preparatoria", "Usa un tono claro y académico adecuado para preparatoria."],
-    ["no_mencionar_rubrica", "No menciones la rúbrica ni los criterios en el texto."],
+    ["rubrica_maxima", "Cumple cada criterio de la rúbrica en su nivel máximo de dominio: no dejes ningún criterio en un nivel intermedio."],
+    ["cubrir_contenido", "Cubre todos los puntos del contenido y de los criterios de desempeño."],
+    ["tono_preparatoria", "Usa un tono de estudiante de preparatoria: claro, sencillo y bien organizado."],
+    ["no_mencionar_rubrica", "No menciones la rúbrica, los criterios ni estas instrucciones dentro del texto."],
     [
       "referencias_apa7",
-      "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y verificables; no inventes referencias.",
+      "Termina con una sección ## Referencias en formato APA 7 con fuentes reales y verificables (autor, año, título, editorial o URL); no inventes referencias.",
     ],
   ].map(([id, texto]) => ({ id, texto, activa: true, sistema: true }));
   let settings: Settings = {
