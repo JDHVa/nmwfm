@@ -49,6 +49,20 @@ const nombreHerramienta = (n: string) => NOMBRES_HERRAMIENTAS[n] ?? n.replace(/_
 
 export function AsistenteView({ tareaId }: { tareaId?: string }) {
   const [pestana, setPestana] = useState<"chat" | "herramientas">("chat");
+  const [precalentando, setPrecalentando] = useState(true);
+
+  useEffect(() => {
+    let vivo = true;
+    api
+      .precalentarAsistente()
+      .catch(() => undefined)
+      .finally(() => vivo && setPrecalentando(false));
+    return () => {
+      vivo = false;
+      void api.liberarAsistente();
+    };
+  }, []);
+
   return (
     <div className="mx-auto flex h-full w-full max-w-3xl flex-col gap-4 p-8">
       <div
@@ -74,6 +88,11 @@ export function AsistenteView({ tareaId }: { tareaId?: string }) {
           </button>
         ))}
       </div>
+      {precalentando && (
+        <p role="status" className="flex items-center gap-2 text-xs text-muted-foreground">
+          <Loader2 className="size-3 animate-spin" /> Cargando modelo…
+        </p>
+      )}
       {pestana === "chat" ? <ChatPanel tareaId={tareaId} /> : <HerramientasPanel />}
     </div>
   );
@@ -329,7 +348,7 @@ function Burbuja({ item, onConfirmar }: { item: ItemChat; onConfirmar: (aceptar:
           !item.completo &&
           item.herramientas.length === 0 && (
             <p className="flex items-center gap-2 text-xs text-muted-foreground">
-              <Loader2 className="size-3 animate-spin" /> Pensando…
+              <Loader2 className="size-3 animate-spin" /> {item.estado ?? "Cargando modelo…"}
             </p>
           )
         )}

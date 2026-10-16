@@ -73,6 +73,8 @@ function AsistenteSeccion({ settings }: { settings: Settings }) {
   const guardar = useSaveSettings();
   const [edicion, setEdicion] = useState<string | null>(null);
   const modelo = edicion ?? settings.asistente_modelo ?? "qwen3:4b";
+  const [segundos, setSegundos] = useState<string | null>(null);
+  const keepAlive = segundos ?? String(settings.asistente_keep_alive_s ?? 90);
   const estado = useQuery({
     queryKey: ["asistente-estado", settings.asistente_modelo],
     queryFn: api.asistenteEstado,
@@ -118,6 +120,33 @@ function AsistenteSeccion({ settings }: { settings: Settings }) {
             ))}
           </datalist>
         </>
+      </div>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="space-y-1">
+          <label htmlFor="asistente-keep-alive" className="text-sm font-medium">
+            Liberar GPU tras N segundos
+          </label>
+          <p className="text-xs text-muted-foreground">
+            El modelo se descarga de la memoria de video tras este tiempo sin usar el asistente.
+          </p>
+        </div>
+        <input
+          id="asistente-keep-alive"
+          type="number"
+          min={0}
+          step={10}
+          className="h-9 w-28 rounded-md border border-input bg-background/50 px-3 text-sm"
+          value={keepAlive}
+          onChange={(ev) => setSegundos(ev.target.value)}
+          onBlur={() => {
+            const n = Math.max(0, Math.round(Number(keepAlive)));
+            setSegundos(null);
+            if (Number.isFinite(n) && n !== (settings.asistente_keep_alive_s ?? 90)) {
+              guardar.mutate({ asistente_keep_alive_s: n });
+            }
+          }}
+          onKeyDown={(ev) => ev.key === "Enter" && ev.currentTarget.blur()}
+        />
       </div>
       <div className="flex flex-wrap items-center gap-3 text-sm" role="status" aria-label="Estado de Ollama">
         <Bot className="size-4 text-primary" />

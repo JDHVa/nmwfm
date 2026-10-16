@@ -16,7 +16,7 @@ import { MATERIAS, crearEtapas, detalleDe, marcarVencida } from "./data";
 
 type Emitter = (msg: WsMessage) => void;
 
-export type MockOptions = { stepMs?: number; asistenteDisponible?: boolean };
+export type MockOptions = { stepMs?: number; asistenteDisponible?: boolean; cargaModeloMs?: number };
 
 function svgDataUrl(label: string, hue: number, w = 420, h = 560): string {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><rect width="100%" height="100%" fill="hsl(${hue},30%,92%)"/><rect x="24" y="24" width="${w - 48}" height="${h - 48}" fill="white" stroke="hsl(${hue},40%,60%)" stroke-width="3"/>${Array.from({ length: 9 }, (_, i) => `<rect x="48" y="${64 + i * 40}" width="${120 + ((i * 53) % 200)}" height="10" fill="hsl(${hue},25%,70%)"/>`).join("")}<text x="48" y="${h - 48}" font-family="sans-serif" font-size="22" fill="hsl(${hue},40%,35%)">${label}</text></svg>`;
@@ -80,6 +80,8 @@ function readAsDataUrl(file: File): Promise<string> {
 export function createMockBackend(options: MockOptions = {}) {
   const stepMs = options.stepMs ?? 700;
   const asistenteDisponible = options.asistenteDisponible ?? true;
+  const cargaModeloMs = options.cargaModeloMs ?? stepMs * 2;
+  const llamadas: string[] = [];
   let settings: Settings = {
     cuenta: "",
     tiene_password: false,
@@ -90,6 +92,7 @@ export function createMockBackend(options: MockOptions = {}) {
     reducir_animaciones: false,
     sync_cada_horas: 0,
     asistente_modelo: "qwen3:4b",
+    asistente_keep_alive_s: 90,
     sync_inicial_hecha: false,
     ultima_sync: null,
   };
@@ -218,7 +221,9 @@ export function createMockBackend(options: MockOptions = {}) {
           return;
         }
         const e = eventos[i++];
-        await new Promise((r) => setTimeout(r, Math.max(1, Math.round(stepMs / 4))));
+        await new Promise((r) =>
+          setTimeout(r, e.type === "estado" ? cargaModeloMs : Math.max(1, Math.round(stepMs / 4))),
+        );
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(e)}\n\n`));
       },
     });
@@ -243,6 +248,11 @@ export function createMockBackend(options: MockOptions = {}) {
   function guionAsistente(texto: string, tareaId?: string): EventoChat[] {
     const q = sinAcentos(texto);
     const fin: EventoChat = { type: "fin" };
+    const carga: EventoChat = { type: "estado", estado: "listo", mensaje: "Pensando…" };
+    return [carga, ...guionBase(q, texto, tareaId, fin)];
+  }
+
+  function guionBase(q: string, texto: string, tareaId: string | undefined, fin: EventoChat): EventoChat[] {
     if (/vence|semana|proxim/.test(q)) {
       const pendientes = todasLasTareas()
         .filter((t) => t.estado !== "entregada" && !t.vencida && t.hasta)
@@ -356,6 +366,7 @@ export function createMockBackend(options: MockOptions = {}) {
   const transport: Transport = async (url, init) => {
     const method = (init.method ?? "GET").toUpperCase();
     const path = new URL(url).pathname;
+    llamadas.push(`${method} ${path}`);
     const headers = new Headers(init.headers);
     if (headers.get("X-Token") !== "dev") return fallo(401, "token_invalido", "Token inválido");
     const body = typeof init.body === "string" ? JSON.parse(init.body) : init.body;
@@ -368,6 +379,11 @@ export function createMockBackend(options: MockOptions = {}) {
       indicaciones.set(t.id, (body as { indicaciones: string }).indicaciones);
       return json({ ...detalleDe(t), indicaciones: indicaciones.get(t.id) });
     }
+    if (path === "/asistente/precalentar") {
+      await new Promise((r) => setTimeout(r, cargaModeloMs));
+      return json({ ok: true });
+    }
+    if (path === "/asistente/liberar") return json({ ok: true });
     if (path === "/asistente/estado") {
       return json({
         ollama: asistenteDisponible,
@@ -840,5 +856,5 @@ export function createMockBackend(options: MockOptions = {}) {
     return sock;
   };
 
-  return { transport, createSocket, etapas: etapas as Record<string, EtapaConTareas[]> };
+  return { transport, createSocket, llamadas, etapas: etapas as Record<string, EtapaConTareas[]> };
 }

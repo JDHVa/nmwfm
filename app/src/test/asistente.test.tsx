@@ -37,7 +37,8 @@ describe("flujo SSE del cliente", () => {
     await chatAsistente({ mensajes: [{ rol: "user", contenido: "¿Qué vence esta semana?" }] }, (e) =>
       eventos.push(e),
     );
-    expect(eventos[0].type).toBe("tool_call");
+    expect(eventos[0].type).toBe("estado");
+    expect(eventos[1].type).toBe("tool_call");
     expect(eventos.some((e) => e.type === "token")).toBe(true);
     expect(eventos[eventos.length - 1].type).toBe("fin");
   });

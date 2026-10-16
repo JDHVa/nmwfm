@@ -25,6 +25,7 @@ export type ItemChat =
       tipo: "asistente";
       texto: string;
       herramientas: Herramienta[];
+      estado?: string;
       confirmacion?: Confirmacion;
       error?: string;
       completo: boolean;
@@ -137,6 +138,7 @@ export function useChat(tareaIdInicial?: string) {
           a.confirmacion = { id: e.id, accion: e.accion, args: e.args, estado: "pendiente" };
         });
       else if (e.type === "error") actualizarUltimoAsistente((a) => (a.error = e.message));
+      else if (e.type === "estado") actualizarUltimoAsistente((a) => (a.estado = e.mensaje ?? "Pensando…"));
       else if (e.type === "fin") actualizarUltimoAsistente((a) => (a.completo = true));
     },
     [actualizarUltimoAsistente, qc],

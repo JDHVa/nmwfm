@@ -22,7 +22,7 @@ import { estaEscribiendo } from "@/lib/atajos";
 import { escucharSyncDeBandeja, sincronizarPreferenciaConRust } from "@/lib/bandeja";
 import { useAlertas } from "@/lib/alertas";
 import { NavProvider, useNav, useReducedMotion } from "@/lib/app-context";
-import type { Settings } from "@/lib/api";
+import { api, type Settings } from "@/lib/api";
 import { useSettings } from "@/lib/queries";
 import { leerRecordar } from "@/lib/session";
 import { SyncProvider, useSync } from "@/lib/sync";
@@ -160,6 +160,12 @@ function Raiz({ settings }: { settings: Settings }) {
   const [fase, setFase] = useState<Fase>(() =>
     leerRecordar() && settings.cuenta && settings.tiene_password ? "saludo" : "login",
   );
+
+  useEffect(() => {
+    const alCerrar = () => void api.liberarAsistente(true);
+    window.addEventListener("pagehide", alCerrar);
+    return () => window.removeEventListener("pagehide", alCerrar);
+  }, []);
 
   useEffect(() => {
     document.documentElement.classList.toggle("reduce-motion", reducido);
