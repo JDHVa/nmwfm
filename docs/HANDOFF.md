@@ -9,7 +9,7 @@ Documento para continuar en una conversación nueva. Leer primero `CLAUDE.md` (r
 - Si surge una duda, se le pregunta al usuario antes de asumir. El usuario sigue la sesión desde el celular (remote-control).
 - Repo: https://github.com/JDHVa/nmwfm (rama `main`, etiqueta de respaldo `v0.1-respaldo`).
 
-## Estado actual (main, 2026-10-16, último push b0b8145)
+## Estado actual (main, 2026-10-16, último push 509cf61)
 - 419 tests de backend y 91 de UI en verde (vitest con maxWorkers 4 y timeouts amplios porque la máquina suele estar cargada).
 - **Funciona en vivo:** login SIASE → NEXUS, sync completo (~45 min, 10 materias, 116 tareas). NEXUS SOLO admite una pestaña/instancia.
 - **Gemini validado en vivo (2026-10-15):** sesión persistente en `data/gemini_profile`, editor `div.ql-editor[role=textbox]`, botón «Enviar mensaje», carga con `button[aria-label='Subidas y herramientas']` → `button[data-test-id='local-images-files-uploader-button']` → chip `uploader-file-preview`. Se probó mandar «hola» y adjuntar un PDF. El contexto de Gemini se cierra ordenadamente tras cada job y al salir (`POST /apagar` desde Tauri) para que Google no invalide la sesión. La ventana de login siempre es visible.
@@ -17,7 +17,7 @@ Documento para continuar en una conversación nueva. Leer primero `CLAUDE.md` (r
 - **Portada:** datos Aula/Grupo/Turno/Especialidad en Configuración (defaults 144, 5V1, MATUTINO, Técnico en IA BPI), fecha siempre de hoy, profesor por combobox (`GET /profesores`) o a mano. Sin materia ni título.
 - **Jobs:** botón «Detener» en todos (`POST /jobs/{id}/cancelar`), que también cierra el navegador del job.
 - **UI:** estilo Claude (paleta cálida, acento #B85636 / #D97757) con fondo Silk apagado en claro (con hover) y Galaxy apagado y optimizado en oscuro (dpr 0.5, 2 capas, 30 FPS).
-- **Asistente:** Ollama qwen3:4b-instruct; sin emojis (prompt + filtro).
+- **Asistente:** Ollama `qwen3:4b-instruct-2507-q4_K_M` (sin razonamiento, rápido); sin emojis (prompt + filtro).
 
 ## Pendientes que necesitan al usuario
 - **Generar completo en vivo:** probarlo en una tarea normal. Hubo un atasco sin diagnosticar (falta saber en qué paso); la espera de respuesta y la lectura (botón Copiar) aún no se validaron en vivo.

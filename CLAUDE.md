@@ -43,7 +43,7 @@ Todo desde la raíz del repo (`npm install` instala también `app/`):
 - Nunca entregar en NEXUS sin revisión, salvo que el flag "entregar sin revisar" esté activo.
 - Selectores de SIASE/NEXUS centralizados en `backend/core/selectors.py`.
 - En la rúbrica se ignora el criterio de "responsabilidad" al armar el prompt.
-- `DEV=True` → navegador visible (headless=False).
+- `DEV=True` → navegador visible (headless=False), salvo NEXUS en sync y revisar entregas, que siempre corren ocultos; la ventana de login de Gemini siempre es visible.
 - Textos de la UI en español.
 - NEXUS es una SPA de Angular: navegar siempre con clics desde la lista de materias, no por URL.
 - NEXUS solo admite UNA instancia abierta: abrir NEXUS en otra pestaña/contexto mata la anterior. Una sola pestaña de NEXUS en todo el backend, reutilizada entre jobs y protegida por el lock global; nada de paralelismo ni contextos aislados. El usuario no usa NEXUS a mano mientras la app trabaja.
