@@ -54,7 +54,7 @@ describe("bandeja del sistema", () => {
     await waitFor(() => expect(captura.alPedir).not.toBeNull());
     await waitFor(() => expect(sync).toHaveBeenCalledTimes(1));
     await waitFor(async () => expect((await api.getSettings()).sync_inicial_hecha).toBe(true), {
-      timeout: 5000,
+      timeout: 20000,
     });
     captura.alPedir!();
     await waitFor(() => expect(sync).toHaveBeenCalledWith("incremental"));

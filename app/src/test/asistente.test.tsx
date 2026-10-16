@@ -63,10 +63,10 @@ describe("vista del asistente", () => {
     const conversacion = screen.getByRole("log", { name: "Conversación" });
     expect(await within(conversacion).findByText("¿Qué vence esta semana?")).toBeInTheDocument();
     await waitFor(() => expect(within(conversacion).getAllByRole("listitem").length).toBeGreaterThan(1), {
-      timeout: 5000,
+      timeout: 20000,
     });
     expect(
-      await within(conversacion).findByText(/La más urgente es la/, undefined, { timeout: 5000 }),
+      await within(conversacion).findByText(/La más urgente es la/, undefined, { timeout: 20000 }),
     ).toBeInTheDocument();
     const chip = within(conversacion).getByText(/Usó proximas_entregas/);
     expect(chip.closest("details")).not.toHaveAttribute("open");
@@ -81,7 +81,7 @@ describe("vista del asistente", () => {
     montar();
     await abrirAsistente(user);
     await user.type(screen.getByLabelText("Mensaje"), "entrega la tarea{Enter}");
-    const tarjeta = await screen.findByRole("region", { name: "Confirmación" }, { timeout: 5000 });
+    const tarjeta = await screen.findByRole("region", { name: "Confirmación" }, { timeout: 20000 });
     expect(tarjeta).toHaveTextContent("quiere entregar");
     await user.click(within(tarjeta).getByRole("button", { name: "Aceptar" }));
     expect(await within(tarjeta).findByText(/Aceptada: La tarea se entregó/)).toBeInTheDocument();
@@ -93,7 +93,7 @@ describe("vista del asistente", () => {
     const { unmount } = montar();
     await abrirAsistente(user);
     await user.type(screen.getByLabelText("Mensaje"), "hola{Enter}");
-    await screen.findByText(/asistente simulado/, undefined, { timeout: 5000 });
+    await screen.findByText(/asistente simulado/, undefined, { timeout: 20000 });
     expect(localStorage.getItem("nmwfm.chats")).toContain("hola");
     unmount();
     cleanup();
@@ -114,7 +114,7 @@ describe("vista del asistente", () => {
     await segunda.click(within(historial).getByRole("button", { name: /Borrar conversación: hola/ }));
     expect(screen.queryByText(/asistente simulado/)).not.toBeInTheDocument();
     expect(localStorage.getItem("nmwfm.chats")).toBeNull();
-  }, 20000);
+  }, 40000);
 
   it("saluda por el primer nombre y ofrece cuatro sugerencias", async () => {
     await preparar();

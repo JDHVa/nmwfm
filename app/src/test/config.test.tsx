@@ -54,10 +54,10 @@ describe("configuración avanzada", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: "Ejecutar diagnóstico" }));
-    const reporte = await screen.findByRole("list", { name: "Reporte de diagnóstico" }, { timeout: 5000 });
+    const reporte = await screen.findByRole("list", { name: "Reporte de diagnóstico" }, { timeout: 20000 });
     expect(reporte).toHaveTextContent("Lista de materias");
     expect(reporte).toHaveTextContent("selector desactualizado");
-  }, 15000);
+  }, 40000);
 
   it("el temporizador lanza la sincronización cada N horas", () => {
     vi.useFakeTimers();

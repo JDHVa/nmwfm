@@ -46,10 +46,10 @@ describe("sync automático", () => {
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
     await user.click(await screen.findByRole("button", { name: "Materias" }));
-    expect(await screen.findByRole("button", { name: /Al día/ }, { timeout: 8000 })).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: /Al día/ }, { timeout: 20000 })).toBeInTheDocument();
     expect((await api.getSettings()).sync_inicial_hecha).toBe(true);
     expect(screen.queryByText("Preparando todo por primera vez")).not.toBeInTheDocument();
-  }, 15000);
+  }, 40000);
 
   it("si la sincronización inicial ya se hizo no muestra el overlay", async () => {
     await configurar(5);

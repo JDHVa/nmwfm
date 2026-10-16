@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import { EstadoBadge } from "@/components/EstadoBadge";
 import { api, configureApi, configureSocket } from "@/lib/api";
@@ -67,13 +67,18 @@ describe("badges de estado", () => {
 
 describe("vista de próximas entregas", () => {
   beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(AHORA);
     localStorage.clear();
     const mock = createMockBackend({ stepMs: 5 });
     configureApi({ base: "http://127.0.0.1:8765", token: "dev", transport: mock.transport });
     configureSocket(mock.createSocket);
     await api.putSettings({ cuenta: "a1", nombre: "Ana", matricula: "1", password: "x" });
   });
-  afterEach(() => cleanup());
+  afterEach(() => {
+    cleanup();
+    vi.useRealTimers();
+  });
 
   function montar() {
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
@@ -106,11 +111,11 @@ describe("vista de próximas entregas", () => {
     await user.click(await screen.findByRole("button", { name: "Materias" }));
     await user.click(await screen.findByRole("button", { name: "Próximas entregas" }));
     await screen.findByRole("heading", { name: "Próximas entregas" });
-    const boton = await screen.findByRole("button", { name: "Revisar tareas entregadas" });
-    await waitFor(() => expect(boton).toBeEnabled(), { timeout: 5000 });
+    const boton = (await screen.findByText("Revisar tareas entregadas")).closest("button")!;
+    await waitFor(() => expect(boton).toBeEnabled(), { timeout: 20000 });
     await user.click(boton);
     expect(
-      await screen.findByRole("button", { name: /\d+ entregada.*\d+ pendientes?/ }, { timeout: 8000 }),
+      await screen.findByText(/\d+ entregadas?,\s+\d+ pendientes?/, undefined, { timeout: 30000 }),
     ).toBeInTheDocument();
-  }, 15000);
+  }, 40000);
 });

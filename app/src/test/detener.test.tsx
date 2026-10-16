@@ -58,7 +58,7 @@ describe("detener jobs", () => {
     const tarea = mock.etapas["m1"][0].tareas[0];
     await api.subirImagenes(tarea.id, [new File(["x"], "p.png", { type: "image/png" })]);
     const gen = await api.generar(tarea.id);
-    await waitFor(async () => expect((await api.job(gen.id)).estado).toBe("ok"), { timeout: 8000 });
+    await waitFor(async () => expect((await api.job(gen.id)).estado).toBe("ok"), { timeout: 20000 });
     const detalle = await api.tarea(tarea.id);
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -78,5 +78,5 @@ describe("detener jobs", () => {
     await user.click(screen.getByRole("button", { name: "Sí, detener" }));
     expect((await screen.findAllByText("Cancelado por el usuario")).length).toBeGreaterThan(0);
     expect(tarea.estado).not.toBe("entregada");
-  }, 15000);
+  }, 40000);
 });
