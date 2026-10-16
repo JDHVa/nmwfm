@@ -126,14 +126,13 @@ class GeminiWeb:
         return getattr(self.browser, "_headless", True) is False
 
     async def _adjuntar(self, page: Page, pdf_path: Path) -> None:
-        inputs = page.locator(S.GM_FILE_INPUT)
-        if await inputs.count():
-            await inputs.first.set_input_files(str(pdf_path))
-        else:
-            await page.locator(S.GM_UPLOAD_MENU_BUTTON).first.click()
-            async with page.expect_file_chooser() as chooser:
-                await page.locator(S.GM_UPLOAD_MENU_ITEM).first.click()
-            await (await chooser.value).set_files(str(pdf_path))
+        boton = page.locator(S.GM_UPLOAD_MENU_BUTTON).first
+        if not await boton.is_visible():
+            raise GeminiError("No se encontró el botón de carga de archivos de Gemini.")
+        await boton.click(timeout=10000)
+        async with page.expect_file_chooser() as chooser:
+            await page.locator(S.GM_UPLOAD_MENU_ITEM).first.click(timeout=10000)
+        await (await chooser.value).set_files(str(pdf_path))
         await page.wait_for_selector(S.GM_ATTACHMENT_CHIP, timeout=60000)
 
     async def _pegar_prompt(self, page: Page, editor, prompt: str) -> None:
