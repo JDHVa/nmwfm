@@ -66,13 +66,13 @@ function SincronizacionPeriodica({ settings }: { settings: Settings }) {
   );
 }
 
-const MODELOS = ["qwen3:4b", "qwen3:8b", "llama3.2:3b", "gemma3:4b"];
+const MODELOS = ["qwen3:4b-instruct-2507-q4_K_M", "qwen3:4b", "qwen3:8b", "llama3.2:3b", "gemma3:4b"];
 
 function AsistenteSeccion({ settings }: { settings: Settings }) {
   const qc = useQueryClient();
   const guardar = useSaveSettings();
   const [edicion, setEdicion] = useState<string | null>(null);
-  const modelo = edicion ?? settings.asistente_modelo ?? "qwen3:4b";
+  const modelo = edicion ?? settings.asistente_modelo ?? "qwen3:4b-instruct-2507-q4_K_M";
   const [segundos, setSegundos] = useState<string | null>(null);
   const keepAlive = segundos ?? String(settings.asistente_keep_alive_s ?? 90);
   const estado = useQuery({

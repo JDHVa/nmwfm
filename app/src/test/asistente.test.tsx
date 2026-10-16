@@ -153,7 +153,7 @@ describe("vista del asistente", () => {
     montar();
     await abrirAsistente(user);
     const tarjeta = await screen.findByRole("region", { name: "Asistente no disponible" });
-    expect(tarjeta).toHaveTextContent("ollama pull qwen3:4b");
+    expect(tarjeta).toHaveTextContent("ollama pull qwen3:4b-instruct-2507-q4_K_M");
     expect(screen.getByLabelText("Mensaje")).toBeDisabled();
   });
 });
