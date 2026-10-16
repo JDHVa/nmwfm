@@ -76,14 +76,6 @@ export type Job = {
   resultado: unknown;
 };
 export type PortadaPreview = { pdf_url: string };
-export type Recurso = {
-  id: string;
-  tarea_id: string;
-  nombre: string;
-  tipo: "imagen" | "texto" | "pdf" | "otro";
-  descargado: boolean;
-  usado: boolean;
-};
 export type Novedad = {
   id: number;
   tarea_id: string;
@@ -242,9 +234,6 @@ export const api = {
   generacion: (tareaId: string) => request<Generacion | null>("GET", `/tareas/${tareaId}/generacion`),
   generaciones: (tareaId: string) => request<GeneracionHistorial[]>("GET", `/tareas/${tareaId}/generaciones`),
   restaurarGeneracion: (id: number) => request<Generacion>("POST", `/generaciones/${id}/restaurar`),
-  recursos: (tareaId: string) => request<Recurso[]>("GET", `/tareas/${tareaId}/recursos`),
-  usarRecurso: (tareaId: string, id: string) =>
-    request<Insumo>("POST", `/tareas/${tareaId}/recursos/${id}/usar`),
   novedades: () => request<Novedad[]>("GET", "/novedades"),
   leerNovedades: (ids?: number[]) =>
     request<{ marcadas: number }>("POST", "/novedades/leidas", ids ? { ids } : {}),
