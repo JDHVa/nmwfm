@@ -112,7 +112,7 @@ export function createMockBackend(options: MockOptions = {}) {
     entregar_sin_revisar: false,
     reducir_animaciones: false,
     sync_cada_horas: 0,
-    asistente_modelo: "qwen3:4b",
+    asistente_modelo: "qwen3:4b-instruct-2507-q4_K_M",
     asistente_keep_alive_s: 90,
     sync_inicial_hecha: false,
     ultima_sync: null,
@@ -413,14 +413,14 @@ export function createMockBackend(options: MockOptions = {}) {
     }
     if (path === "/asistente/precalentar") {
       await new Promise((r) => setTimeout(r, cargaModeloMs));
-      return json({ cargado: true, cargando: false, modelo: settings.asistente_modelo ?? "qwen3:4b" });
+      return json({ cargado: true, cargando: false, modelo: settings.asistente_modelo ?? "qwen3:4b-instruct-2507-q4_K_M" });
     }
     if (path === "/asistente/liberar")
-      return json({ liberado: true, modelo: settings.asistente_modelo ?? "qwen3:4b" });
+      return json({ liberado: true, modelo: settings.asistente_modelo ?? "qwen3:4b-instruct-2507-q4_K_M" });
     if (path === "/asistente/estado") {
       return json({
         ollama: asistenteDisponible,
-        modelo: settings.asistente_modelo ?? "qwen3:4b",
+        modelo: settings.asistente_modelo ?? "qwen3:4b-instruct-2507-q4_K_M",
         modelo_instalado: asistenteDisponible,
         error: asistenteDisponible ? null : "No se pudo conectar con Ollama en 127.0.0.1:11434",
       });

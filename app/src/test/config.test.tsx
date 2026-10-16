@@ -83,7 +83,7 @@ describe("configuración avanzada", () => {
     const estado = await screen.findByRole("status", { name: "Estado de Ollama" });
     expect(await within(estado).findByText(/Ollama: conectado/)).toBeInTheDocument();
     const campo = screen.getByLabelText("Modelo del asistente (Ollama)");
-    expect(campo).toHaveValue("qwen3:4b");
+    expect(campo).toHaveValue("qwen3:4b-instruct-2507-q4_K_M");
     await user.clear(campo);
     await user.type(campo, "qwen3:8b");
     await user.tab();
@@ -99,6 +99,6 @@ describe("configuración avanzada", () => {
     montar();
     const estado = await screen.findByRole("status", { name: "Estado de Ollama" });
     expect(await within(estado).findByText(/Ollama: no encontrado/)).toBeInTheDocument();
-    expect(await screen.findByText(/ollama pull qwen3:4b/)).toBeInTheDocument();
+    expect(await screen.findByText(/ollama pull qwen3:4b-instruct-2507-q4_K_M/)).toBeInTheDocument();
   });
 });
