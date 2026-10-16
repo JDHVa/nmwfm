@@ -62,13 +62,18 @@ describe("portada en el paso Generar", () => {
     montar();
     await user.type(screen.getByLabelText(/Instrucciones extra/), "Sé breve");
     await user.click(screen.getByRole("button", { name: /Generar tarea/ }));
-    expect(generar).toHaveBeenCalledWith("m1-t12", "Sé breve", {
-      profesor: "CAVAZOS MARTÍNEZ RAFAEL ALFREDO",
-      aula: "144",
-      grupo: "5V1",
-      turno: "MATUTINO",
-      especialidad: "Técnico en Inteligencia Artificial BPI",
-    });
+    expect(generar).toHaveBeenCalledWith(
+      "m1-t12",
+      "Sé breve",
+      {
+        profesor: "CAVAZOS MARTÍNEZ RAFAEL ALFREDO",
+        aula: "144",
+        grupo: "5V1",
+        turno: "MATUTINO",
+        especialidad: "Técnico en Inteligencia Artificial BPI",
+      },
+      undefined,
+    );
   });
 
   it("prellena la portada con la configuración y el profesor sugerido", async () => {
@@ -82,7 +87,9 @@ describe("portada en el paso Generar", () => {
     const profesor = screen.getByRole("combobox", { name: "Profesor" });
     await waitFor(() => expect(profesor).toHaveValue("CAVAZOS MARTÍNEZ RAFAEL ALFREDO"));
     await user.clear(profesor);
-    expect(await screen.findByRole("option", { name: /CAVAZOS/ })).toHaveTextContent("Algoritmos Bio Inspirados");
+    expect(await screen.findByRole("option", { name: /CAVAZOS/ })).toHaveTextContent(
+      "Algoritmos Bio Inspirados",
+    );
     await user.click(screen.getByRole("option", { name: /CAVAZOS/ }));
     expect(profesor).toHaveValue("CAVAZOS MARTÍNEZ RAFAEL ALFREDO");
     expect(preview).toHaveBeenCalled();

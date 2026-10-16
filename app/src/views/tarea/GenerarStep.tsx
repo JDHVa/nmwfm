@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, Sparkles } from "lucide-react";
 import DecryptedText from "@/components/DecryptedText";
 import RotatingText from "@/components/RotatingText";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { JobProgress } from "@/components/JobProgress";
 import { api, type Job } from "@/lib/api";
 import { datosDePortada, usePortadaForm } from "@/components/PortadaCampos";
 import { PortadaPreview } from "@/views/tarea/PortadaPreview";
 import { EVENTO_GENERAR } from "@/lib/atajos";
 import { useReducedMotion } from "@/lib/app-context";
-import { keys, useInsumos, useMaterias, type useJobRunner } from "@/lib/queries";
+import { keys, useInsumos, useMaterias, useSettings, type useJobRunner } from "@/lib/queries";
 
 const FRASES = [
   "Leyendo tus insumos",
@@ -41,10 +42,36 @@ export function GenerarStep({
     materias.find((m) => m.id === materiaId)?.profesor ?? "",
   );
   const [extra, setExtra] = useState("");
+  const { data: settings } = useSettings();
+  const fijas = settings?.instrucciones_fijas ?? [];
+  const [ajustes, setAjustes] = useState<Record<string, boolean>>({});
+  const [prompt, setPrompt] = useState<string | null>(null);
+  const [cargandoPrompt, setCargandoPrompt] = useState(false);
+  const diferencias = Object.fromEntries(
+    fijas
+      .filter((i) => ajustes[i.id] !== undefined && ajustes[i.id] !== i.activa)
+      .map((i) => [i.id, ajustes[i.id]]),
+  );
+
+  async function verPrompt() {
+    setCargandoPrompt(true);
+    try {
+      setPrompt((await api.promptPreview(tareaId, diferencias)).prompt);
+    } finally {
+      setCargandoPrompt(false);
+    }
+  }
   const { job, running } = runner;
 
   async function generar() {
-    const j = await runner.start(() => api.generar(tareaId, extra.trim() || undefined, datosDePortada(portada)));
+    const j = await runner.start(() =>
+      api.generar(
+        tareaId,
+        extra.trim() || undefined,
+        datosDePortada(portada),
+        Object.keys(diferencias).length ? diferencias : undefined,
+      ),
+    );
     if (j) {
       qc.invalidateQueries({ queryKey: keys.generacion(tareaId) });
       qc.invalidateQueries({ queryKey: keys.etapas(materiaId) });
@@ -82,6 +109,60 @@ export function GenerarStep({
           enviar.
         </p>
       </div>
+
+      {fijas.length > 0 && (
+        <fieldset className="space-y-3 rounded-xl border bg-card p-4" disabled={running}>
+          <legend className="px-1 text-sm font-medium">Instrucciones fijas para esta generación</legend>
+          <p className="text-xs text-muted-foreground">
+            Parten de lo que tienes en Configuración; los cambios aquí solo aplican a esta tarea.
+          </p>
+          <ul className="space-y-2">
+            {fijas.map((ins) => {
+              const marcada = ajustes[ins.id] ?? ins.activa;
+              const apa = ins.id === "referencias_apa7";
+              return (
+                <li
+                  key={ins.id}
+                  className={apa ? "rounded-lg border border-primary/40 bg-primary/5 p-2.5" : "p-2.5"}
+                >
+                  <label className="flex cursor-pointer items-start gap-3 text-sm">
+                    <input
+                      type="checkbox"
+                      className="mt-1 size-4 accent-primary"
+                      checked={marcada}
+                      onChange={(e) => setAjustes((a) => ({ ...a, [ins.id]: e.target.checked }))}
+                    />
+                    <span className="flex-1">
+                      {apa && <span className="mr-2 font-semibold text-primary">Referencias APA 7.</span>}
+                      {ins.texto}
+                      {apa && !marcada && (
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          Sin esta instrucción el documento no llevará referencias.
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+          <Button variant="outline" size="sm" onClick={verPrompt} disabled={cargandoPrompt}>
+            <Eye /> Ver prompt
+          </Button>
+        </fieldset>
+      )}
+
+      <Dialog open={prompt !== null} onOpenChange={(o) => !o && setPrompt(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Prompt para Gemini</DialogTitle>
+            <DialogDescription>Esto es lo que se enviaría con los ajustes actuales.</DialogDescription>
+          </DialogHeader>
+          <pre className="max-h-[60vh] overflow-auto whitespace-pre-wrap rounded-lg border bg-muted/40 p-3 text-xs">
+            {prompt}
+          </pre>
+        </DialogContent>
+      </Dialog>
 
       <PortadaPreview tareaId={tareaId} valores={portada} onCambio={cambiarPortada} />
 

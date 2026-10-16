@@ -45,7 +45,7 @@ describe("configuración avanzada", () => {
     await user.click(await screen.findByRole("button", { name: "Crear respaldo" }));
     const lista = await screen.findByRole("list", { name: "Respaldos" });
     expect(lista).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Restaurar/ }));
+    await user.click(screen.getByRole("button", { name: /^Restaurar$/ }));
     await user.click(await screen.findByRole("button", { name: "Sí, restaurar" }));
     expect(await screen.findByText(/Respaldo restaurado/)).toBeInTheDocument();
   });

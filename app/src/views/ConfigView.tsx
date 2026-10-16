@@ -12,6 +12,7 @@ import { useJobRunner, useSaveSettings, useSettings } from "@/lib/queries";
 import { PageHeader } from "@/components/PageHeader";
 import { aplicarCerrarABandeja, leerCerrarABandeja } from "@/lib/bandeja";
 import { ConfigAvanzada } from "@/views/ConfigAvanzada";
+import { InstruccionesFijasSeccion } from "@/views/ConfigInstrucciones";
 import { ThemeSelector } from "@/components/ThemeToggle";
 
 export function ConfigView() {
@@ -203,6 +204,7 @@ function ConfigForm({ settings }: { settings: Settings }) {
           )}
         </div>
       </section>
+      <InstruccionesFijasSeccion settings={settings} />
       <ConfigAvanzada settings={settings} />
     </div>
   );
