@@ -24,7 +24,7 @@ Documento para continuar en una conversación nueva. Leer primero `CLAUDE.md` (r
 3. Gemini se cierra solo: el sync headless relanza el contexto compartido. Solución: Gemini con su propio perfil persistente `data/gemini_profile` (visible) y NEXUS en `data/browser_profile` (headless), con locks independientes.
 4. No sincronizar al abrir la app (solo la primera vez o con el scheduler).
 
-**UI (`worktree-agent-a568446ae5ae93689`):**
+**UI: INTEGRADO en main (82 tests).** Los puntos 1-5 ya están hechos. Quedan: el Dock de React Bits tiene un tinte violeta en oscuro (ajustarlo a la paleta cálida) y el acento real es #B85636 en claro y #D97757 en oscuro (por contraste AA).
 1. No lanzar sync al entrar (salvo la primera vez).
 2. Asistente como vista inicial y primer ítem del Dock.
 3. Rediseño estilo Claude.ai: paleta neutra cálida en TODA la app (claro #FAF9F5 / oscuro #262624, acento #C96442), sin neón ni degradados; fondo liso.
