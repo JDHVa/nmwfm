@@ -123,7 +123,7 @@ export type EventoChat =
   | { type: "tool_call"; nombre: string; args: unknown }
   | { type: "tool_result"; nombre: string; resultado: unknown }
   | { type: "confirmar"; accion: string; args: unknown; id: string }
-  | { type: "estado"; estado?: string; mensaje?: string }
+  | { type: "estado"; estado?: "cargando" | "pensando"; mensaje?: string }
   | { type: "fin" }
   | { type: "error"; message: string };
 export type ConfirmacionResultado = { ok?: boolean; mensaje?: string } & Record<string, unknown>;
@@ -276,7 +276,8 @@ export const api = {
   diagnostico: () => request<Job>("POST", "/diagnostico"),
   calificaciones: (materiaId: string) =>
     request<Calificaciones | null>("GET", `/materias/${materiaId}/calificaciones`),
-  precalentarAsistente: () => request<unknown>("POST", "/asistente/precalentar"),
+  precalentarAsistente: () =>
+    request<{ cargado: boolean; cargando: boolean; modelo: string }>("POST", "/asistente/precalentar"),
   liberarAsistente: (keepalive = false) =>
     connection
       .transport(`${connection.base}/asistente/liberar`, {
