@@ -18,7 +18,7 @@ Documento para continuar en una conversación nueva. Leer primero `CLAUDE.md` (r
 - **Instalado en la máquina:** Chrome, Rust, Build Tools (registro del VS Installer incompleto pero compila), Graphviz 16.1 (dot), tzdata, rapidocr-onnxruntime, onnxruntime-directml + modelo `data/models/u2netp.onnx` (recorte de página en GPU), Ollama + qwen3:4b y qwen3:4b-instruct.
 
 ## Trabajo EN CURSO al cerrar esta conversación (ramas de los agentes, sin integrar)
-**Backend (`worktree-agent-a2ded502063463bc9`):**
+**Backend: INTEGRADO en main (380 tests).** Los puntos 1-4 de abajo ya están hechos:
 1. `/files/herramientas/*` da 404: falta "herramientas" en `PUBLIC_DIRS` (api.py). Probable causa de "No se pudo abrir la portada".
 2. Imágenes → PDF: una imagen por página y portada OPCIONAL como primera página (`portada?: {...}`).
 3. Gemini se cierra solo: el sync headless relanza el contexto compartido. Solución: Gemini con su propio perfil persistente `data/gemini_profile` (visible) y NEXUS en `data/browser_profile` (headless), con locks independientes.
