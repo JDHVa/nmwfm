@@ -32,6 +32,7 @@ export interface GalaxyProps extends HTMLAttributes<HTMLDivElement> {
   backgroundColor?: string;
   opacity?: number;
   dpr?: number;
+  maxFps?: number;
 }
 
 type Settings = {
@@ -62,6 +63,7 @@ type Settings = {
   backgroundColor?: string;
   opacity: number;
   dpr?: number;
+  maxFps?: number;
 };
 
 type Program = { program: WebGLProgram; uniforms: Record<string, WebGLUniformLocation | null> };
@@ -329,6 +331,7 @@ const Galaxy = ({
   backgroundColor,
   opacity = 1,
   dpr,
+  maxFps,
   className = '',
   style,
   ...rest
@@ -364,7 +367,8 @@ const Galaxy = ({
     intro,
     backgroundColor,
     opacity: clamp(opacity, 0, 1),
-    dpr
+    dpr,
+    maxFps
   };
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
@@ -506,6 +510,10 @@ const Galaxy = ({
       raf = 0;
       if (!visible || document.hidden) return;
       const s = settingsRef.current;
+      if (s.maxFps && last && now - last < 1000 / s.maxFps - 2) {
+        raf = requestAnimationFrame(frame);
+        return;
+      }
       const dt = last ? clamp((now - last) / 1000, 0.0005, 0.05) : 1 / 60;
       last = now;
       const motion = s.disableAnimation || reduce ? 0 : 1;

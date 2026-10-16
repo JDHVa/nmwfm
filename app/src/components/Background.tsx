@@ -14,7 +14,7 @@ export function Background() {
         <Galaxy
           key="galaxy"
           transparent
-          density={0.35}
+          density={0.5}
           starSpeed={0.15}
           speed={0.3}
           glowIntensity={0.12}
@@ -22,7 +22,9 @@ export function Background() {
           hueShift={200}
           twinkleIntensity={0.2}
           opacity={0.55}
-          dpr={0.75}
+          dpr={0.5}
+          maxFps={30}
+          layers={2}
           disableAnimation={reducido}
           mouseInteraction={false}
           mouseRepulsion={false}
@@ -45,7 +47,8 @@ export function Background() {
         depth={0.25}
         dpr={0.75}
         paused={reducido}
-        mouseInteraction={false}
+        mouseInteraction
+        interactionStrength={0.6}
         clickRipple={false}
         intro={false}
       />
