@@ -74,7 +74,58 @@ export type InsumoPatch = Partial<
   Pick<Insumo, "orden" | "rotacion" | "usar_recorte" | "texto" | "ocr_texto">
 >;
 export type JobTipo =
-  "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas" | "diagnostico";
+  | "sync"
+  | "generar"
+  | "entregar"
+  | "login_gemini"
+  | "validar_siase"
+  | "revisar_entregas"
+  | "diagnostico"
+  | "calificaciones_siase";
+export type TipoMateria = "bachillerato" | "carrera" | "portafolio";
+export type ClaveComponente = "par1" | "emt" | "par2" | "eg" | "portafolio";
+export type ComponenteNota = {
+  clave: ClaveComponente;
+  nombre: string;
+  peso: number;
+  calificacion: number | null;
+  puntos: number | null;
+};
+export type ElementoPortafolio = { titulo: string; valor: number; puntos: number | null; perdida: boolean };
+export type Pendiente = { clave: ClaveComponente; titulo: string; peso: number };
+export type EstadoMateria = "bien" | "atento" | "riesgo" | "sin_datos";
+export type MateriaCalificacion = {
+  clave: string;
+  nombre: string;
+  materia_id: string | null;
+  tipo: TipoMateria | null;
+  tipo_manual: boolean;
+  componentes: ComponenteNota[];
+  portafolio: ElementoPortafolio[];
+  pendientes: Pendiente[];
+  asegurados: number;
+  maximo_posible: number;
+  proyectada: number;
+  rango: [number, number];
+  objetivo: number | null;
+  necesario: number | null;
+  alcanzable: boolean;
+  prob_objetivo: number | null;
+  prob_aprobar: number;
+  estado: EstadoMateria;
+};
+export type ResumenCalificaciones = {
+  materias: MateriaCalificacion[];
+  semestre: {
+    actual: number;
+    proyectada: number;
+    rango: [number, number];
+    objetivo: number | null;
+    prob_objetivo: number | null;
+    necesario_promedio: number | null;
+  };
+  siase_leida_en: string | null;
+};
 export type JobEstado = "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error";
 export type Job = {
   id: string;
@@ -312,6 +363,12 @@ export const api = {
   diagnostico: () => request<Job>("POST", "/diagnostico"),
   calificaciones: (materiaId: string) =>
     request<Calificaciones | null>("GET", `/materias/${materiaId}/calificaciones`),
+  resumenCalificaciones: () => request<ResumenCalificaciones>("GET", "/calificaciones"),
+  calificacionesSiase: () => request<Job>("POST", "/siase/calificaciones"),
+  putObjetivos: (body: { semestre?: number | null; materias?: Record<string, number | null> }) =>
+    request<ResumenCalificaciones>("PUT", "/calificaciones/objetivos", body),
+  putTipoMateria: (clave: string, tipo: TipoMateria | null) =>
+    request<ResumenCalificaciones>("PUT", "/calificaciones/tipo", { clave, tipo }),
   precalentarAsistente: () =>
     request<{ cargado: boolean; cargando: boolean; modelo: string }>("POST", "/asistente/precalentar"),
   liberarAsistente: (keepalive = false) =>

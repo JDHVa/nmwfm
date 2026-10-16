@@ -5,6 +5,7 @@ export type View =
   | { name: "config" }
   | { name: "materias" }
   | { name: "proximas" }
+  | { name: "calificaciones" }
   | { name: "asistente"; tareaId?: string }
   | { name: "materia"; id: string }
   | { name: "tarea"; materiaId: string; id: string };
