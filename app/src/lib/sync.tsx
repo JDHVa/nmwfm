@@ -81,11 +81,12 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     if (!runner.running) void start(() => api.sync("incremental"));
   });
 
+  const primeraVez = ajustes?.sync_inicial_hecha === false;
   useEffect(() => {
-    if (lanzado.current) return;
+    if (lanzado.current || !primeraVez) return;
     lanzado.current = true;
     void start(() => api.sync("auto"));
-  }, [start]);
+  }, [primeraVez, start]);
 
   const value = useMemo<SyncCtx>(
     () => ({

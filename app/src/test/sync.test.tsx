@@ -1,7 +1,7 @@
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "@/App";
 import { api, configureApi, configureSocket } from "@/lib/api";
 import { createMockBackend } from "@/mock/backend";
@@ -71,5 +71,19 @@ describe("sync automático", () => {
     await waitFor(() => expect(mas).toBeEnabled());
     await user.click(mas);
     expect(await screen.findByRole("button", { name: "Sincronizar todo de nuevo" })).toBeInTheDocument();
+  });
+
+  it("no sincroniza al abrir cuando la sincronización inicial ya se hizo", async () => {
+    await configurar(5);
+    const job = await api.sync("completo");
+    await waitFor(async () => expect((await api.job(job.id)).estado).toBe("ok"));
+    const espia = vi.spyOn(api, "sync");
+    const user = userEvent.setup();
+    montar();
+    await user.click(await screen.findByRole("button", { name: /Hola/ }));
+    expect(await screen.findByRole("button", { name: /Al día/ })).toBeInTheDocument();
+    await new Promise((r) => setTimeout(r, 300));
+    expect(espia).not.toHaveBeenCalled();
+    espia.mockRestore();
   });
 });
