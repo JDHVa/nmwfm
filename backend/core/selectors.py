@@ -122,16 +122,18 @@ NX_RUBRICA_DESC = "div.desc"
 # --- NEXUS: navegacion (VALIDAR en vivo) ---
 NX_LISTA_LINK = "a[href='#/App/UnidadesAprendizaje']"
 
-# --- GEMINI (SUPUESTOS: validar en vivo, el DOM de gemini.google.com cambia seguido) ---
+# --- GEMINI (editor, envío y carga validados en vivo el 2026-10-15; el DOM cambia seguido) ---
 GM_EDITOR = (
     "rich-textarea div.ql-editor[contenteditable='true'], "
     "div[contenteditable='true'][role='textbox']"
 )
 GM_UPLOAD_MENU_BUTTON = (
-    "button[aria-label*='Abrir menú de carga'], button[aria-label*='Subir archivo'], "
+    "button[aria-label='Subidas y herramientas'], "
+    "button[aria-label*='Abrir menú de carga'],button[aria-label*='Subir archivo'], "
     "button[aria-label*='Upload'], button.upload-card-button"
 )
 GM_UPLOAD_MENU_ITEM = (
+    "button[data-test-id='local-images-files-uploader-button'], "
     "button[role='menuitem']:has-text('Subir archivos'), "
     "button[role='menuitem']:has-text('Upload files')"
 )
