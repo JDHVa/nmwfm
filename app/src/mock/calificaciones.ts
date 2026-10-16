@@ -297,6 +297,9 @@ function calcularMateria(base: Base, est: EstadoCalificaciones): MateriaCalifica
   const probAprobar = hayDatos ? probSuperar(70, proyectada, sd) : 0;
   const probObjetivo = objetivo === null ? null : probSuperar(objetivo, proyectada, sd);
   const alertas: AlertaMateria[] = [];
+  if (manual === "portafolio") {
+    alertas.push({ tipo: "tipo_dudoso", detalle: "NEXUS suma 40 puntos de portafolio; el tipo elegido espera 100" });
+  }
   const examenes = componentes.filter((c) => c.clave !== "portafolio" && c.calificacion !== null);
   const mediaExamenes = examenes.length
     ? examenes.reduce((a, c) => a + (c.calificacion ?? 0), 0) / examenes.length

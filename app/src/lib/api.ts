@@ -95,7 +95,7 @@ export type ComponenteNota = {
 export type ElementoPortafolio = { titulo: string; valor: number; puntos: number | null; perdida: boolean };
 export type Pendiente = { clave: ClaveComponente; titulo: string; peso: number };
 export type EstadoMateria = "bien" | "atento" | "riesgo" | "sin_datos";
-export type TipoAlerta = "bajo_historico" | "examen_bajo" | "puntos_perdidos";
+export type TipoAlerta = "bajo_historico" | "examen_bajo" | "puntos_perdidos" | "tipo_dudoso";
 export type AlertaMateria = { tipo: TipoAlerta; detalle: string };
 export type MateriaCalificacion = {
   clave: string;

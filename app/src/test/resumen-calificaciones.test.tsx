@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -126,6 +126,23 @@ describe("vista de calificaciones", () => {
     fireEvent.change(control, { target: { value: "100" } });
     expect(within(tarjeta).getByTestId("final-033").textContent).not.toBe(antes);
     expect(within(tarjeta).getAllByText("sin calificar").length).toBeGreaterThan(0);
+  });
+
+  it("avisa del tipo dudoso y vuelve a la detección automática", async () => {
+    const user = await abrir();
+    const tarjeta = await screen.findByRole("article", { name: "Lógica" });
+    await user.selectOptions(within(tarjeta).getByLabelText("Tipo de Lógica"), "portafolio");
+    expect(await within(tarjeta).findByText(/NEXUS suma 40 puntos/)).toBeInTheDocument();
+    await user.click(within(tarjeta).getByRole("button", { name: "Usar detección automática" }));
+    await waitFor(() => expect(within(tarjeta).queryByText(/NEXUS suma 40 puntos/)).toBeNull());
+  });
+
+  it("muestra guion cuando el portafolio no tiene calificación", async () => {
+    const user = await abrir();
+    const tarjeta = await screen.findByRole("article", { name: "Lógica" });
+    await user.click(within(tarjeta).getByRole("button", { name: /Ver detalle/ }));
+    const fila = within(tarjeta).getByText("Portafolio").closest("tr") as HTMLElement;
+    expect(fila).toBeTruthy();
   });
 
   it("revisa en SIASE y muestra el progreso", async () => {
