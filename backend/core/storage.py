@@ -75,6 +75,19 @@ CREATE TABLE IF NOT EXISTS calificaciones (
     datos TEXT NOT NULL,
     actualizada_en TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS siase_calificaciones (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    datos TEXT NOT NULL,
+    leida_en TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS calificaciones_objetivos (
+    clave TEXT PRIMARY KEY,
+    objetivo REAL NOT NULL
+);
+CREATE TABLE IF NOT EXISTS calificaciones_tipos (
+    clave TEXT PRIMARY KEY,
+    tipo TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS novedades (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
@@ -677,6 +690,47 @@ class Storage:
         if fila is None:
             return None
         return {**json.loads(fila["datos"]), "actualizada_en": fila["actualizada_en"]}
+
+    def set_siase_calificaciones(self, materias: list[dict]) -> None:
+        self._run(
+            "INSERT INTO siase_calificaciones(id, datos, leida_en) VALUES(1, ?, ?) "
+            "ON CONFLICT(id) DO UPDATE SET datos = excluded.datos, leida_en = excluded.leida_en",
+            (json.dumps(materias, ensure_ascii=False), now_iso()),
+        )
+
+    def get_siase_calificaciones(self) -> dict | None:
+        fila = self._one("SELECT datos, leida_en FROM siase_calificaciones WHERE id = 1")
+        if fila is None:
+            return None
+        return {"materias": json.loads(fila["datos"]), "leida_en": fila["leida_en"]}
+
+    def get_objetivos(self) -> dict[str, float]:
+        filas = self._all("SELECT clave, objetivo FROM calificaciones_objetivos")
+        return {f["clave"]: f["objetivo"] for f in filas}
+
+    def set_objetivo(self, clave: str, objetivo: float | None) -> None:
+        if objetivo is None:
+            self._run("DELETE FROM calificaciones_objetivos WHERE clave = ?", (clave,))
+        else:
+            self._run(
+                "INSERT INTO calificaciones_objetivos(clave, objetivo) VALUES(?, ?) "
+                "ON CONFLICT(clave) DO UPDATE SET objetivo = excluded.objetivo",
+                (clave, objetivo),
+            )
+
+    def get_tipos_manuales(self) -> dict[str, str]:
+        filas = self._all("SELECT clave, tipo FROM calificaciones_tipos")
+        return {f["clave"]: f["tipo"] for f in filas}
+
+    def set_tipo_manual(self, clave: str, tipo: str | None) -> None:
+        if tipo is None:
+            self._run("DELETE FROM calificaciones_tipos WHERE clave = ?", (clave,))
+        else:
+            self._run(
+                "INSERT INTO calificaciones_tipos(clave, tipo) VALUES(?, ?) "
+                "ON CONFLICT(clave) DO UPDATE SET tipo = excluded.tipo",
+                (clave, tipo),
+            )
 
     def get_indicaciones(self, tarea_id: str) -> str:
         fila = self._one("SELECT texto FROM indicaciones WHERE tarea_id = ?", (tarea_id,))

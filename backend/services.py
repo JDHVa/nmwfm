@@ -11,7 +11,7 @@ from playwright.async_api import Page
 
 from . import config
 from .asistente.ollama import OllamaCliente
-from .core import documents, images, metricas, modelos, nexus, ocr, selectors, siase
+from .core import calificaciones, documents, images, metricas, modelos, nexus, ocr, selectors, siase
 from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
@@ -19,6 +19,8 @@ from .core.prompt_builder import PromptData, build_prompt
 from .core.storage import SETTING_DEFAULTS, Credentials, Storage, now_iso
 from .core.types import Hooks, Rubrica
 from .jobs import JobContext, JobManager
+
+OBJETIVO_SEMESTRE = "__semestre__"
 
 
 class ApiError(Exception):
@@ -140,6 +142,8 @@ class AppState:
                 await manager.close()
 
     async def cerrar_navegador_de(self, tipo: str) -> None:
+        if tipo == "calificaciones_siase":
+            return
         manager = self.browser_gemini if tipo in ("generar", "login_gemini") else self.browser
         with contextlib.suppress(Exception):
             await manager.close()
@@ -202,6 +206,99 @@ async def run_validar_siase(state: AppState, ctx: JobContext) -> dict:
         browser_ctx = await state.browser.context()
         await siase.validar(browser_ctx, cuenta, password, ctx.hooks())
     return {"valido": True}
+
+
+async def run_calificaciones_siase(state: AppState, ctx: JobContext) -> dict:
+    cuenta, password = require_credentials(state)
+    browser_ctx = await state.browser.context()
+    materias = await siase.leer_calificaciones(browser_ctx, cuenta, password, ctx.hooks())
+    if not materias:
+        raise ApiError(502, "siase_sin_materias", "SIASE no devolvio materias con calificaciones.")
+    state.storage.set_siase_calificaciones(materias)
+    return {"materias": len(materias)}
+
+
+def _tareas_vencidas_por_materia(state: AppState) -> dict[str, list[str]]:
+    vencidas: dict[str, list[str]] = {}
+    for tarea in tareas_proximas(state):
+        if tarea["vencida"]:
+            vencidas.setdefault(tarea["materia_id"], []).append(
+                calificaciones.normalizar(tarea["titulo"])
+            )
+    return vencidas
+
+
+def _portafolio_nexus(state: AppState, materia_id: str, vencidas: list[str]) -> list[dict] | None:
+    elementos = calificaciones.elementos_portafolio(state.storage.get_calificaciones(materia_id))
+    for elemento in elementos:
+        titulo = calificaciones.normalizar(elemento["titulo"])
+        elemento["perdida"] = elemento["calificacion"] is None and any(
+            calificaciones.mismo_nombre(titulo, v, 5) for v in vencidas
+        )
+    return elementos or None
+
+
+def resumen_calificaciones(state: AppState) -> dict:
+    siase_guardado = state.storage.get_siase_calificaciones()
+    objetivos = state.storage.get_objetivos()
+    objetivo_semestre = objetivos.pop(OBJETIVO_SEMESTRE, None)
+    entradas = []
+    if siase_guardado:
+        nexus_materias = state.storage.list_materias()
+        vencidas = _tareas_vencidas_por_materia(state)
+        for fila in siase_guardado["materias"]:
+            nombre = calificaciones.nombre_materia(fila["nombre"])
+            par = next(
+                (
+                    m
+                    for m in nexus_materias
+                    if calificaciones.mismo_nombre(
+                        nombre, calificaciones.nombre_materia(m["nombre"])
+                    )
+                ),
+                None,
+            )
+            entradas.append(
+                {
+                    **fila,
+                    "materia_id": par["id"] if par else None,
+                    "portafolio": _portafolio_nexus(state, par["id"], vencidas.get(par["id"], []))
+                    if par
+                    else None,
+                }
+            )
+    return calificaciones.calcular(
+        entradas,
+        state.storage.get_tipos_manuales(),
+        objetivos,
+        objetivo_semestre,
+        siase_guardado["leida_en"] if siase_guardado else None,
+    )
+
+
+def _clave_conocida(state: AppState, clave: str) -> None:
+    guardado = state.storage.get_siase_calificaciones()
+    if not guardado or clave not in {m["clave"] for m in guardado["materias"]}:
+        raise ApiError(404, "materia_no_encontrada", "La materia no existe en SIASE.")
+
+
+def guardar_objetivos(state: AppState, semestre_dado: bool, semestre, materias: dict) -> dict:
+    for valor in [semestre, *materias.values()]:
+        if valor is not None and not 0 <= valor <= 100:
+            raise ApiError(422, "validacion", "Los objetivos van de 0 a 100.")
+    for clave in materias:
+        _clave_conocida(state, clave)
+    if semestre_dado:
+        state.storage.set_objetivo(OBJETIVO_SEMESTRE, semestre)
+    for clave, valor in materias.items():
+        state.storage.set_objetivo(clave, valor)
+    return resumen_calificaciones(state)
+
+
+def guardar_tipo(state: AppState, clave: str, tipo: str | None) -> dict:
+    _clave_conocida(state, clave)
+    state.storage.set_tipo_manual(clave, tipo)
+    return resumen_calificaciones(state)
 
 
 async def guardar_snapshot(state: AppState, page: Page, nombre: str) -> None:

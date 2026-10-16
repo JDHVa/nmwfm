@@ -49,6 +49,16 @@ class PortadaSueltaBody(BaseModel):
     especialidad: str | None = None
 
 
+class ObjetivosBody(BaseModel):
+    semestre: float | None = None
+    materias: dict[str, float | None] = {}
+
+
+class TipoBody(BaseModel):
+    clave: str
+    tipo: Literal["bachillerato", "carrera", "portafolio"] | None = None
+
+
 class MensajeChat(BaseModel):
     rol: Literal["user", "assistant", "tool"]
     contenido: str = ""
@@ -427,6 +437,30 @@ def create_app(
         if state.storage.get_materia(materia_id) is None:
             raise ApiError(404, "materia_no_encontrada", "La materia no existe.")
         return state.storage.get_calificaciones(materia_id)
+
+    @router.get("/calificaciones")
+    async def resumen_calificaciones():
+        return services.resumen_calificaciones(state)
+
+    @router.post("/siase/calificaciones")
+    async def siase_calificaciones():
+        activo = state.jobs.activo("calificaciones_siase")
+        if activo is not None:
+            return activo.to_dict()
+        services.require_credentials(state)
+        return state.jobs.start(
+            "calificaciones_siase", lambda ctx: services.run_calificaciones_siase(state, ctx)
+        ).to_dict()
+
+    @router.put("/calificaciones/objetivos")
+    async def calificaciones_objetivos(body: ObjetivosBody):
+        return services.guardar_objetivos(
+            state, "semestre" in body.model_fields_set, body.semestre, body.materias
+        )
+
+    @router.put("/calificaciones/tipo")
+    async def calificaciones_tipo(body: TipoBody):
+        return services.guardar_tipo(state, body.clave, body.tipo)
 
     @router.get("/materias/{materia_id}/etapas")
     async def etapas(materia_id: str):

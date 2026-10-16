@@ -102,4 +102,4 @@ def test_el_estado_se_crea_una_sola_vez_y_el_modulo_tiene_main(tmp_path, monkeyp
     srv = mcp.build_server()
     assert callable(mcp.main)
     herramientas = correr(srv.list_tools())
-    assert len(herramientas) == 11
+    assert len(herramientas) == 12

@@ -12,6 +12,20 @@ SIASE_ERROR_LOGIN = (
 SIASE_NEXUS_LOGO = "a[onmouseover*=\"muestra('nexus')\"]"
 SIASE_MOSTRAR_NEXUS_JS = "muestra('nexus')"
 SIASE_NEXUS_LINK = "#linkNexus"
+SIASE_CARRERA_LINK = "form[name='SelCarrera'] a"
+SIASE_MENU_EVALUACION = "a[href*='econeva01']"
+SIASE_PERIODO_SELECT = "select[name='HTMLPeriodo']"
+SIASE_PERIODO_SIN_ELEGIR = "0"
+SIASE_EVAL_ACEPTAR = "input[type='button'][value='Aceptar']"
+SIASE_EVAL_TABLA = r"text=/Total\s+Puntos/i"
+SIASE_EVAL_FILAS = "tr"
+SIASE_EVAL_COLUMNAS = {
+    "PAR 1": "par1",
+    "PAR 2": "par2",
+    "PORT": "portafolio",
+    "EMT": "emt",
+    "EG": "eg",
+}
 
 NX_CARDS_ROOT = "app-cursos-card"
 NX_CARD = "app-cursos-card mat-card.nx-mat-card-curso"
