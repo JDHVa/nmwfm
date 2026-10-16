@@ -36,6 +36,10 @@ class PatchInsumoBody(BaseModel):
     ocr_texto: str | None = None
 
 
+class IndicacionesBody(BaseModel):
+    indicaciones: str
+
+
 class PortadaBody(BaseModel):
     profesor: str | None = None
     titulo: str | None = None
@@ -295,6 +299,14 @@ def create_app(
         if detalle is None:
             detalle = await services.traer_detalle(state, tarea_id)
         return state.tarea_detalle_public(state.storage.get_tarea(tarea_id), detalle)
+
+    @router.put("/tareas/{tarea_id}/indicaciones")
+    async def put_indicaciones(tarea_id: str, body: IndicacionesBody):
+        need_tarea(tarea_id)
+        state.storage.set_indicaciones(tarea_id, body.indicaciones.strip())
+        return state.tarea_detalle_public(
+            state.storage.get_tarea(tarea_id), state.storage.get_detalle(tarea_id)
+        )
 
     @router.get("/tareas/{tarea_id}/insumos")
     async def listar_insumos(tarea_id: str):

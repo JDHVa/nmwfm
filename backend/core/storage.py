@@ -63,6 +63,11 @@ CREATE TABLE IF NOT EXISTS insumos (
     ocr_texto TEXT,
     ocr_editado INTEGER NOT NULL DEFAULT 0
 );
+CREATE TABLE IF NOT EXISTS indicaciones (
+    tarea_id TEXT PRIMARY KEY REFERENCES tareas(id) ON DELETE CASCADE,
+    texto TEXT NOT NULL DEFAULT '',
+    actualizada_en TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS calificaciones (
     materia_id TEXT PRIMARY KEY REFERENCES materias(id) ON DELETE CASCADE,
     datos TEXT NOT NULL,
@@ -644,3 +649,15 @@ class Storage:
         if fila is None:
             return None
         return {**json.loads(fila["datos"]), "actualizada_en": fila["actualizada_en"]}
+
+    def get_indicaciones(self, tarea_id: str) -> str:
+        fila = self._one("SELECT texto FROM indicaciones WHERE tarea_id = ?", (tarea_id,))
+        return fila["texto"] if fila else ""
+
+    def set_indicaciones(self, tarea_id: str, texto: str) -> None:
+        self._run(
+            "INSERT INTO indicaciones(tarea_id, texto, actualizada_en) VALUES(?, ?, ?) "
+            "ON CONFLICT(tarea_id) DO UPDATE SET texto = excluded.texto, "
+            "actualizada_en = excluded.actualizada_en",
+            (tarea_id, texto, now_iso()),
+        )

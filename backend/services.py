@@ -113,8 +113,18 @@ class AppState:
             "id": row.get("hist_id") if "hist_id" in row else row.get("id"),
         }
 
-    def tarea_detalle_public(self, tarea: dict, detalle: dict) -> dict:
-        return {**con_vencida(tarea), **detalle}
+    def tarea_detalle_public(self, tarea: dict, detalle: dict | None) -> dict:
+        base = detalle or {
+            "actividades": "",
+            "contenido": "",
+            "criterios_desempeno": "",
+            "rubrica": None,
+        }
+        return {
+            **con_vencida(tarea),
+            **base,
+            "indicaciones": self.storage.get_indicaciones(tarea["id"]),
+        }
 
     async def close(self) -> None:
         await self.jobs.shutdown()
@@ -732,6 +742,7 @@ async def run_generar(
             instrucciones_extra=instrucciones_extra,
             tiene_insumos=pdf_insumos is not None,
             texto_ocr=texto_ocr,
+            indicaciones=state.storage.get_indicaciones(tarea_id),
         )
     )
     await ctx.update("generando", 0.45)
