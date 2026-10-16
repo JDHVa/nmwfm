@@ -73,3 +73,28 @@ def entregas_vacio_html() -> str:
 
 def pestanas_entregas_html() -> str:
     return re.search(r"<nav\b.*?</nav>", ENTREGADO_TXT.read_text(encoding="utf-8"), re.S).group(0)
+
+
+PIA_TXT = Path(__file__).resolve().parent.parent / "htmls" / "nexus" / "pia.txt"
+
+
+def _pia_tramo(inicio: str, fin: str | None) -> str:
+    texto = PIA_TXT.read_text(encoding="utf-8", errors="replace")
+    i = texto.index(inicio) + len(inicio)
+    return texto[i : texto.index(fin, i)] if fin else texto[i:]
+
+
+def pia_item_html() -> str:
+    return _pia_tramo("AQUI ACCEDES AL PIA", "AL ABRIRLO")
+
+
+def pia_pestanas_html() -> str:
+    return _pia_tramo("AL ABRIRLO SALE ESTO7", "AQUI ESTAN")
+
+
+def pia_datos_html() -> str:
+    return _pia_tramo("AQUI ESTAN LOS DAATOS", "AQUI LA RUBCIRCA")
+
+
+def pia_rubrica_html() -> str:
+    return _pia_tramo("AQUI LA RUBCIRCA", None)

@@ -33,10 +33,17 @@ class PatchInsumoBody(BaseModel):
     rotacion: Literal[0, 90, 180, 270] | None = None
     usar_recorte: bool | None = None
     texto: str | None = None
+    ocr_texto: str | None = None
+
+
+class PortadaBody(BaseModel):
+    profesor: str | None = None
+    titulo: str | None = None
 
 
 class GenerarBody(BaseModel):
     instrucciones_extra: str | None = None
+    portada: PortadaBody | None = None
 
 
 class SyncBody(BaseModel):
@@ -159,6 +166,10 @@ def create_app(
                 if not isinstance(body[key], bool):
                     raise ApiError(422, "validacion", f"{key} debe ser booleano.")
                 values[key] = body[key]
+        if "recorte_modelo" in body:
+            if body["recorte_modelo"] not in ("auto", "opencv"):
+                raise ApiError(422, "validacion", "recorte_modelo debe ser 'auto' u 'opencv'.")
+            values["recorte_modelo"] = body["recorte_modelo"]
         if "sync_cada_horas" in body:
             horas = body["sync_cada_horas"]
             if isinstance(horas, bool) or not isinstance(horas, int) or horas < 0:
@@ -314,7 +325,11 @@ def create_app(
             original.write_bytes(data)
             try:
                 await asyncio.to_thread(
-                    images.process_upload, original, recortada, folder / f"{insumo_id}_thumb.jpg"
+                    images.process_upload,
+                    original,
+                    recortada,
+                    folder / f"{insumo_id}_thumb.jpg",
+                    state.detector_recorte(),
                 )
             except Exception as exc:
                 original.unlink(missing_ok=True)
@@ -337,23 +352,19 @@ def create_app(
         row = state.storage.add_insumo(tarea_id, "texto", texto=body.texto)
         return state.insumo_public(row)
 
-    @router.get("/tareas/{tarea_id}/recursos")
-    async def recursos(tarea_id: str):
-        need_tarea(tarea_id)
-        return [services.recurso_public(r) for r in state.storage.list_recursos(tarea_id)]
-
-    @router.post("/tareas/{tarea_id}/recursos/{recurso_id}/usar")
-    async def usar_recurso(tarea_id: str, recurso_id: str):
-        need_tarea(tarea_id)
-        return await asyncio.to_thread(services.usar_recurso, state, tarea_id, recurso_id)
-
     @router.patch("/insumos/{insumo_id}")
     async def patch_insumo(insumo_id: str, body: PatchInsumoBody):
         row = need_insumo(insumo_id)
         if body.texto is not None and row["tipo"] != "texto":
             raise ApiError(400, "no_es_texto", "Solo los insumos de texto tienen texto.")
+        if body.ocr_texto is not None and row["tipo"] != "imagen":
+            raise ApiError(400, "no_es_imagen", "Solo las imágenes tienen texto OCR.")
         state.storage.update_insumo(
-            insumo_id, rotacion=body.rotacion, usar_recorte=body.usar_recorte, texto=body.texto
+            insumo_id,
+            rotacion=body.rotacion,
+            usar_recorte=body.usar_recorte,
+            texto=body.texto,
+            ocr_texto=body.ocr_texto,
         )
         if body.orden is not None:
             hermanos = [r["id"] for r in state.storage.list_insumos(row["tarea_id"])]
@@ -381,8 +392,9 @@ def create_app(
     async def generar(tarea_id: str, body: GenerarBody | None = None):
         need_tarea(tarea_id)
         extra = body.instrucciones_extra if body else None
+        portada = body.portada.model_dump() if body and body.portada else None
         return state.jobs.start(
-            "generar", lambda ctx: services.run_generar(state, ctx, tarea_id, extra)
+            "generar", lambda ctx: services.run_generar(state, ctx, tarea_id, extra, portada)
         ).to_dict()
 
     @router.get("/tareas/{tarea_id}/generacion")
@@ -401,9 +413,13 @@ def create_app(
         return services.restaurar_generacion(state, hist_id)
 
     @router.get("/tareas/{tarea_id}/portada-preview")
-    async def portada_preview(tarea_id: str):
+    async def portada_preview(
+        tarea_id: str, profesor: str | None = None, titulo: str | None = None
+    ):
         need_tarea(tarea_id)
-        return await services.portada_preview(state, tarea_id)
+        return await services.portada_preview(
+            state, tarea_id, {"profesor": profesor, "titulo": titulo}
+        )
 
     @router.post("/tareas/{tarea_id}/abrir-docx", status_code=204)
     async def abrir_docx(tarea_id: str):

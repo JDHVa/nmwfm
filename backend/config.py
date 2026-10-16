@@ -16,6 +16,12 @@ else:
 
 DATA_DIR = Path(os.environ.get("NMWFM_DATA_DIR", ROOT / "data"))
 PORTADA_TEMPLATE = RESOURCE_DIR / "portada_word.docx"
+PROMPTS_RELATIVO = Path("backend") / "core" / "prompts"
+
+
+def directorio_prompts() -> Path:
+    return RESOURCE_DIR / PROMPTS_RELATIVO
+
 
 DEV_PORT = 8765
 DEV_TOKEN = "dev"
@@ -26,6 +32,10 @@ CORS_ORIGINS = [
     "tauri://localhost",
     "http://tauri.localhost",
 ]
+
+MODELO_RECORTE_ARCHIVO = "u2netp.onnx"
+MODELO_RECORTE_URL = "https://github.com/danielgatis/rembg/releases/download/v0.0.0/u2netp.onnx"
+MODELO_RECORTE_SHA256 = ""
 
 SIASE_URL = "https://www.uanl.mx/enlinea/"
 NEXUS_URL_FRAGMENT = "plataformanexus.uanl.mx/#/App/UnidadesAprendizaje"
@@ -44,7 +54,8 @@ class Paths:
         self.insumos = self.data / "insumos"
         self.generaciones = self.data / "generaciones"
         self.debug = self.data / "debug"
+        self.models = self.data / "models"
 
     def ensure(self) -> None:
-        for p in (self.data, self.insumos, self.generaciones, self.debug):
+        for p in (self.data, self.insumos, self.generaciones, self.debug, self.models):
             p.mkdir(parents=True, exist_ok=True)

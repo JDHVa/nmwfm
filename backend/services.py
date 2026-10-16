@@ -1,8 +1,6 @@
 import asyncio
 import contextlib
 import json
-import shutil
-import uuid
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -10,7 +8,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from playwright.async_api import Page
 
 from . import config
-from .core import documents, images, metricas, nexus, ocr, selectors, siase
+from .core import documents, images, metricas, modelos, nexus, ocr, selectors, siase
 from .core.apicatalog import Catalogo
 from .core.browser import BrowserManager
 from .core.gemini import GeminiWeb, LLMProvider
@@ -55,6 +53,7 @@ class AppState:
         self.gemini: LLMProvider = gemini or GeminiWeb(self.browser)
         self.nexus_page: Page | None = None
         self.sesion_muerta_registrada = False
+        self._detector: images.DetectorModelo | None = None
         self.catalogo = Catalogo(self.paths.debug / "api" if dev else None)
         limpiar_autoevaluaciones(self.storage)
 
@@ -70,7 +69,18 @@ class AppState:
             **s,
             "tiene_password": self.credentials.has(s["cuenta"]),
             "dev": self.dev,
+            "modelo_recorte_disponible": modelos.modelo_disponible(self.paths.models),
         }
+
+    def detector_recorte(self) -> images.DetectorModelo | None:
+        if self.storage.get_settings()["recorte_modelo"] != "auto":
+            return None
+        ruta = modelos.ruta_modelo(self.paths.models)
+        if not ruta.is_file():
+            return None
+        if self._detector is None or self._detector.ruta != ruta:
+            self._detector = images.DetectorModelo(ruta)
+        return None if self._detector.fallo else self._detector
 
     def insumo_public(self, row: dict) -> dict:
         out: dict = {
@@ -82,6 +92,7 @@ class AppState:
         }
         if row["tipo"] == "imagen":
             out["ocr_texto"] = row.get("ocr_texto")
+            out["ocr_editado"] = bool(row.get("ocr_editado"))
             out["original_url"] = self.file_url(row["original_path"])
             out["recortada_url"] = self.file_url(row["recortada_path"])
             thumb = Path(row["recortada_path"]).with_name(f"{row['id']}_thumb.jpg")
@@ -98,6 +109,7 @@ class AppState:
             "pdf_url": self.file_url(row["pdf_path"]),
             "creada_en": row["creada_en"],
             "avisos": json.loads(row.get("avisos") or "[]"),
+            "portada": json.loads(row["portada"]) if row.get("portada") else None,
             "id": row.get("hist_id") if "hist_id" in row else row.get("id"),
         }
 
@@ -357,6 +369,7 @@ async def _sync_materia(
             fila["tarea_idx"],
             fila["numero"],
             entregas=modo == "completo",
+            pia=fila["tipo"] == "pia",
         )
         _guardar_detalle_con_novedades(state, fila["id"], detalle, acum)
         leidas.add(fila["id"])
@@ -402,7 +415,12 @@ async def _revisar_materia(
 
     async def leer(pagina: Page, fila: dict) -> None:
         detalle = await nexus.abrir_tarea(
-            pagina, fila["etapa_idx"], fila["tarea_idx"], fila["numero"], solo_entregas=True
+            pagina,
+            fila["etapa_idx"],
+            fila["tarea_idx"],
+            fila["numero"],
+            solo_entregas=True,
+            pia=fila["tipo"] == "pia",
         )
         if detalle.entregas is not None:
             acum["revisadas"] += 1
@@ -595,7 +613,9 @@ async def _abrir_tarea_nexus(state: AppState, page: Page, tarea_id: str):
         raise ApiError(404, "materia_no_encontrada", "La materia ya no aparece en NEXUS.")
     await nexus.abrir_materia(page, indice, tarea_materia_nombre(state, tarea))
     await nexus.abrir_estructura(page)
-    return await nexus.abrir_tarea(page, etapa_idx, tarea_idx, tarea["numero"])
+    return await nexus.abrir_tarea(
+        page, etapa_idx, tarea_idx, tarea["numero"], pia=tarea["tipo"] == "pia"
+    )
 
 
 async def traer_detalle(state: AppState, tarea_id: str) -> dict:
@@ -641,6 +661,8 @@ def _ocr_pendiente(state: AppState, tarea_id: str) -> list[str]:
             continue
         texto = fila.get("ocr_texto")
         if texto is None:
+            if not ocr.disponible():
+                continue
             origen = fila["recortada_path"] if fila["usar_recorte"] else fila["original_path"]
             try:
                 texto = ocr.extraer_texto(Path(origen), fila["rotacion"])
@@ -653,82 +675,15 @@ def _ocr_pendiente(state: AppState, tarea_id: str) -> list[str]:
 
 
 async def _texto_ocr(state: AppState, ctx: JobContext, tarea_id: str) -> str:
-    if not any(f["tipo"] == "imagen" for f in state.storage.list_insumos(tarea_id)):
+    imagenes = [f for f in state.storage.list_insumos(tarea_id) if f["tipo"] == "imagen"]
+    if not imagenes:
         return ""
-    if not ocr.disponible():
-        await ctx.log(
-            "OCR local no disponible: instala rapidocr-onnxruntime para leer las imágenes"
-        )
-        return ""
-    await ctx.update("Leyendo el texto de las imágenes", 0.35)
+    sin_texto = any(f.get("ocr_texto") is None for f in imagenes)
+    if sin_texto and not ocr.disponible():
+        await ctx.log("OCR local no disponible: instala rapidocr-onnxruntime")
+    elif sin_texto:
+        await ctx.update("Leyendo el texto de las imágenes", 0.35)
     return "\n\n".join(await asyncio.to_thread(_ocr_pendiente, state, tarea_id))
-
-
-EXTENSIONES_IMAGEN = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"}
-EXTENSIONES_TEXTO = {".txt", ".md"}
-
-
-def tipo_recurso(nombre: str) -> str:
-    ext = Path(nombre).suffix.lower()
-    if ext in EXTENSIONES_IMAGEN:
-        return "imagen"
-    if ext in EXTENSIONES_TEXTO:
-        return "texto"
-    return "pdf" if ext == ".pdf" else "otro"
-
-
-def registrar_recurso(state: AppState, tarea_id: str, nombre: str, origen: Path | None) -> dict:
-    ruta = None
-    if origen is not None:
-        carpeta = state.paths.data / "recursos" / tarea_id
-        carpeta.mkdir(parents=True, exist_ok=True)
-        destino = carpeta / f"{uuid.uuid4().hex}_{Path(nombre).name}"
-        shutil.copyfile(origen, destino)
-        ruta = str(destino)
-    return state.storage.add_recurso(tarea_id, nombre, tipo_recurso(nombre), ruta)
-
-
-def recurso_public(recurso: dict) -> dict:
-    return {
-        "id": recurso["id"],
-        "tarea_id": recurso["tarea_id"],
-        "nombre": recurso["nombre"],
-        "tipo": recurso["tipo"],
-        "descargado": bool(recurso["ruta"]) and Path(recurso["ruta"]).exists(),
-        "usado": bool(recurso["usado"]),
-    }
-
-
-def usar_recurso(state: AppState, tarea_id: str, recurso_id: str) -> dict:
-    recurso = state.storage.get_recurso(recurso_id)
-    if recurso is None or recurso["tarea_id"] != tarea_id:
-        raise ApiError(404, "recurso_no_encontrado", "El recurso no existe.")
-    if not recurso["ruta"] or not Path(recurso["ruta"]).exists():
-        raise ApiError(409, "sin_descargar", "El recurso todavía no se descargó.")
-    ruta = Path(recurso["ruta"])
-    if recurso["tipo"] == "texto":
-        fila = state.storage.add_insumo(
-            tarea_id, "texto", texto=ruta.read_text(encoding="utf-8", errors="replace")
-        )
-    elif recurso["tipo"] == "imagen":
-        insumo_id = uuid.uuid4().hex
-        carpeta = state.paths.insumos / tarea_id
-        carpeta.mkdir(parents=True, exist_ok=True)
-        original = carpeta / f"{insumo_id}_orig{ruta.suffix.lower()}"
-        recortada = carpeta / f"{insumo_id}_crop.jpg"
-        shutil.copyfile(ruta, original)
-        images.process_upload(original, recortada, carpeta / f"{insumo_id}_thumb.jpg")
-        fila = state.storage.add_insumo(
-            tarea_id,
-            "imagen",
-            id=insumo_id,
-            original_path=str(original),
-            recortada_path=str(recortada),
-        )
-    else:
-        raise ApiError(415, "tipo_no_soportado", "Este tipo de recurso aún no se puede usar.")
-    state.storage.marcar_recurso_usado(recurso_id)
-    return state.insumo_public(fila)
 
 
 def _generacion_dir(state: AppState, tarea_id: str) -> Path:
@@ -736,7 +691,11 @@ def _generacion_dir(state: AppState, tarea_id: str) -> Path:
 
 
 async def run_generar(
-    state: AppState, ctx: JobContext, tarea_id: str, instrucciones_extra: str | None
+    state: AppState,
+    ctx: JobContext,
+    tarea_id: str,
+    instrucciones_extra: str | None,
+    portada: dict | None = None,
 ) -> dict:
     tarea = state.storage.get_tarea(tarea_id)
     materia = state.storage.get_materia(tarea["materia_id"])
@@ -780,7 +739,9 @@ async def run_generar(
         markdown = await state.gemini.generar(prompt, pdf_insumos, ctx.hooks())
 
     await ctx.update("Creando el documento Word", 0.88)
-    gen = await asyncio.to_thread(_construir_documentos, state, tarea, materia, settings, markdown)
+    gen = await asyncio.to_thread(
+        _construir_documentos, state, tarea, materia, settings, markdown, _portada_limpia(portada)
+    )
     state.storage.set_estado(tarea_id, "generada")
     resultado = state.generacion_public(gen)
     if settings["entregar_sin_revisar"]:
@@ -790,12 +751,26 @@ async def run_generar(
     return resultado
 
 
+def _portada_limpia(portada: dict | None) -> dict | None:
+    limpia = {k: v.strip() for k, v in (portada or {}).items() if isinstance(v, str) and v.strip()}
+    return {k: v for k, v in limpia.items() if k in ("profesor", "titulo")} or None
+
+
 def _construir_documentos(
-    state: AppState, tarea: dict, materia: dict, settings: dict, markdown: str
+    state: AppState,
+    tarea: dict,
+    materia: dict,
+    settings: dict,
+    markdown: str,
+    portada: dict | None = None,
 ) -> dict:
+    portada = portada or {}
     out_dir = _generacion_dir(state, tarea["id"]) / datetime.now().strftime("%Y%m%d-%H%M%S")
     mapping = documents.marcadores(
-        settings["nombre"], settings["matricula"], materia["profesor"], date.today()
+        settings["nombre"],
+        settings["matricula"],
+        portada.get("profesor") or materia["profesor"],
+        date.today(),
     )
     avisos: list[str] = []
     docx_path = documents.build_final_docx(
@@ -805,11 +780,11 @@ def _construir_documentos(
         mapping,
         out_dir / "tmp",
         avisos,
-        f"{materia['nombre']} - {tarea['titulo']}",
+        portada.get("titulo") or f"{materia['nombre']} - {tarea['titulo']}",
     )
     pdf_path = documents.export_pdf(docx_path, out_dir / "tarea.pdf")
     return state.storage.set_generacion(
-        tarea["id"], markdown, str(docx_path), str(pdf_path), avisos
+        tarea["id"], markdown, str(docx_path), str(pdf_path), avisos, portada=portada or None
     )
 
 
@@ -827,13 +802,14 @@ def restaurar_generacion(state: AppState, hist_id: int) -> dict:
     return state.generacion_public(fila)
 
 
-def _portada_preview(state: AppState, tarea: dict) -> Path:
+def _portada_preview(state: AppState, tarea: dict, portada: dict | None = None) -> Path:
+    portada = portada or {}
     materia = state.storage.get_materia(tarea["materia_id"])
     settings = state.storage.get_settings()
     mapping = documents.marcadores(
         settings["nombre"] or "NOMBRE DEL ALUMNO",
         settings["matricula"] or "MATRÍCULA",
-        (materia or {}).get("profesor") or "PROFESOR",
+        portada.get("profesor") or (materia or {}).get("profesor") or "PROFESOR",
         date.today(),
     )
     carpeta = _generacion_dir(state, tarea["id"]) / "preview"
@@ -841,10 +817,10 @@ def _portada_preview(state: AppState, tarea: dict) -> Path:
     return documents.export_pdf(docx_path, carpeta / "portada.pdf")
 
 
-async def portada_preview(state: AppState, tarea_id: str) -> dict:
+async def portada_preview(state: AppState, tarea_id: str, portada: dict | None = None) -> dict:
     tarea = state.storage.get_tarea(tarea_id)
     try:
-        pdf = await asyncio.to_thread(_portada_preview, state, tarea)
+        pdf = await asyncio.to_thread(_portada_preview, state, tarea, _portada_limpia(portada))
     except Exception as exc:
         raise ApiError(502, "sin_word", f"No se pudo generar la vista previa: {exc}") from exc
     return {"pdf_url": state.file_url(pdf)}

@@ -1,5 +1,6 @@
+import contextlib
 import io
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -106,6 +107,91 @@ def detect_page(img: np.ndarray) -> np.ndarray | None:
     return None
 
 
+MODEL_INPUT = 320
+MODEL_MEAN = np.array([0.485, 0.456, 0.406], dtype="float32")
+MODEL_STD = np.array([0.229, 0.224, 0.225], dtype="float32")
+MODEL_THRESHOLD = 0.5
+
+
+def _proveedores() -> list[str]:
+    import onnxruntime as ort
+
+    disponibles = ort.get_available_providers()
+    preferidos = [p for p in ("DmlExecutionProvider",) if p in disponibles]
+    return [*preferidos, "CPUExecutionProvider"]
+
+
+def _crear_sesion(ruta: Path):
+    import onnxruntime as ort
+
+    try:
+        return ort.InferenceSession(str(ruta), providers=_proveedores())
+    except Exception:
+        return ort.InferenceSession(str(ruta), providers=["CPUExecutionProvider"])
+
+
+class DetectorModelo:
+    def __init__(self, ruta: Path, fabrica: Callable[[Path], object] = _crear_sesion):
+        self.ruta = ruta
+        self._fabrica = fabrica
+        self._sesion = None
+        self.fallo = False
+
+    def _obtener_sesion(self):
+        if self._sesion is None:
+            self._sesion = self._fabrica(self.ruta)
+        return self._sesion
+
+    def mascara(self, img: np.ndarray) -> np.ndarray:
+        sesion = self._obtener_sesion()
+        rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        entrada = cv2.resize(rgb, (MODEL_INPUT, MODEL_INPUT), interpolation=cv2.INTER_AREA)
+        entrada = entrada.astype("float32") / max(float(entrada.max()), 1e-6)
+        entrada = ((entrada - MODEL_MEAN) / MODEL_STD).transpose(2, 0, 1)[None]
+        nombre = sesion.get_inputs()[0].name
+        salida = np.asarray(sesion.run(None, {nombre: entrada})[0]).reshape(MODEL_INPUT, -1)
+        salida = (salida - salida.min()) / (salida.max() - salida.min() + 1e-8)
+        return (salida > MODEL_THRESHOLD).astype("uint8") * 255
+
+    def cuadrilatero(self, img: np.ndarray) -> np.ndarray | None:
+        if self.fallo:
+            return None
+        try:
+            mascara = self.mascara(img)
+        except Exception:
+            self.fallo = True
+            return None
+        h, w = img.shape[:2]
+        scale = WORK_SIZE / max(h, w)
+        scale = min(scale, 1.0)
+        trabajo = cv2.resize(
+            mascara,
+            (max(1, int(w * scale)), max(1, int(h * scale))),
+            interpolation=cv2.INTER_LINEAR,
+        )
+        kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (7, 7))
+        trabajo = cv2.morphologyEx(trabajo, cv2.MORPH_OPEN, kernel, iterations=1)
+        trabajo = cv2.morphologyEx(trabajo, cv2.MORPH_CLOSE, kernel, iterations=2)
+        min_area = MIN_AREA_RATIO * trabajo.shape[0] * trabajo.shape[1]
+        quad = _quad_from_mask(trabajo, min_area)
+        if quad is None:
+            quad = _quad_por_rectangulo(trabajo, min_area)
+        if quad is None:
+            return None
+        return (quad.astype("float32") / scale).astype("float32")
+
+
+def _quad_por_rectangulo(mask: np.ndarray, min_area: float) -> np.ndarray | None:
+    contornos, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    if not contornos:
+        return None
+    mayor = max(contornos, key=cv2.contourArea)
+    area = cv2.contourArea(mayor)
+    if area < min_area or area > MAX_AREA_RATIO * mask.shape[0] * mask.shape[1]:
+        return None
+    return cv2.boxPoints(cv2.minAreaRect(mayor))
+
+
 def warp_page(img: np.ndarray, quad: np.ndarray) -> np.ndarray:
     tl, tr, br, bl = order_points(quad)
     width = int(max(np.linalg.norm(br - bl), np.linalg.norm(tr - tl)))
@@ -126,8 +212,13 @@ def enhance(img: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(cv2.merge((clahe.apply(l_chan), a_chan, b_chan)), cv2.COLOR_LAB2BGR)
 
 
-def crop_page(img: np.ndarray) -> tuple[np.ndarray, bool]:
-    quad = detect_page(img)
+def crop_page(img: np.ndarray, detector: DetectorModelo | None = None) -> tuple[np.ndarray, bool]:
+    quad = None
+    if detector is not None:
+        with contextlib.suppress(Exception):
+            quad = detector.cuadrilatero(img)
+    if quad is None:
+        quad = detect_page(img)
     if quad is None:
         return img, False
     warped = warp_page(img, quad)
@@ -147,9 +238,11 @@ def rotate(img: np.ndarray, degrees: int) -> np.ndarray:
     return img
 
 
-def process_upload(src: Path, recortada_out: Path, thumb_out: Path) -> bool:
+def process_upload(
+    src: Path, recortada_out: Path, thumb_out: Path, detector: DetectorModelo | None = None
+) -> bool:
     img = load_image(src)
-    cropped, detected = crop_page(img)
+    cropped, detected = crop_page(img, detector)
     save_image(cropped, recortada_out)
     make_thumbnail(cropped, thumb_out)
     return detected

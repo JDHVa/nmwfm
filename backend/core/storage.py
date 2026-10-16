@@ -60,15 +60,8 @@ CREATE TABLE IF NOT EXISTS insumos (
     orden INTEGER NOT NULL DEFAULT 0,
     rotacion INTEGER NOT NULL DEFAULT 0,
     usar_recorte INTEGER NOT NULL DEFAULT 1,
-    ocr_texto TEXT
-);
-CREATE TABLE IF NOT EXISTS recursos (
-    id TEXT PRIMARY KEY,
-    tarea_id TEXT NOT NULL REFERENCES tareas(id) ON DELETE CASCADE,
-    nombre TEXT NOT NULL,
-    tipo TEXT NOT NULL,
-    ruta TEXT,
-    usado INTEGER NOT NULL DEFAULT 0
+    ocr_texto TEXT,
+    ocr_editado INTEGER NOT NULL DEFAULT 0
 );
 CREATE TABLE IF NOT EXISTS calificaciones (
     materia_id TEXT PRIMARY KEY REFERENCES materias(id) ON DELETE CASCADE,
@@ -90,7 +83,8 @@ CREATE TABLE IF NOT EXISTS generaciones (
     pdf_path TEXT NOT NULL,
     creada_en TEXT NOT NULL,
     avisos TEXT,
-    hist_id INTEGER
+    hist_id INTEGER,
+    portada TEXT
 );
 CREATE TABLE IF NOT EXISTS historial_generaciones (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -122,6 +116,7 @@ SETTING_DEFAULTS = {
     "sync_inicial_hecha": False,
     "ultima_sync": None,
     "sync_cada_horas": 0,
+    "recorte_modelo": "auto",
 }
 INT_SETTINGS = {"sync_cada_horas"}
 BOOL_SETTINGS = {"entregar_sin_revisar", "reducir_animaciones", "sync_inicial_hecha"}
@@ -164,6 +159,7 @@ class Storage:
         self._db.row_factory = sqlite3.Row
         self._db.execute("PRAGMA foreign_keys = ON")
         self._db.executescript(SCHEMA)
+        self._db.execute("DROP TABLE IF EXISTS recursos")
         columnas = {r["name"] for r in self._db.execute("PRAGMA table_info(tareas)").fetchall()}
         if "entregada_en" not in columnas:
             self._db.execute("ALTER TABLE tareas ADD COLUMN entregada_en TEXT")
@@ -177,6 +173,18 @@ class Storage:
         }
         if "ocr_texto" not in insumo_columnas:
             self._db.execute("ALTER TABLE insumos ADD COLUMN ocr_texto TEXT")
+        if "ocr_editado" not in insumo_columnas:
+            self._db.execute(
+                "ALTER TABLE insumos ADD COLUMN ocr_editado INTEGER NOT NULL DEFAULT 0"
+            )
+        if "portada" not in gen_columnas:
+            self._db.execute("ALTER TABLE generaciones ADD COLUMN portada TEXT")
+        hist_columnas = {
+            r["name"]
+            for r in self._db.execute("PRAGMA table_info(historial_generaciones)").fetchall()
+        }
+        if "portada" not in hist_columnas:
+            self._db.execute("ALTER TABLE historial_generaciones ADD COLUMN portada TEXT")
         if "hist_id" not in gen_columnas:
             self._db.execute("ALTER TABLE generaciones ADD COLUMN hist_id INTEGER")
         self._db.commit()
@@ -411,11 +419,18 @@ class Storage:
         return self.get_insumo(id)
 
     def update_insumo(self, id: str, **fields) -> dict | None:
-        allowed = {"orden", "rotacion", "usar_recorte", "texto", "recortada_path"}
+        allowed = {"orden", "rotacion", "usar_recorte", "texto", "recortada_path", "ocr_texto"}
         sets = {k: v for k, v in fields.items() if k in allowed and v is not None}
         if "usar_recorte" in sets:
             sets["usar_recorte"] = 1 if sets["usar_recorte"] else 0
-        if "rotacion" in sets or "usar_recorte" in sets:
+        editado = self._one("SELECT ocr_editado FROM insumos WHERE id = ?", (id,))
+        editado = bool(editado and editado["ocr_editado"])
+        if "ocr_texto" in sets:
+            sets["ocr_editado"] = 1
+        elif "rotacion" in sets:
+            sets["ocr_texto"] = None
+            sets["ocr_editado"] = 0
+        elif "usar_recorte" in sets and not editado:
             sets["ocr_texto"] = None
         if sets:
             cols = ", ".join(f"{k} = ?" for k in sets)
@@ -424,23 +439,6 @@ class Storage:
 
     def set_ocr(self, insumo_id: str, texto: str) -> None:
         self._run("UPDATE insumos SET ocr_texto = ? WHERE id = ?", (texto, insumo_id))
-
-    def add_recurso(self, tarea_id: str, nombre: str, tipo: str, ruta: str | None) -> dict:
-        recurso_id = uuid.uuid4().hex
-        self._run(
-            "INSERT INTO recursos(id, tarea_id, nombre, tipo, ruta) VALUES(?, ?, ?, ?, ?)",
-            (recurso_id, tarea_id, nombre, tipo, ruta),
-        )
-        return self.get_recurso(recurso_id)
-
-    def get_recurso(self, recurso_id: str) -> dict | None:
-        return self._one("SELECT * FROM recursos WHERE id = ?", (recurso_id,))
-
-    def list_recursos(self, tarea_id: str) -> list[dict]:
-        return self._all("SELECT * FROM recursos WHERE tarea_id = ? ORDER BY rowid", (tarea_id,))
-
-    def marcar_recurso_usado(self, recurso_id: str) -> None:
-        self._run("UPDATE recursos SET usado = 1 WHERE id = ?", (recurso_id,))
 
     def delete_insumo(self, id: str) -> None:
         self._run("DELETE FROM insumos WHERE id = ?", (id,))
@@ -456,33 +454,44 @@ class Storage:
         pdf_path: str,
         avisos: list[str] | None = None,
         historial: bool = True,
+        portada: dict | None = None,
     ) -> dict:
         creada = now_iso()
         avisos_json = json.dumps(avisos or [])
+        portada_json = json.dumps(portada, ensure_ascii=False) if portada else None
         with self._lock:
             hist_id = None
             if historial:
                 cursor = self._db.execute(
                     "INSERT INTO historial_generaciones(tarea_id, markdown, docx_path, pdf_path, "
-                    "creada_en, avisos) VALUES(?, ?, ?, ?, ?, ?)",
-                    (tarea_id, markdown, docx_path, pdf_path, creada, avisos_json),
+                    "creada_en, avisos, portada) VALUES(?, ?, ?, ?, ?, ?, ?)",
+                    (tarea_id, markdown, docx_path, pdf_path, creada, avisos_json, portada_json),
                 )
                 hist_id = cursor.lastrowid
             actual = self._db.execute(
-                "SELECT hist_id FROM generaciones WHERE tarea_id = ?", (tarea_id,)
+                "SELECT hist_id, portada FROM generaciones WHERE tarea_id = ?", (tarea_id,)
             ).fetchone()
-            if hist_id is None and actual is not None:
+            if not historial and actual is not None:
                 hist_id = actual["hist_id"]
-            self._db.execute(
-                "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en, "
-                "avisos, hist_id) VALUES(?, ?, ?, ?, ?, ?, ?) ON CONFLICT(tarea_id) DO UPDATE SET "
-                "markdown = excluded.markdown, docx_path = excluded.docx_path, "
-                "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en, "
-                "avisos = excluded.avisos, hist_id = excluded.hist_id",
-                (tarea_id, markdown, docx_path, pdf_path, creada, avisos_json, hist_id),
+                portada_json = actual["portada"]
+            self._guardar_actual(
+                tarea_id, markdown, docx_path, pdf_path, creada, avisos_json, hist_id, portada_json
             )
             self._db.commit()
         return self.get_generacion(tarea_id)
+
+    def _guardar_actual(
+        self, tarea_id, markdown, docx_path, pdf_path, creada, avisos, hist_id, portada
+    ) -> None:
+        self._db.execute(
+            "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en, "
+            "avisos, hist_id, portada) VALUES(?, ?, ?, ?, ?, ?, ?, ?) "
+            "ON CONFLICT(tarea_id) DO UPDATE SET "
+            "markdown = excluded.markdown, docx_path = excluded.docx_path, "
+            "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en, "
+            "avisos = excluded.avisos, hist_id = excluded.hist_id, portada = excluded.portada",
+            (tarea_id, markdown, docx_path, pdf_path, creada, avisos, hist_id, portada),
+        )
 
     def listar_generaciones(self, tarea_id: str) -> list[dict]:
         actual = self.get_generacion(tarea_id)
@@ -503,21 +512,15 @@ class Storage:
         if fila is None:
             return None
         with self._lock:
-            self._db.execute(
-                "INSERT INTO generaciones(tarea_id, markdown, docx_path, pdf_path, creada_en, "
-                "avisos, hist_id) VALUES(?, ?, ?, ?, ?, ?, ?) ON CONFLICT(tarea_id) DO UPDATE SET "
-                "markdown = excluded.markdown, docx_path = excluded.docx_path, "
-                "pdf_path = excluded.pdf_path, creada_en = excluded.creada_en, "
-                "avisos = excluded.avisos, hist_id = excluded.hist_id",
-                (
-                    fila["tarea_id"],
-                    fila["markdown"],
-                    fila["docx_path"],
-                    fila["pdf_path"],
-                    fila["creada_en"],
-                    fila["avisos"],
-                    hist_id,
-                ),
+            self._guardar_actual(
+                fila["tarea_id"],
+                fila["markdown"],
+                fila["docx_path"],
+                fila["pdf_path"],
+                fila["creada_en"],
+                fila["avisos"],
+                hist_id,
+                fila["portada"],
             )
             self._db.execute(
                 "UPDATE tareas SET estado = 'generada' WHERE id = ? AND estado = 'pendiente'",

@@ -146,7 +146,8 @@ def _parse_item(item, orden: int, en_pia: bool = False) -> TareaItem | None:
         if m:
             numero, titulo = m.group(1), m.group(2).strip()
         else:
-            numero, titulo = ("PIA" if full.upper().startswith("PIA") else str(orden + 1)), full
+            numero = "PIA" if en_pia or full.upper().startswith("PIA") else str(orden + 1)
+            titulo = full
     tipo = clasificar(titulo, en_pia or numero == "PIA")
     right = " ".join(text_of(e) for e in item.iter("span") if _PUNTOS_RE.fullmatch(text_of(e)))
     puntos = _float(right) if right else None
@@ -368,8 +369,12 @@ def detalle_cargado(encabezados: list[str], tarjetas: list[str], numero: str | N
     return any(t.strip() for t in tarjetas)
 
 
-def _detalle_lista(page: "Page", numero: str | None):
+def _detalle_lista(page: "Page", numero: str | None, pia: bool = False):
     async def lista() -> bool:
+        if pia:
+            # El PIA vive en otra ruta y su encabezado no trae número: se usa la ruta como señal.
+            tarjetas = await page.locator(S.NX_DETALLE_CARDS).all_inner_texts()
+            return S.NX_RUTA_PIA in page.url and any(t.strip() for t in tarjetas)
         encabezados = await page.locator(S.NX_DETALLE_ENCABEZADO).all_inner_texts()
         tarjetas = await page.locator(S.NX_DETALLE_CARDS).all_inner_texts()
         return detalle_cargado(encabezados, tarjetas, numero)
@@ -441,7 +446,12 @@ async def volver_a_estructura(page: "Page") -> None:
         )
 
     menu = page.locator(S.NX_MENU_OPTION).filter(has_text=S.NX_MENU_ESTRUCTURA)
-    await _clic_hasta(menu, lista, "la estructura de la materia", timeout=10.0)
+    try:
+        await _clic_hasta(menu, lista, "la estructura de la materia", intentos=2, timeout=10.0)
+    except TimeoutError:
+        # Workaround: desde la ruta del PIA el menú a veces no navega; el historial sí.
+        await page.go_back()
+        await _esperar(lista, "la estructura de la materia", 15)
     await _esperar_cargas(page)
 
 
@@ -474,18 +484,22 @@ async def abrir_tarea(
     *,
     entregas: bool = False,
     solo_entregas: bool = False,
+    pia: bool = False,
 ) -> DetalleTarea:
     ultimo: Exception | None = None
     for _ in range(2):
         _, enlaces = await _preparar_panel(page, etapa_idx)
         await _clic_hasta(
-            enlaces.nth(tarea_idx), _detalle_lista(page, numero), f"el detalle de la tarea {numero}"
+            enlaces.nth(tarea_idx),
+            _detalle_lista(page, numero, pia),
+            f"el detalle de la tarea {numero}",
         )
         await _esperar_cargas(page)
         html = await _html(page.locator(S.NX_CONTENIDO_MATERIA))
         detalle = parse_detalle(html)
         if (
-            numero is not None
+            not pia
+            and numero is not None
             and detalle.numero is not None
             and not numero_coincide(detalle.numero, numero)
         ):

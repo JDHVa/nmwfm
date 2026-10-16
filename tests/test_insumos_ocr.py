@@ -5,7 +5,6 @@ from PIL import Image
 from backend import services
 from backend.core import ocr
 
-from .asgi_client import MiniClient
 from .test_services import TID, FakeGemini, correr, listo  # noqa: F401
 
 
@@ -98,50 +97,3 @@ def test_generar_agrega_el_texto_ocr_al_prompt(listo, tmp_path, monkeypatch):  #
     job = correr(listo)
     assert job.estado == "ok", job.mensaje
     assert "Texto extraído de las imágenes" in prompts[0] and "ley de Ohm" in prompts[0]
-
-
-def registrar(state, nombre, contenido: bytes | None, tmp_path):
-    origen = None
-    if contenido is not None:
-        origen = tmp_path / nombre
-        origen.write_bytes(contenido)
-    return services.registrar_recurso(state, TID, nombre, origen)
-
-
-def test_recursos_listar_y_usar_texto(app, seeded, tmp_path):
-    client = MiniClient(app, headers={"X-Token": "dev"})
-    r = registrar(seeded, "notas.txt", b"apuntes del profe", tmp_path)
-    lista = client.get(f"/tareas/{TID}/recursos").json()
-    assert lista == [
-        {
-            "id": r["id"],
-            "tarea_id": TID,
-            "nombre": "notas.txt",
-            "tipo": "texto",
-            "descargado": True,
-            "usado": False,
-        }
-    ]
-    uso = client.post(f"/tareas/{TID}/recursos/{r['id']}/usar")
-    assert uso.status_code == 200 and uso.json()["texto"] == "apuntes del profe"
-    assert client.get(f"/tareas/{TID}/recursos").json()[0]["usado"] is True
-
-
-def test_recursos_usar_imagen_crea_insumo_recortado(app, seeded, tmp_path):
-    client = MiniClient(app, headers={"X-Token": "dev"})
-    origen = imagen(tmp_path / "foto.png", "gray")
-    r = services.registrar_recurso(seeded, TID, "foto.png", origen)
-    uso = client.post(f"/tareas/{TID}/recursos/{r['id']}/usar").json()
-    assert uso["tipo"] == "imagen" and uso["recortada_url"]
-    assert len(seeded.storage.list_insumos(TID)) == 1
-
-
-def test_recursos_errores(app, seeded, tmp_path):
-    client = MiniClient(app, headers={"X-Token": "dev"})
-    pdf = registrar(seeded, "libro.pdf", b"%PDF", tmp_path)
-    assert client.post(f"/tareas/{TID}/recursos/{pdf['id']}/usar").status_code == 415
-    sin = registrar(seeded, "foto.png", None, tmp_path)
-    r = client.post(f"/tareas/{TID}/recursos/{sin['id']}/usar")
-    assert r.status_code == 409 and r.json()["error"]["code"] == "sin_descargar"
-    assert client.post(f"/tareas/{TID}/recursos/nada/usar").status_code == 404
-    assert client.get("/tareas/no-existe/recursos").status_code == 404

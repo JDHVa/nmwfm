@@ -168,21 +168,39 @@ def a_markdown(grafo: Grafo) -> str:
     return "\n".join(filas)
 
 
+RUTAS_DOT = (
+    r"C:\Program Files\Graphviz\bin\dot.exe",
+    r"C:\Program Files (x86)\Graphviz\bin\dot.exe",
+)
+
+
+def buscar_dot() -> str | None:
+    encontrado = shutil.which("dot")
+    if encontrado:
+        return encontrado
+    return next((r for r in RUTAS_DOT if Path(r).exists()), None)
+
+
+def _renderizar_con_binario(dot: str) -> bytes | None:
+    binario = buscar_dot()
+    if binario is None:
+        return None
+    try:
+        resultado = subprocess.run(
+            [binario, "-Tpng"], input=dot.encode("utf-8"), capture_output=True, check=False
+        )
+    except OSError:
+        return None
+    return resultado.stdout if resultado.returncode == 0 and resultado.stdout else None
+
+
 def renderizar_png(dot: str) -> bytes | None:
     try:
         import graphviz
 
         return graphviz.Source(dot, engine="dot").pipe(format="png")
-    except ImportError:
-        binario = shutil.which("dot")
-        if binario is None:
-            return None
-        resultado = subprocess.run(
-            [binario, "-Tpng"], input=dot.encode("utf-8"), capture_output=True, check=False
-        )
-        return resultado.stdout if resultado.returncode == 0 and resultado.stdout else None
     except Exception:
-        return None
+        return _renderizar_con_binario(dot)
 
 
 def procesar_diagramas(

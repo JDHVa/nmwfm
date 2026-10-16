@@ -29,7 +29,7 @@ def listo(seeded, monkeypatch):
         TID, DetalleTarea("T", "1.1", None, None, 0.0, None, "act", "cont", "crit", None)
     )
 
-    def fake_docs(state, tarea, materia, settings, markdown):
+    def fake_docs(state, tarea, materia, settings, markdown, portada=None):
         base = state.paths.generaciones
         return state.storage.set_generacion(
             tarea["id"], markdown, str(base / "x.docx"), str(base / "x.pdf")
