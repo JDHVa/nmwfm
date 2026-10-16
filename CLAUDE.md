@@ -26,6 +26,12 @@ Todo desde la raíz del repo (`npm install` instala también `app/`):
 2. Ejecuta el `.exe` (NSIS) o el `.msi` de `app/src-tauri/target/release/bundle/`.
 3. La app instalada lanza sola el sidecar del backend (puerto aleatorio y token por sesión) con `NMWFM_DEV=0` y guarda sus datos (base de datos, perfil del navegador, insumos y generaciones) en `%LOCALAPPDATA%\mx.nmwfm.app`. Cerrar la ventana la deja en la bandeja del sistema; «Salir» está en el menú de su ícono.
 
+## Servidor MCP (herramientas para Claude)
+`python -m backend.mcp` expone por stdio las mismas herramientas del asistente (`buscar_tareas`, `ver_tarea`, `proximas_entregas`, `agregar_indicaciones`, `reemplazar_indicaciones`, `crear_pdf_imagenes`, `generar_portada`, `sincronizar`, `revisar_entregas`, `generar_tarea`, `entregar_tarea`). `entregar_tarea` exige `confirmar: true` y solo debe usarse tras la aprobación explícita del usuario. Las herramientas lentas (sincronizar, generar, entregar, revisar) esperan a que termine su trabajo y devuelven el resultado.
+- Claude Code: `claude mcp add nmwfm -- C:\ruta\al\repo\.venv\Scripts\python.exe -m backend.mcp` (ejecútalo desde la raíz del repo para que `backend` se resuelva).
+- Claude Desktop: en `claude_desktop_config.json` agrega `"mcpServers": {"nmwfm": {"command": "C:\\ruta\\al\\repo\\.venv\\Scripts\\python.exe", "args": ["-m", "backend.mcp"], "cwd": "C:\\ruta\\al\\repo"}}` y reinicia la app.
+- El servidor MCP usa la misma carpeta `data/` que la app: ciérrala antes de usar `sincronizar`, `generar_tarea` o `entregar_tarea` desde MCP, porque el perfil del navegador no puede abrirse dos veces.
+
 ## Reglas
 - Sin comentarios en el código salvo que sean estrictamente necesarios (un porqué no obvio o un workaround del sitio). Nunca comentarios que repitan lo que el código ya dice.
 - Si surge una duda, se interrumpe el flujo y se le pregunta al usuario antes de asumir.
