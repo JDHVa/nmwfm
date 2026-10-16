@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, Sparkles } from "lucide-react";
 import DecryptedText from "@/components/DecryptedText";
@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { JobProgress } from "@/components/JobProgress";
 import { api, type Job } from "@/lib/api";
+import { PortadaPreview } from "@/views/tarea/PortadaPreview";
+import { EVENTO_GENERAR } from "@/lib/atajos";
 import { useReducedMotion } from "@/lib/app-context";
 import { keys, useInsumos, type useJobRunner } from "@/lib/queries";
 
@@ -44,6 +46,18 @@ export function GenerarStep({
     }
   }
 
+  const alGenerar = useRef(generar);
+  useEffect(() => {
+    alGenerar.current = generar;
+  });
+  const puedeGenerar = !running && insumos.length > 0;
+  useEffect(() => {
+    if (!puedeGenerar) return;
+    const on = () => void alGenerar.current();
+    window.addEventListener(EVENTO_GENERAR, on);
+    return () => window.removeEventListener(EVENTO_GENERAR, on);
+  }, [puedeGenerar]);
+
   return (
     <div className="space-y-5">
       <div className="space-y-2 rounded-xl border bg-card p-4">
@@ -63,6 +77,8 @@ export function GenerarStep({
           enviar.
         </p>
       </div>
+
+      <PortadaPreview tareaId={tareaId} />
 
       {running && (
         <div className="flex flex-col items-center gap-3 rounded-xl border bg-card/60 p-8 text-center">

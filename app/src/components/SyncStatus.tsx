@@ -3,6 +3,7 @@ import { AlertTriangle, CheckCircle2, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { jobActivo } from "@/lib/api";
+import { useEscape } from "@/lib/atajos";
 import { useSettings } from "@/lib/queries";
 import { haceTiempo, useSync } from "@/lib/sync";
 import { cn } from "@/lib/utils";
@@ -71,6 +72,7 @@ export function SyncIndicator({ className }: { className?: string }) {
   const sync = useSync();
   const { data: settings } = useSettings();
   const [abierto, setAbierto] = useState(false);
+  useEscape(abierto, () => setAbierto(false));
   const activo = jobActivo(sync.job);
   const fallo = sync.job?.estado === "error" || !!sync.error;
   const avisos = sync.errores.length;

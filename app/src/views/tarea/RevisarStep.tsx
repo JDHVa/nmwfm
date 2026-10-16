@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { api, fileUrl } from "@/lib/api";
 import { keys, useGeneracion } from "@/lib/queries";
 
+import { HistorialGeneraciones } from "@/views/tarea/HistorialGeneraciones";
+
 const PdfViewer = lazy(() => import("./PdfViewer"));
 
 export function RevisarStep({
@@ -21,7 +23,10 @@ export function RevisarStep({
   const abrir = useMutation({ mutationFn: () => api.abrirDocx(tareaId) });
   const reconstruir = useMutation({
     mutationFn: () => api.reconstruirPdf(tareaId),
-    onSuccess: (g) => qc.setQueryData(keys.generacion(tareaId), g),
+    onSuccess: (g) => {
+      qc.setQueryData(keys.generacion(tareaId), g);
+      qc.invalidateQueries({ queryKey: keys.generaciones(tareaId) });
+    },
   });
 
   if (isLoading) return <p className="text-muted-foreground">Cargando documento…</p>;
@@ -54,6 +59,19 @@ export function RevisarStep({
           {new Date(gen.creada_en).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" })}
         </span>
       </div>
+      {gen.avisos.length > 0 && (
+        <div
+          role="alert"
+          className="space-y-1 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning"
+        >
+          <p className="font-medium">Avisos de la generación</p>
+          <ul className="list-disc pl-5 text-xs">
+            {gen.avisos.map((a) => (
+              <li key={a}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       {(abrir.error || reconstruir.error) && (
         <p className="text-sm text-destructive">{(abrir.error ?? reconstruir.error)?.message}</p>
       )}
@@ -63,6 +81,7 @@ export function RevisarStep({
       <Suspense fallback={<p className="text-muted-foreground">Cargando visor…</p>}>
         <PdfViewer key={gen.creada_en} url={fileUrl(gen.pdf_url)} />
       </Suspense>
+      <HistorialGeneraciones tareaId={tareaId} />
       <div className="flex justify-end">
         <Button onClick={onContinuar}>Continuar a entregar</Button>
       </div>

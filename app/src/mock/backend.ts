@@ -1,4 +1,7 @@
 import type {
+  Novedad,
+  Recurso,
+  Respaldo,
   EtapaConTareas,
   Generacion,
   Insumo,
@@ -45,6 +48,13 @@ function minimalPdf(lines: string[]): Uint8Array {
   return new TextEncoder().encode(out);
 }
 
+function pdfDe(lineas: string[]): string {
+  const bytes = minimalPdf(lineas);
+  const buf = new ArrayBuffer(bytes.length);
+  new Uint8Array(buf).set(bytes);
+  return URL.createObjectURL(new Blob([buf], { type: "application/pdf" }));
+}
+
 function pdfUrl(titulo: string): string {
   const bytes = minimalPdf([
     "Universidad Autonoma de Nuevo Leon",
@@ -77,6 +87,7 @@ export function createMockBackend(options: MockOptions = {}) {
     dev: true,
     entregar_sin_revisar: false,
     reducir_animaciones: false,
+    sync_cada_horas: 0,
     sync_inicial_hecha: false,
     ultima_sync: null,
   };
@@ -84,9 +95,44 @@ export function createMockBackend(options: MockOptions = {}) {
   const etapas = crearEtapas();
   const insumos = new Map<string, Insumo[]>();
   const generaciones = new Map<string, Generacion>();
+  const historial = new Map<string, Generacion[]>();
+  let genSeq = 0;
+  const registrar = (g: Omit<Generacion, "id" | "avisos"> & { avisos?: string[] }): Generacion => {
+    const completa: Generacion = { avisos: [], ...g, id: ++genSeq };
+    generaciones.set(g.tarea_id, completa);
+    historial.set(g.tarea_id, [completa, ...(historial.get(g.tarea_id) ?? [])]);
+    return completa;
+  };
   const jobs = new Map<string, Job>();
   const emitters = new Set<Emitter>();
   let password = "";
+  const recursos = new Map<string, Recurso[]>();
+  const novedades: Novedad[] = [];
+  const sembrarNovedades = () => {
+    if (novedades.length) return;
+    const ahora = Date.now();
+    [
+      ["m1-t13", "nueva", 2, "Tarea nueva en NEXUS"],
+      ["m1-t14", "modificada", 26, "Cambió la fecha de entrega"],
+      ["m2-t12", "nueva", 50, "Tarea nueva en NEXUS"],
+    ].forEach(([id, tipo, horas, detalle], i) => {
+      const t = buscarTarea(id as string);
+      if (!t) return;
+      novedades.push({
+        id: i + 1,
+        tarea_id: t.id,
+        materia_id: t.materia_id,
+        materia_nombre: materias.find((x) => x.id === t.materia_id)?.nombre ?? "",
+        numero: t.numero,
+        titulo: t.titulo,
+        tipo: tipo as "nueva" | "modificada",
+        detalle: detalle as string,
+        creada_en: new Date(ahora - (horas as number) * 3_600_000).toISOString(),
+        leida: false,
+      });
+    });
+  };
+  const respaldos: Respaldo[] = [];
   let syncActivo: string | null = null;
   let revisionActiva: string | null = null;
   let seq = 0;
@@ -242,6 +288,106 @@ export function createMockBackend(options: MockOptions = {}) {
       syncActivo = job.id;
       return json(job);
     }
+    if (path === "/respaldo" && method === "GET") return json([...respaldos].reverse());
+    if (path === "/respaldo" && method === "POST") {
+      const n = respaldos.length + 1;
+      const nombre = `respaldo-20261015-12${String(n).padStart(2, "0")}00.zip`;
+      const r = {
+        nombre,
+        url: `/files/respaldos/${nombre}`,
+        bytes: 1_250_000 + n * 4000,
+        creado_en: new Date().toISOString(),
+      };
+      respaldos.push(r);
+      log("info", "Respaldo creado");
+      return json(r);
+    }
+    if (path === "/respaldo/restaurar") {
+      const nombre = (body as { nombre?: string } | undefined)?.nombre;
+      if (!respaldos.some((r) => r.nombre === nombre)) {
+        return fallo(400, "respaldo_invalido", "El respaldo no existe o no es válido");
+      }
+      log("info", "Respaldo restaurado");
+      return json({ restaurados: 42, respaldo_previo: "pre-restauracion-20261015-121500.zip" });
+    }
+    if (path === "/diagnostico") {
+      return json(
+        lanzarJob(
+          "diagnostico",
+          [
+            "Abriendo NEXUS",
+            "Comprobando selectores de materias",
+            "Comprobando selectores de tareas",
+            "Comprobando pestaña Entregas",
+          ],
+          () => ({
+            ok: false,
+            pasos: [
+              {
+                nombre: "Inicio de sesión en SIASE",
+                ok: true,
+                ms: 2300,
+                detalle: "Entró correctamente",
+                selectores_faltantes: [],
+              },
+              {
+                nombre: "Lista de materias",
+                ok: true,
+                ms: 1800,
+                detalle: "10 materias encontradas",
+                selectores_faltantes: [],
+              },
+              {
+                nombre: "Estructura de etapas",
+                ok: true,
+                ms: 950,
+                detalle: "5 etapas en la primera materia",
+                selectores_faltantes: [],
+              },
+              {
+                nombre: "Pestaña Entregas",
+                ok: false,
+                ms: 3100,
+                detalle: "No se encontró el botón «Entregar» (selector desactualizado)",
+                selectores_faltantes: ["button.entregar"],
+              },
+            ],
+          }),
+        ),
+      );
+    }
+    if (path === "/novedades" && method === "GET") {
+      sembrarNovedades();
+      const soloNuevas = new URL(url).searchParams.get("no_leidas") === "1";
+      return json(soloNuevas ? novedades.filter((n) => !n.leida) : novedades);
+    }
+    if (path === "/novedades/leidas") {
+      const ids = (body as { ids?: number[] } | undefined)?.ids;
+      let marcadas = 0;
+      novedades.forEach((n) => {
+        if ((!ids || ids.includes(n.id)) && !n.leida) {
+          n.leida = true;
+          marcadas += 1;
+        }
+      });
+      return json({ marcadas });
+    }
+    if (path === "/alertas") {
+      const ahora = new Date();
+      const inicio = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      const lista = Object.values(etapas)
+        .flat()
+        .flatMap((e) => e.tareas)
+        .filter((t) => t.estado !== "entregada" && t.hasta && new Date(t.hasta).getTime() >= ahora.getTime())
+        .map((t) => ({ t, dias: Math.round((inicio(new Date(t.hasta!)) - inicio(ahora)) / 86_400_000) }))
+        .filter(({ dias }) => dias <= 1)
+        .map(({ t, dias }) => ({
+          ...t,
+          materia_nombre: materias.find((x) => x.id === t.materia_id)?.nombre ?? "",
+          dias,
+        }));
+      return json(lista);
+    }
     if (path === "/tareas/proximas") {
       const todas = Object.values(etapas)
         .flat()
@@ -280,6 +426,25 @@ export function createMockBackend(options: MockOptions = {}) {
       return json(job);
     }
     if (path === "/materias") return json(materias);
+    if ((m = path.match(/^\/materias\/([^/]+)\/calificaciones$/))) {
+      const lista = etapas[m[1]];
+      if (!lista) return fallo(404, "no_encontrada", "Materia no encontrada");
+      if (m[1] !== "m1") return json(null);
+      const filas = lista.flatMap((e) =>
+        e.tareas
+          .filter((t) => t.tipo !== "examen" && t.puntos)
+          .map((t) => [
+            `${t.numero} ${t.titulo}`,
+            t.estado === "entregada" ? String(Math.round(t.puntos! * 0.9 * 10) / 10) : "-",
+            String(t.puntos),
+          ]),
+      );
+      return json({
+        columnas: ["Actividad", "Calificación", "Puntos"],
+        filas,
+        actualizada_en: new Date().toISOString(),
+      });
+    }
     if ((m = path.match(/^\/materias\/([^/]+)\/etapas$/))) {
       const lista = etapas[m[1]];
       lista?.forEach((e) => e.tareas.forEach(marcarVencida));
@@ -312,11 +477,87 @@ export function createMockBackend(options: MockOptions = {}) {
           orden: lista.length + nuevos.length,
           rotacion: 0,
           usar_recorte: true,
+          ocr_texto: `Texto detectado en ${f.name}: apuntes de clase, definiciones y un ejemplo resuelto.`,
         });
       }
       lista.push(...nuevos);
       log("info", `${nuevos.length} imagen(es) recortada(s)`);
       return json(nuevos);
+    }
+    if ((m = path.match(/^\/tareas\/([^/]+)\/recursos(?:\/([^/]+)\/usar)?$/))) {
+      const tid = m[1];
+      if (!recursos.has(tid)) {
+        recursos.set(tid, [
+          {
+            id: "r1",
+            tarea_id: tid,
+            nombre: "Diagrama de la unidad.png",
+            tipo: "imagen",
+            descargado: true,
+            usado: false,
+          },
+          {
+            id: "r2",
+            tarea_id: tid,
+            nombre: "Notas de la clase.txt",
+            tipo: "texto",
+            descargado: true,
+            usado: false,
+          },
+          {
+            id: "r3",
+            tarea_id: tid,
+            nombre: "Lectura de la unidad.pdf",
+            tipo: "pdf",
+            descargado: true,
+            usado: false,
+          },
+          {
+            id: "r4",
+            tarea_id: tid,
+            nombre: "Presentación.pptx",
+            tipo: "otro",
+            descargado: false,
+            usado: false,
+          },
+        ]);
+      }
+      const lista = recursos.get(tid)!;
+      if (method === "POST" && m[2]) {
+        const r = lista.find((x) => x.id === m![2]);
+        if (!r) return fallo(404, "no_encontrado", "Recurso no encontrado");
+        if (!r.descargado) return fallo(409, "sin_descargar", "El archivo todavía no se descargó");
+        if (r.tipo !== "imagen" && r.tipo !== "texto") {
+          return fallo(415, "tipo_no_soportado", "Solo se pueden usar imágenes y texto");
+        }
+        const actuales = insumos.get(tid) ?? [];
+        insumos.set(tid, actuales);
+        hue = (hue + 47) % 360;
+        const nuevo: Insumo =
+          r.tipo === "imagen"
+            ? {
+                id: `ins-${++seq}`,
+                tipo: "imagen",
+                original_url: svgDataUrl(r.nombre, hue),
+                recortada_url: svgDataUrl(`${r.nombre} (recorte)`, hue, 360, 480),
+                orden: actuales.length,
+                rotacion: 0,
+                usar_recorte: true,
+                ocr_texto: `Texto detectado en ${r.nombre}`,
+              }
+            : {
+                id: `ins-${++seq}`,
+                tipo: "texto",
+                texto: `Contenido de ${r.nombre}`,
+                orden: actuales.length,
+                rotacion: 0,
+                usar_recorte: false,
+              };
+        actuales.push(nuevo);
+        r.usado = true;
+        return json(nuevo);
+      }
+      return json(lista);
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/insumos\/texto$/))) {
       const lista = insumos.get(m[1]) ?? [];
@@ -352,6 +593,23 @@ export function createMockBackend(options: MockOptions = {}) {
       }
       return fallo(404, "no_encontrado", "Insumo no encontrado");
     }
+    if ((m = path.match(/^\/tareas\/([^/]+)\/portada-preview$/))) {
+      const t = buscarTarea(m[1]);
+      if (!t) return fallo(404, "no_encontrada", "Tarea no encontrada");
+      const materia = materias.find((x) => x.id === t.materia_id);
+      return json({
+        pdf_url: pdfDe([
+          "Universidad Autonoma de Nuevo Leon",
+          "",
+          t.titulo,
+          "",
+          `Alumno: ${settings.nombre}`,
+          `Matricula: ${settings.matricula}`,
+          `Profesor: ${materia?.profesor ?? ""}`,
+          `Fecha: ${new Date().toLocaleDateString("es-MX")}`,
+        ]),
+      });
+    }
     if ((m = path.match(/^\/tareas\/([^/]+)\/generar$/))) {
       const t = buscarTarea(m[1]);
       if (!t) return fallo(404, "no_encontrada", "Tarea no encontrada");
@@ -372,7 +630,7 @@ export function createMockBackend(options: MockOptions = {}) {
           () => {
             t.estado = settings.entregar_sin_revisar ? "entregada" : "generada";
             if (t.estado === "entregada") t.entregada_en = new Date().toISOString();
-            generaciones.set(t.id, {
+            registrar({
               tarea_id: t.id,
               markdown: `# ${t.titulo}`,
               docx_url: `/files/${t.id}.docx`,
@@ -385,6 +643,20 @@ export function createMockBackend(options: MockOptions = {}) {
       );
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/generacion$/))) return json(generaciones.get(m[1]) ?? null);
+    if ((m = path.match(/^\/tareas\/([^/]+)\/generaciones$/))) {
+      const actual = generaciones.get(m[1]);
+      return json((historial.get(m[1]) ?? []).map((g) => ({ ...g, actual: actual?.id === g.id })));
+    }
+    if ((m = path.match(/^\/generaciones\/(\d+)\/restaurar$/))) {
+      for (const lista of historial.values()) {
+        const g = lista.find((x) => x.id === Number(m![1]));
+        if (g) {
+          generaciones.set(g.tarea_id, g);
+          return json(g);
+        }
+      }
+      return fallo(404, "no_encontrada", "Generación no encontrada");
+    }
     if ((m = path.match(/^\/tareas\/([^/]+)\/abrir-docx$/))) {
       log("info", "Abriendo documento en Word");
       return json(null, 204);
@@ -398,8 +670,7 @@ export function createMockBackend(options: MockOptions = {}) {
         pdf_url: pdfUrl(`${t.titulo} (reconstruido)`),
         creada_en: new Date().toISOString(),
       };
-      generaciones.set(m[1], nueva);
-      return json(nueva);
+      return json(registrar(nueva));
     }
     if ((m = path.match(/^\/tareas\/([^/]+)\/entregar$/))) {
       const t = buscarTarea(m[1]);

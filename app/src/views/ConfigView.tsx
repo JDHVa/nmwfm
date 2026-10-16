@@ -10,6 +10,8 @@ import { api, type Settings } from "@/lib/api";
 import { PasswordInput } from "@/components/PasswordInput";
 import { useJobRunner, useSaveSettings, useSettings } from "@/lib/queries";
 import { PageHeader } from "@/components/PageHeader";
+import { aplicarCerrarABandeja, leerCerrarABandeja } from "@/lib/bandeja";
+import { ConfigAvanzada } from "@/views/ConfigAvanzada";
 import { ThemeSelector } from "@/components/ThemeToggle";
 
 export function ConfigView() {
@@ -29,6 +31,7 @@ function ConfigForm({ settings }: { settings: Settings }) {
   });
   const [confirmando, setConfirmando] = useState(false);
   const [guardado, setGuardado] = useState(false);
+  const [bandeja, setBandeja] = useState(leerCerrarABandeja);
 
   const set = (campo: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setGuardado(false);
@@ -112,6 +115,16 @@ function ConfigForm({ settings }: { settings: Settings }) {
           <ThemeSelector />
         </div>
         <Preferencia
+          id="bandeja"
+          titulo="Minimizar a la bandeja al cerrar"
+          descripcion="Al cerrar la ventana la aplicación sigue en la bandeja del sistema. Para salir usa su menú."
+          checked={bandeja}
+          onChange={(v) => {
+            setBandeja(v);
+            void aplicarCerrarABandeja(v);
+          }}
+        />
+        <Preferencia
           id="dev"
           titulo="Modo DEV"
           descripcion="Muestra el navegador mientras trabaja la automatización."
@@ -160,6 +173,7 @@ function ConfigForm({ settings }: { settings: Settings }) {
           )}
         </div>
       </section>
+      <ConfigAvanzada settings={settings} />
     </div>
   );
 }

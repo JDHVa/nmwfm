@@ -8,7 +8,7 @@ import {
   type SyncModo,
   type SyncResultado,
 } from "@/lib/api";
-import { keys, useJobRunner } from "@/lib/queries";
+import { keys, useJobRunner, useSettings } from "@/lib/queries";
 
 type SyncCtx = {
   job: Job | null;
@@ -47,6 +47,18 @@ export function resumenDeRevision(job: Job | null): string | null {
   return `${e} ${e === 1 ? "entregada" : "entregadas"}, ${p} ${p === 1 ? "pendiente" : "pendientes"}`;
 }
 
+export function useSyncPeriodico(horas: number | undefined, ejecutar: () => void) {
+  const cb = useRef(ejecutar);
+  useEffect(() => {
+    cb.current = ejecutar;
+  });
+  useEffect(() => {
+    if (!horas || horas <= 0) return;
+    const id = setInterval(() => cb.current(), horas * 3_600_000);
+    return () => clearInterval(id);
+  }, [horas]);
+}
+
 export function SyncProvider({ children }: { children: ReactNode }) {
   const qc = useQueryClient();
   const [minimizado, setMinimizado] = useState(false);
@@ -56,12 +68,18 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     qc.invalidateQueries({ queryKey: ["etapas"] });
     qc.invalidateQueries({ queryKey: ["tarea"] });
     qc.invalidateQueries({ queryKey: keys.proximas });
+    qc.invalidateQueries({ queryKey: keys.novedades });
+    qc.invalidateQueries({ queryKey: keys.alertas });
     const errores = resultadoDe(j)?.errores ?? [];
     errores.forEach((e) => emitLocalLog("error", `Sincronización: ${e}`));
     if (j.estado === "error") emitLocalLog("error", `Sincronización: ${j.mensaje ?? "falló"}`);
   });
   const { start } = runner;
   const lanzado = useRef(false);
+  const { data: ajustes } = useSettings();
+  useSyncPeriodico(ajustes?.sync_cada_horas, () => {
+    if (!runner.running) void start(() => api.sync("incremental"));
+  });
 
   useEffect(() => {
     if (lanzado.current) return;

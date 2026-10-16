@@ -9,7 +9,8 @@
     "backend": ".venv\\Scripts\\python -m backend",
     "test": ".venv\\Scripts\\python -m pytest && npm --prefix app test",
     "lint": ".venv\\Scripts\\ruff check backend && npm --prefix app run lint",
-    "build": "npm --prefix app run tauri:build"
+    "build": "npm --prefix app run tauri:build",
+    "test:e2e": "npm --prefix app run e2e"
   },
   "devDependencies": {
     "concurrently": "^9.2.1"

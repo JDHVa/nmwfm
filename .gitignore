@@ -12,3 +12,6 @@ build/
 dist/
 *.spec
 .claude/worktrees/
+app/test-results/
+app/playwright-report/
+app/*.tsbuildinfo

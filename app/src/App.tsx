@@ -1,15 +1,30 @@
 import { useEffect, useState } from "react";
-import { BookOpen, CalendarClock, LogOut, Monitor, Moon, Settings as SettingsIcon, Sun } from "lucide-react";
+import {
+  BookOpen,
+  CalendarClock,
+  Search,
+  LogOut,
+  Monitor,
+  Moon,
+  Settings as SettingsIcon,
+  Sun,
+} from "lucide-react";
 import Dock from "@/components/Dock";
 import { Background } from "@/components/Background";
+import { AyudaAtajos } from "@/components/AyudaAtajos";
+import { Campanita } from "@/components/Campanita";
 import { LogPanel } from "@/components/LogPanel";
+import { PaletaBusqueda } from "@/components/PaletaBusqueda";
 import { SyncIndicator, SyncOverlay } from "@/components/SyncStatus";
 import { siguienteTema } from "@/components/ThemeToggle";
+import { estaEscribiendo } from "@/lib/atajos";
+import { escucharSyncDeBandeja, sincronizarPreferenciaConRust } from "@/lib/bandeja";
+import { useAlertas } from "@/lib/alertas";
 import { NavProvider, useNav, useReducedMotion } from "@/lib/app-context";
 import type { Settings } from "@/lib/api";
 import { useSettings } from "@/lib/queries";
 import { leerRecordar } from "@/lib/session";
-import { SyncProvider } from "@/lib/sync";
+import { SyncProvider, useSync } from "@/lib/sync";
 import { ETIQUETA_TEMA, useTheme } from "@/lib/theme";
 import { token } from "@/lib/tokens";
 import { ConfigView } from "@/views/ConfigView";
@@ -22,6 +37,39 @@ import { TareaView } from "@/views/TareaView";
 
 function Shell({ onSalir }: { onSalir: () => void }) {
   const { view, go } = useNav();
+  const [buscando, setBuscando] = useState(false);
+  const [ayuda, setAyuda] = useState(false);
+  useAlertas();
+  const sync = useSync();
+  const iniciarSync = sync.iniciar;
+
+  useEffect(() => {
+    void sincronizarPreferenciaConRust();
+    let quitar = () => {};
+    let vivo = true;
+    void escucharSyncDeBandeja(() => void iniciarSync("incremental")).then((fn) => {
+      if (vivo) quitar = fn;
+      else fn();
+    });
+    return () => {
+      vivo = false;
+      quitar();
+    };
+  }, [iniciarSync]);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setBuscando((v) => !v);
+      } else if (e.key === "?" && !e.ctrlKey && !e.metaKey && !estaEscribiendo(e.target)) {
+        e.preventDefault();
+        setAyuda((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const { tema, resuelto, setTema } = useTheme();
   const IconoTema = tema === "sistema" ? Monitor : tema === "claro" ? Sun : Moon;
   const enMaterias = view.name === "materias" || view.name === "materia" || view.name === "tarea";
@@ -68,7 +116,20 @@ function Shell({ onSalir }: { onSalir: () => void }) {
           />
         </nav>
         <main className="relative min-w-0 flex-1 overflow-y-auto">
-          <SyncIndicator className="absolute right-6 top-4 z-20" />
+          <div className="absolute right-6 top-4 z-20 flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setBuscando(true)}
+              className="flex items-center gap-2 rounded-full border bg-card px-3 py-1.5 text-xs font-medium shadow-card outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <Search className="size-3.5" /> Buscar
+              <kbd className="rounded border px-1 text-[10px] text-muted-foreground">Ctrl K</kbd>
+            </button>
+            <Campanita />
+            <SyncIndicator />
+          </div>
+          <AyudaAtajos abierto={ayuda} onCerrar={() => setAyuda(false)} />
+          <PaletaBusqueda abierto={buscando} onCerrar={() => setBuscando(false)} />
           {view.name === "config" && <ConfigView />}
           {view.name === "materias" && <MateriasView />}
           {view.name === "proximas" && <ProximasView />}

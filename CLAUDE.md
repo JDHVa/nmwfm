@@ -18,7 +18,13 @@ Todo desde la raíz del repo (`npm install` instala también `app/`):
 - `npm run dev:ui`: solo la interfaz en el navegador con backend simulado (`app/.env.mock`)
 - `npm run backend`: solo el backend
 - `npm test`: pytest + vitest · `npm run lint`: ruff + eslint
-- `npm run build`: sidecar real con PyInstaller + instalador de Tauri
+- `npm run build`: sidecar real con PyInstaller + instalador de Tauri. Genera `app/src-tauri/target/release/bundle/msi/nmwfm_0.1.0_x64_en-US.msi` y `.../nsis/nmwfm_0.1.0_x64-setup.exe` (unos 138 MB; tarda varios minutos)
+- `npm run test:e2e`: pruebas de punta a punta con Playwright (Chrome instalado) contra la UI con backend simulado
+
+## Instalar la app
+1. Genera el instalador con `npm run build` (necesita `.venv` con PyInstaller, Rust y Chrome instalado).
+2. Ejecuta el `.exe` (NSIS) o el `.msi` de `app/src-tauri/target/release/bundle/`.
+3. La app instalada lanza sola el sidecar del backend (puerto aleatorio y token por sesión) con `NMWFM_DEV=0` y guarda sus datos (base de datos, perfil del navegador, insumos y generaciones) en `%LOCALAPPDATA%\mx.nmwfm.app`. Cerrar la ventana la deja en la bandeja del sistema; «Salir» está en el menú de su ícono.
 
 ## Reglas
 - Sin comentarios en el código salvo que sean estrictamente necesarios (un porqué no obvio o un workaround del sitio). Nunca comentarios que repitan lo que el código ya dice.

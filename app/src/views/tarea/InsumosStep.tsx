@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   DndContext,
@@ -18,6 +18,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import {
+  ChevronDown,
   Columns2,
   Crop,
   FileText,
@@ -31,6 +32,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { api, fileUrl, type Insumo } from "@/lib/api";
+import { RecursosNexus } from "@/views/tarea/RecursosNexus";
 import { keys, useInsumos, usePatchInsumo } from "@/lib/queries";
 import { cn } from "@/lib/utils";
 
@@ -66,18 +68,6 @@ export function InsumosStep({ tareaId, onContinuar }: { tareaId: string; onConti
     },
     [subirArchivos],
   );
-
-  useEffect(() => {
-    const onPaste = (e: ClipboardEvent) => {
-      const files = Array.from(e.clipboardData?.files ?? []);
-      if (files.some((f) => f.type.startsWith("image/"))) {
-        e.preventDefault();
-        recibir(files);
-      }
-    };
-    document.addEventListener("paste", onPaste);
-    return () => document.removeEventListener("paste", onPaste);
-  }, [recibir]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -135,6 +125,8 @@ export function InsumosStep({ tareaId, onContinuar }: { tareaId: string; onConti
         {subir.error && <p className="text-sm text-destructive">{subir.error.message}</p>}
       </div>
 
+      <RecursosNexus tareaId={tareaId} />
+
       {insumos.length > 0 && (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
           <SortableContext items={insumos.map((i) => i.id)} strategy={rectSortingStrategy}>
@@ -191,7 +183,7 @@ function TarjetaInsumo({
 }: {
   insumo: Insumo;
   numero: number;
-  onPatch: (p: { rotacion?: Insumo["rotacion"]; usar_recorte?: boolean }) => void;
+  onPatch: (p: { rotacion?: Insumo["rotacion"]; usar_recorte?: boolean; ocr_texto?: string }) => void;
   onBorrar: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
@@ -313,6 +305,45 @@ function TarjetaInsumo({
           <Trash2 />
         </Button>
       </div>
+      {esImagen && insumo.ocr_texto !== undefined && insumo.ocr_texto !== null && (
+        <OcrEditable valor={insumo.ocr_texto} numero={numero} onGuardar={(t) => onPatch({ ocr_texto: t })} />
+      )}
     </li>
+  );
+}
+
+function OcrEditable({
+  valor,
+  numero,
+  onGuardar,
+}: {
+  valor: string;
+  numero: number;
+  onGuardar: (t: string) => void;
+}) {
+  const [abierto, setAbierto] = useState(false);
+  const [texto, setTexto] = useState(valor);
+  return (
+    <div className="border-t p-2 text-xs">
+      <button
+        type="button"
+        aria-expanded={abierto}
+        onClick={() => setAbierto((v) => !v)}
+        className="flex w-full items-center gap-1 font-medium text-muted-foreground hover:text-foreground"
+      >
+        <ChevronDown className={cn("size-3.5 transition-transform", abierto && "rotate-180")} />
+        Texto detectado (OCR)
+      </button>
+      {abierto && (
+        <Textarea
+          aria-label={`Texto detectado de la imagen ${numero}`}
+          rows={4}
+          className="mt-2 text-xs"
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          onBlur={() => texto !== valor && onGuardar(texto)}
+        />
+      )}
+    </div>
   );
 }

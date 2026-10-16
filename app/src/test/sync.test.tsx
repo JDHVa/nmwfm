@@ -67,7 +67,9 @@ describe("sync automático", () => {
     const user = userEvent.setup();
     montar();
     await user.click(await screen.findByRole("button", { name: /Hola/ }));
-    await user.click(await screen.findByRole("button", { name: "Más opciones de sincronización" }));
+    const mas = await screen.findByRole("button", { name: "Más opciones de sincronización" });
+    await waitFor(() => expect(mas).toBeEnabled());
+    await user.click(mas);
     expect(await screen.findByRole("button", { name: "Sincronizar todo de nuevo" })).toBeInTheDocument();
   });
 });

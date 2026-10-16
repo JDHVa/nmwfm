@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { CalendarClock, ChevronRight, ClipboardCheck } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { EstadoBadge, TipoBadge, VencimientoBadge } from "@/components/EstadoBadge";
+import { FiltrosTareas } from "@/components/FiltrosTareas";
 import { PageHeader } from "@/components/PageHeader";
 import { Button } from "@/components/ui/button";
 import { api, type TareaProxima } from "@/lib/api";
 import { useNav } from "@/lib/app-context";
+import { FILTROS_VACIOS, cumpleFiltros, hayFiltros, type Filtros } from "@/lib/filtros";
 import { keys } from "@/lib/queries";
 import { useSync } from "@/lib/sync";
 import { ORDEN_GRUPOS, grupoDe, type GrupoProximas } from "@/lib/vencimiento";
@@ -14,11 +17,14 @@ export function ProximasView() {
   const sync = useSync();
   const { data, isLoading, error } = useQuery({ queryKey: keys.proximas, queryFn: api.proximas });
 
+  const [filtros, setFiltros] = useState<Filtros>(FILTROS_VACIOS);
   const grupos = new Map<GrupoProximas, TareaProxima[]>();
-  data?.forEach((t) => {
-    const g = grupoDe(t);
-    grupos.set(g, [...(grupos.get(g) ?? []), t]);
-  });
+  data
+    ?.filter((t) => cumpleFiltros(t, filtros))
+    .forEach((t) => {
+      const g = grupoDe(t);
+      grupos.set(g, [...(grupos.get(g) ?? []), t]);
+    });
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 p-8">
@@ -31,8 +37,14 @@ export function ProximasView() {
           </Button>
         }
       />
+      <FiltrosTareas valor={filtros} onChange={setFiltros} />
       {isLoading && <p className="text-muted-foreground">Cargando tareas…</p>}
       {error && <p className="text-destructive">{error.message}</p>}
+      {data && data.length > 0 && hayFiltros(filtros) && grupos.size === 0 && (
+        <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
+          Ninguna tarea coincide con los filtros.
+        </div>
+      )}
       {data && data.length === 0 && (
         <div className="rounded-xl border border-dashed p-10 text-center text-muted-foreground">
           No tienes tareas pendientes.

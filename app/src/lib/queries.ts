@@ -6,10 +6,16 @@ export const keys = {
   settings: ["settings"] as const,
   materias: ["materias"] as const,
   proximas: ["proximas"] as const,
+  novedades: ["novedades"] as const,
+  respaldos: ["respaldos"] as const,
+  alertas: ["alertas"] as const,
   etapas: (id: string) => ["etapas", id] as const,
+  calificaciones: (id: string) => ["calificaciones", id] as const,
   tarea: (id: string) => ["tarea", id] as const,
   insumos: (id: string) => ["insumos", id] as const,
+  recursos: (id: string) => ["recursos", id] as const,
   generacion: (id: string) => ["generacion", id] as const,
+  generaciones: (id: string) => ["generaciones", id] as const,
 };
 
 export function useSettings() {
