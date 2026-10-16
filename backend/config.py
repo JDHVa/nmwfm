@@ -16,6 +16,12 @@ else:
 
 DATA_DIR = Path(os.environ.get("NMWFM_DATA_DIR", ROOT / "data"))
 PORTADA_TEMPLATE = RESOURCE_DIR / "portada_word.docx"
+PROMPTS_RELATIVO = Path("backend") / "core" / "prompts"
+
+
+def directorio_prompts() -> Path:
+    return RESOURCE_DIR / PROMPTS_RELATIVO
+
 
 DEV_PORT = 8765
 DEV_TOKEN = "dev"

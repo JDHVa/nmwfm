@@ -1,7 +1,6 @@
 import unicodedata
-from pathlib import Path
 
-DIRECTORIO_PROMPTS = Path(__file__).resolve().parent / "prompts"
+from .. import config
 
 PALABRAS_PRODUCTO = (
     ("ficha_tecnica", ("ficha tecnica", "ficha")),
@@ -38,7 +37,8 @@ def detectar_producto(titulo: str, actividades: str = "") -> str:
 
 
 def plantilla_producto(tipo: str) -> str:
-    ruta = DIRECTORIO_PROMPTS / f"{tipo}.md"
+    carpeta = config.directorio_prompts()
+    ruta = carpeta / f"{tipo}.md"
     if not ruta.exists():
-        ruta = DIRECTORIO_PROMPTS / "generico.md"
+        ruta = carpeta / "generico.md"
     return ruta.read_text(encoding="utf-8").strip()

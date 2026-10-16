@@ -16,9 +16,9 @@ type Tarea = { id: string; etapa_id: string; materia_id: string; numero: string;
 type Rubrica = { niveles: string[]; criterios: { criterio: string; niveles: { puntos: number; descripcion: string }[] }[] };
 type TareaDetalle = Tarea & { actividades: string; contenido: string; criterios_desempeno: string; rubrica: Rubrica | null };
 type Recurso = { id: string; tarea_id: string; nombre: string; tipo: "imagen" | "texto" | "pdf" | "otro"; descargado: boolean; usado: boolean };
-type Insumo = { id: string; tipo: "imagen" | "texto"; ocr_texto?: string | null; original_url?: string; recortada_url?: string; miniatura_url?: string | null; texto?: string; orden: number; rotacion: 0 | 90 | 180 | 270; usar_recorte: boolean };
+type Insumo = { id: string; tipo: "imagen" | "texto"; ocr_texto?: string | null; ocr_editado?: boolean; original_url?: string; recortada_url?: string; miniatura_url?: string | null; texto?: string; orden: number; rotacion: 0 | 90 | 180 | 270; usar_recorte: boolean };
 type Job = { id: string; tipo: "sync" | "generar" | "entregar" | "login_gemini" | "validar_siase" | "revisar_entregas" | "diagnostico"; estado: "en_cola" | "corriendo" | "esperando_usuario" | "ok" | "error"; paso: string; progreso: number; mensaje: string | null; resultado: unknown };
-type Generacion = { id: number; tarea_id: string; markdown: string; docx_url: string; pdf_url: string; creada_en: string; avisos: string[] };
+type Generacion = { id: number; tarea_id: string; markdown: string; docx_url: string; pdf_url: string; creada_en: string; avisos: string[]; portada: {profesor?: string; titulo?: string} | null };
 ```
 Las rutas `*_url` son relativas a la base (`/files/...`). `recortada_url` es la imagen recortada SIN rotar: la UI aplica `rotacion` con CSS (el PDF sí la aplica). `miniatura_url` es una miniatura de la recortada.
 `Job.progreso` es un entero de 0 a 100. Con `entregar_sin_revisar` activo, el job `generar` encadena la entrega (pasos `generando` y `entregando`); si la entrega falla el job termina en `error` pero la generación queda disponible.

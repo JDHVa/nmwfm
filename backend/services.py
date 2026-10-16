@@ -82,6 +82,7 @@ class AppState:
         }
         if row["tipo"] == "imagen":
             out["ocr_texto"] = row.get("ocr_texto")
+            out["ocr_editado"] = bool(row.get("ocr_editado"))
             out["original_url"] = self.file_url(row["original_path"])
             out["recortada_url"] = self.file_url(row["recortada_path"])
             thumb = Path(row["recortada_path"]).with_name(f"{row['id']}_thumb.jpg")
@@ -98,6 +99,7 @@ class AppState:
             "pdf_url": self.file_url(row["pdf_path"]),
             "creada_en": row["creada_en"],
             "avisos": json.loads(row.get("avisos") or "[]"),
+            "portada": json.loads(row["portada"]) if row.get("portada") else None,
             "id": row.get("hist_id") if "hist_id" in row else row.get("id"),
         }
 
@@ -641,6 +643,8 @@ def _ocr_pendiente(state: AppState, tarea_id: str) -> list[str]:
             continue
         texto = fila.get("ocr_texto")
         if texto is None:
+            if not ocr.disponible():
+                continue
             origen = fila["recortada_path"] if fila["usar_recorte"] else fila["original_path"]
             try:
                 texto = ocr.extraer_texto(Path(origen), fila["rotacion"])
@@ -653,14 +657,14 @@ def _ocr_pendiente(state: AppState, tarea_id: str) -> list[str]:
 
 
 async def _texto_ocr(state: AppState, ctx: JobContext, tarea_id: str) -> str:
-    if not any(f["tipo"] == "imagen" for f in state.storage.list_insumos(tarea_id)):
+    imagenes = [f for f in state.storage.list_insumos(tarea_id) if f["tipo"] == "imagen"]
+    if not imagenes:
         return ""
-    if not ocr.disponible():
-        await ctx.log(
-            "OCR local no disponible: instala rapidocr-onnxruntime para leer las imágenes"
-        )
-        return ""
-    await ctx.update("Leyendo el texto de las imágenes", 0.35)
+    sin_texto = any(f.get("ocr_texto") is None for f in imagenes)
+    if sin_texto and not ocr.disponible():
+        await ctx.log("OCR local no disponible: instala rapidocr-onnxruntime")
+    elif sin_texto:
+        await ctx.update("Leyendo el texto de las imágenes", 0.35)
     return "\n\n".join(await asyncio.to_thread(_ocr_pendiente, state, tarea_id))
 
 
@@ -736,7 +740,11 @@ def _generacion_dir(state: AppState, tarea_id: str) -> Path:
 
 
 async def run_generar(
-    state: AppState, ctx: JobContext, tarea_id: str, instrucciones_extra: str | None
+    state: AppState,
+    ctx: JobContext,
+    tarea_id: str,
+    instrucciones_extra: str | None,
+    portada: dict | None = None,
 ) -> dict:
     tarea = state.storage.get_tarea(tarea_id)
     materia = state.storage.get_materia(tarea["materia_id"])
@@ -780,7 +788,9 @@ async def run_generar(
         markdown = await state.gemini.generar(prompt, pdf_insumos, ctx.hooks())
 
     await ctx.update("Creando el documento Word", 0.88)
-    gen = await asyncio.to_thread(_construir_documentos, state, tarea, materia, settings, markdown)
+    gen = await asyncio.to_thread(
+        _construir_documentos, state, tarea, materia, settings, markdown, _portada_limpia(portada)
+    )
     state.storage.set_estado(tarea_id, "generada")
     resultado = state.generacion_public(gen)
     if settings["entregar_sin_revisar"]:
@@ -790,12 +800,26 @@ async def run_generar(
     return resultado
 
 
+def _portada_limpia(portada: dict | None) -> dict | None:
+    limpia = {k: v.strip() for k, v in (portada or {}).items() if isinstance(v, str) and v.strip()}
+    return {k: v for k, v in limpia.items() if k in ("profesor", "titulo")} or None
+
+
 def _construir_documentos(
-    state: AppState, tarea: dict, materia: dict, settings: dict, markdown: str
+    state: AppState,
+    tarea: dict,
+    materia: dict,
+    settings: dict,
+    markdown: str,
+    portada: dict | None = None,
 ) -> dict:
+    portada = portada or {}
     out_dir = _generacion_dir(state, tarea["id"]) / datetime.now().strftime("%Y%m%d-%H%M%S")
     mapping = documents.marcadores(
-        settings["nombre"], settings["matricula"], materia["profesor"], date.today()
+        settings["nombre"],
+        settings["matricula"],
+        portada.get("profesor") or materia["profesor"],
+        date.today(),
     )
     avisos: list[str] = []
     docx_path = documents.build_final_docx(
@@ -805,11 +829,11 @@ def _construir_documentos(
         mapping,
         out_dir / "tmp",
         avisos,
-        f"{materia['nombre']} - {tarea['titulo']}",
+        portada.get("titulo") or f"{materia['nombre']} - {tarea['titulo']}",
     )
     pdf_path = documents.export_pdf(docx_path, out_dir / "tarea.pdf")
     return state.storage.set_generacion(
-        tarea["id"], markdown, str(docx_path), str(pdf_path), avisos
+        tarea["id"], markdown, str(docx_path), str(pdf_path), avisos, portada=portada or None
     )
 
 
@@ -827,13 +851,14 @@ def restaurar_generacion(state: AppState, hist_id: int) -> dict:
     return state.generacion_public(fila)
 
 
-def _portada_preview(state: AppState, tarea: dict) -> Path:
+def _portada_preview(state: AppState, tarea: dict, portada: dict | None = None) -> Path:
+    portada = portada or {}
     materia = state.storage.get_materia(tarea["materia_id"])
     settings = state.storage.get_settings()
     mapping = documents.marcadores(
         settings["nombre"] or "NOMBRE DEL ALUMNO",
         settings["matricula"] or "MATRÍCULA",
-        (materia or {}).get("profesor") or "PROFESOR",
+        portada.get("profesor") or (materia or {}).get("profesor") or "PROFESOR",
         date.today(),
     )
     carpeta = _generacion_dir(state, tarea["id"]) / "preview"
@@ -841,10 +866,10 @@ def _portada_preview(state: AppState, tarea: dict) -> Path:
     return documents.export_pdf(docx_path, carpeta / "portada.pdf")
 
 
-async def portada_preview(state: AppState, tarea_id: str) -> dict:
+async def portada_preview(state: AppState, tarea_id: str, portada: dict | None = None) -> dict:
     tarea = state.storage.get_tarea(tarea_id)
     try:
-        pdf = await asyncio.to_thread(_portada_preview, state, tarea)
+        pdf = await asyncio.to_thread(_portada_preview, state, tarea, _portada_limpia(portada))
     except Exception as exc:
         raise ApiError(502, "sin_word", f"No se pudo generar la vista previa: {exc}") from exc
     return {"pdf_url": state.file_url(pdf)}
